@@ -46,18 +46,18 @@ export class ModuleContextService {
   getAllowedIds(block: SidebarBlock): string[] {
     switch (block) {
       case 'anam':
-        return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas' ];
+        return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas', 'auditoria-credenciales', 'administracion' ];
         // return ['enrolamiento', 'plantilla-anam'];
       case 'nuevo-laredo':
-                return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas' ];
+                return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas', 'auditoria-credenciales', 'administracion' ];
 
         // return ['enrolamiento', 'provisional', 'familiar'];
       case 'consultas':
-                return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas' ];
+                return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas', 'auditoria-credenciales', 'administracion' ];
 
         // return ['busquedaAvanzada', 'reportes', 'credencializacion', 'Carga masiva', 'plantillas', 'imprimir-credenciales', 'catalogo-areas'];
       case 'enrolamiento-masivo':
-                return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas' ];
+                return ['imprimir-credenciales', 'enrolamiento-previo', 'plantillas',  'inventario-medios', 'catalogo-areas', 'auditoria-credenciales', 'administracion' ];
 
         // return ['enrolamiento-masivo', 'busqueda-enrolamiento-masivos', 'enrolamiento-previo', 'inventario-medios'];
       default:
@@ -66,7 +66,7 @@ export class ModuleContextService {
   }
 
   resolveBlockFromRoute(url: string): SidebarBlock {
-    if (url.includes('/busqueda-avanzada') || url.includes('/reportes') || url.includes('/credencializacion') || url.includes('/carga-masiva') || url.includes('/plantillas') || url.includes('/imprimir-credenciales') || url.includes('/catalogo-areas')) {
+    if (url.includes('/busqueda-avanzada') || url.includes('/reportes') || url.includes('/credencializacion') || url.includes('/carga-masiva') || url.includes('/plantillas') || url.includes('/imprimir-credenciales') || url.includes('/catalogo-areas') || url.includes('/auditoria-credenciales')) {
       return 'consultas';
     }
 

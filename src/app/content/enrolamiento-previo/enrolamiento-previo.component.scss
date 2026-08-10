@@ -1,27 +1,53 @@
 /* =======================================================
    ENROLAMIENTO PREVIO
-   Reusa el diseno de "Enrolamiento masivo": tres columnas alineadas por
-   alto fijo + panel de resumen. Los estilos se declaran aqui y no se
-   heredan de aquel componente porque Angular encapsula los estilos por
+   La ESTRUCTURA (tres columnas alineadas por alto fijo + panel de resumen)
+   sigue tomada de "Enrolamiento masivo" -- los estilos se declaran aqui y no
+   se heredan de aquel componente porque Angular encapsula los estilos por
    componente: depender de los suyos ataria esta pantalla a que el usuario
    hubiera visitado antes la otra.
+
+   La PALETA ya NO seguia a "Enrolamiento masivo" (verde/azul marino propios,
+   sin relacion con la marca): se retemo a los tokens de src/assets/styles.scss
+   para que esta pantalla se vea del mismo sistema que las otras 6 nuevas
+   (ver CLAUDE.md). Esto rompe a proposito el parecido visual que tenia con el
+   componente legacy "Enrolamiento masivo", que no se toca y se queda con su
+   paleta de siempre.
    ======================================================= */
 
+// El host se vuelve columna flex a proposito: .contenedor-masivo ya NO fija
+// su alto con un "calc(100vh - Npx)" adivinado -- ese numero quedaba corto
+// contra el alto real del <header>, y el sobrante forzaba el scroll de TODA
+// la pagina (content-wrap) en vez de quedarse contenido en
+// .scroll-area-unificada. Con flex:1 se ajusta solo al espacio que el
+// <header> deja libre, sin importar cuanto mida este.
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .ep-icono {
-  background-color: #2c784c;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+
+  i { font-size: 1.25rem; }
 }
 
 .contenedor-masivo {
   background-color: #f4f6f9;
   border-radius: 20px;
   padding: 25px 20px;
-  // Ata el alto al viewport para que scrollee la rejilla interna y no la pagina.
-  height: calc(100vh - 120px);
+  // Llena lo que el <header> deja libre dentro del :host (flex-column) --
+  // ya no un "calc(100vh - Npx)" adivinado, para que la rejilla interna
+  // (.scroll-area-unificada) sea lo unico que scrollee, nunca la pagina.
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -39,14 +65,14 @@
 }
 
 .titulo-pildora {
-  background: linear-gradient(135deg, #2c784c, #36905c);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: white;
   font-weight: bold;
   font-size: 1rem;
   border-radius: 30px;
   padding: 8px 10px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-low);
   width: 90%;
   margin: 0 auto;
   border: 2px solid white;
@@ -63,7 +89,7 @@
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track { background: #e9ecef; border-radius: 10px; }
   &::-webkit-scrollbar-thumb { background-color: #adb5bd; border-radius: 10px; }
-  &::-webkit-scrollbar-thumb:hover { background-color: #2c784c; }
+  &::-webkit-scrollbar-thumb:hover { background-color: var(--color-primary); }
 }
 
 .columna-blanca {
@@ -90,7 +116,7 @@
     max-width: 100%;
     object-fit: contain;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 5px;
     background-color: #fcfcfc;
   }
@@ -104,7 +130,7 @@
   justify-content: center;
   background-color: #f8f9fa;
   border: 2px dashed #dee2e6;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 2rem;
 }
 
@@ -112,20 +138,20 @@
   height: 100%;
   margin: 0;
   background-color: #f8f9fa;
-  border-left: 4px solid #2c784c;
-  border-radius: 8px;
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
   padding: 12px 15px;
-  transition: transform 0.2s;
+  transition: transform var(--duration-normal) var(--ease-standard);
 
   &:hover {
     transform: translateX(3px);
     background-color: #ffffff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05) !important;
+    box-shadow: var(--shadow-low) !important;
   }
 }
 
 .ep-rfc-dato {
-  color: #2c784c;
+  color: var(--color-primary);
   letter-spacing: 0.3px;
 }
 
@@ -133,14 +159,17 @@
   font-size: 0.68rem;
   color: #6c757d;
 
-  i { color: #2c784c; }
+  // Semántico ("ya se guardó"), no de marca -- por eso usa el verde de éxito
+  // en vez del guinda institucional.
+  i { color: var(--color-success); }
 }
 
 .editable-item {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--duration-normal) var(--ease-standard),
+              box-shadow var(--duration-normal) var(--ease-standard);
 
-  &:hover { transform: scale(1.02); box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15); }
+  &:hover { transform: scale(1.02); box-shadow: var(--shadow-md); }
 }
 
 /* ---------- Columna resumen ---------- */
@@ -148,7 +177,7 @@
   background-color: white;
   border-radius: 16px;
   padding: 25px;
-  height: 100%;
+  height: 98%;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -157,8 +186,8 @@
 
 .ep-nota {
   background: #f4f7fb;
-  border-left: 3px solid #17365d;
-  border-radius: 6px;
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
   padding: 0.7rem 0.8rem;
   font-size: 0.78rem;
   color: #4a5568;
@@ -167,29 +196,31 @@
 }
 
 .btn-comenzar {
-  background-color: #17365d;
+  background-color: var(--color-primary);
   color: white;
   border-radius: 30px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all var(--duration-macro) var(--ease-standard);
 
   &:hover:not(:disabled) {
-    background-color: #102744;
+    background-color: var(--color-primary-hover);
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(23, 54, 93, 0.3) !important;
+    box-shadow: 0 4px 8px rgba(159, 34, 65, 0.3) !important;
   }
 }
 
+// Cancelar es una accion destructiva (borra lo capturado en el servidor) --
+// usa el rojo de error del sistema, no el guinda de marca.
 .btn-cancelar {
   background-color: white;
-  color: #bd2a4e;
-  border: 2px solid #bd2a4e;
+  color: var(--color-error);
+  border: 2px solid var(--color-error);
   border-radius: 30px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all var(--duration-macro) var(--ease-standard);
 
-  &:hover:not(:disabled) { background-color: #bd2a4e; color: white; transform: translateY(-2px); }
+  &:hover:not(:disabled) { background-color: var(--color-error); color: white; transform: translateY(-2px); }
 }
 
 .btn-terminar {
@@ -198,7 +229,7 @@
   border-radius: 30px;
   border: none;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all var(--duration-macro) var(--ease-standard);
 
   &:hover:not(:disabled) { background-color: #000000; color: white; transform: translateY(-2px); }
 }
@@ -220,7 +251,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   width: 95vw !important;
 }
 
-.ep-titulo-col { color: #7b293d !important; }
+.ep-titulo-col { color: var(--color-secondary) !important; }
 
 .ep-video-cont {
   height: 380px;
@@ -239,20 +270,20 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .ep-btn-foto {
-  background-color: #8c2a3e;
+  background-color: var(--color-primary);
   color: #fff;
   font-weight: bold;
 
-  &:hover { background-color: #742334; color: #fff; }
+  &:hover { background-color: var(--color-primary-hover); color: #fff; }
 }
 
 .ep-btn-siguiente {
-  background-color: #17365d;
+  background-color: var(--color-primary);
   color: #fff;
   border: none;
   font-weight: bold;
 
-  &:hover:not(:disabled) { background-color: #112844; color: #fff; }
+  &:hover:not(:disabled) { background-color: var(--color-primary-hover); color: #fff; }
 }
 
 .ep-semaforo {
@@ -261,5 +292,5 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   border-radius: 50%;
   margin-right: 0.75rem;
   border: 1px solid #e9ecef;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-low);
 }

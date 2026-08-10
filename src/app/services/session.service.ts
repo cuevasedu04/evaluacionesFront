@@ -42,6 +42,14 @@ export class SessionService {
         nombres: 'Desarrollador',
         apellidos: 'Dev',
         tokenWs: 'dummy-token',
+        // Acceso total: reproduce el comportamiento de siempre en dev, donde
+        // TODAS las rutas usaban `rolesPermitidos: [1,2,3,4,9999]` por igual
+        // (ver CLAUDE.md, gotcha #4 -- nunca hubo diferenciacion real). El
+        // token falso no llega al backend (TokenInterceptor lo omite a
+        // proposito), asi que las pantallas de administracion SI exigen una
+        // sesion real -- ver bypassLogin en environment.ts.
+        esSuperusuario: true,
+        permisos: [],
         expiraEn: Date.now() + 1000 * 60 * 60 * 24 // No expira en 24h
       };
     }

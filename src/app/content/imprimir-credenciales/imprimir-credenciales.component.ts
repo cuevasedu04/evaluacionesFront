@@ -13,6 +13,9 @@ import { CredencialRenderService } from '../../services/credencial-render.servic
 import { ModalManagerService } from '../../components/shared/modal-manager.service';
 import { WacomService } from '../../services/wacom.service';
 import { motivoSinCamara, motivoSinWacom, soportaCamara } from '../../services/soporte-navegador';
+import { PermisosService } from '../../services/permisos.service';
+import { PdfAImagenService } from '../../services/pdf-a-imagen.service';
+import { AjusteImagenComponent } from '../../components/shared/ajuste-imagen/ajuste-imagen.component';
 import {
   EmpleadoSig, PlantillaCredencial, PlantillaCredencialService,
 } from '../../services/plantilla-credencial.service';
@@ -241,6 +244,24 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   avisoWacom: string | null = null;
   avisoCamara: string | null = null;
 
+  // ---- Ajuste de encuadre (recorte/zoom) tras capturar o cargar foto/firma ----
+  @ViewChild('modalAjuste') modalAjusteRef!: TemplateRef<any>;
+  @ViewChild('ajustador') ajustador?: AjusteImagenComponent;
+  srcParaAjustar: string | null = null;
+  tipoAjusteActual: 'foto' | 'firma' = 'foto';
+  convirtiendoPdf = false;
+  private readonly ANCHO_MARCO_FOTO = 300;
+  private readonly ALTO_MARCO_FOTO = 375;
+  private readonly ANCHO_MARCO_FIRMA = 400;
+  private readonly ALTO_MARCO_FIRMA = 200;
+
+  get anchoMarcoAjuste(): number {
+    return this.tipoAjusteActual === 'foto' ? this.ANCHO_MARCO_FOTO : this.ANCHO_MARCO_FIRMA;
+  }
+  get altoMarcoAjuste(): number {
+    return this.tipoAjusteActual === 'foto' ? this.ALTO_MARCO_FOTO : this.ALTO_MARCO_FIRMA;
+  }
+
   /**
    * Foto/firma capturadas en esta sesion, pendientes de guardarse en
    * MEDIA_ROOT. A diferencia de la primera version, confirmar la captura ya
@@ -308,6 +329,8 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private modalManager: ModalManagerService,
     private wacomService: WacomService,
+    public permisosS: PermisosService,
+    private pdfService: PdfAImagenService,
   ) {
     this.columnDefs = COLUMNAS_SIG.map(col => ({
       field: col.campo,
@@ -403,25 +426,38 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
    * normal la plantilla ya vive en sicre_tbl_plantilla_credencial y copiarla
    * por impresion serian ~16 KB por fila sin aportar nada.
    */
-  private async registrarImpresion(folio: string): Promise<void> {
+  private async registrarImpresion(
+    folio: string,
+    lienzoFrente: fabric.Canvas | fabric.StaticCanvas | null,
+    lienzoReverso: fabric.Canvas | fabric.StaticCanvas | null
+  ): Promise<void> {
     const empleado = this.empleadoSeleccionado;
     if (!empleado?.num_empleado) return;
 
+    const props = CredencialRenderService.PROPS_EXTRA;
+
     const datos: any = {
       num_empleado: empleado.num_empleado,
-      rfc: empleado.rfc || '',
       folio,
       fecha_expedicion: empleado.fecha_expedicion,
-      inicio_vig: empleado.inicio_vig || null,
       fin_vig: empleado.fin_vig || null,
       plantilla_credencial: this.plantilla?.clave || null,
-    };
 
-    if (this.modoEdicion) {
-      const props = CredencialRenderService.PROPS_EXTRA;
-      if (this.canvasFrenteEditable) datos.canvas_frente = this.canvasFrenteEditable.toObject(props);
-      if (this.canvasReversoEditable) datos.canvas_reverso = this.canvasReversoEditable.toObject(props);
-    }
+      // El lienzo se guarda SIEMPRE, no solo al editar. Las plantillas son
+      // editables, asi que guardar unicamente su clave dejaria el historial a
+      // merced de cambios posteriores: al consultar una credencial de hace
+      // meses se dibujaria con el diseño de hoy, mostrando un documento que
+      // nunca se expidio. El servidor archiva ademas las imagenes (foto,
+      // firma, fondo) para que tampoco puedan cambiar por debajo.
+      canvas_frente: lienzoFrente ? lienzoFrente.toObject(props) : null,
+      canvas_reverso: lienzoReverso ? lienzoReverso.toObject(props) : null,
+
+      // Distingue "lo ajustaron a mano" de "salio tal cual la plantilla".
+      // Antes se deducia de que hubiera lienzo guardado; ahora que siempre lo
+      // hay, hay que decirlo explicitamente. De esto depende que una
+      // reimpresion restaure los ajustes o siga a la plantilla vigente.
+      con_ajustes: this.modoEdicion,
+    };
 
     try {
       await firstValueFrom(this.plantillaApi.registrarImpresion(datos));
@@ -867,6 +903,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
    */
   async activarEdicion(): Promise<void> {
     if (!this.plantilla || !this.empleadoSeleccionado || this.modoEdicion) return;
+    if (!this.permisosS.tiene('credenciales_editar_ajustes')) return;
 
     this.modoEdicion = true;
     await this.asegurarCanvasEditable(this.cara);
@@ -1051,23 +1088,52 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
         }
       }
 
+      // Lienzos que se van a imprimir. Se conservan despues de generar el PDF
+      // para poder serializarlos como constancia: el historial guarda EXACTAMENTE
+      // lo impreso, no una reconstruccion posterior desde la plantilla.
+      let lienzoFrente: fabric.Canvas | fabric.StaticCanvas | null = null;
+      let lienzoReverso: fabric.Canvas | fabric.StaticCanvas | null = null;
+      let desecharLienzos = false;
+
       if (this.modoEdicion && this.canvasFrenteEditable) {
         // Imprime EXACTAMENTE lo que hay en los canvases editados, ediciones
         // incluidas -- no se vuelve a poblar desde la plantilla original.
+        lienzoFrente = this.canvasFrenteEditable;
+        lienzoReverso = this.canvasReversoEditable;
+      } else {
+        // Fuera del modo edicion se construyen aqui, en vez de llamar a
+        // generarPdf(), porque ese metodo renderiza y descarta los canvases
+        // internamente y no habria de donde sacar el snapshot. Asi se
+        // renderiza UNA sola vez y sirve para las dos cosas.
+        lienzoFrente = await this.render.renderizarCara(
+          this.plantillaEfectiva!, 'frente', this.empleadoSeleccionado
+        );
+        if (this.tieneReverso) {
+          lienzoReverso = await this.render.renderizarCara(
+            this.plantillaEfectiva!, 'reverso', this.empleadoSeleccionado
+          );
+        }
+        desecharLienzos = true;   // son nuestros; los editables no.
+      }
+
+      try {
         await this.render.generarPdfDesdeCanvases(
-          this.canvasFrenteEditable,
-          this.canvasReversoEditable,
+          lienzoFrente,
+          lienzoReverso,
           this.plantilla,
           this.empleadoSeleccionado,
           { nombreArchivo }
         );
-      } else {
-        await this.render.generarPdf(this.plantillaEfectiva!, this.empleadoSeleccionado, { nombreArchivo });
-      }
 
-      // Constancia de la impresion ANTES de avanzar el folio, para que quede
-      // registrado el folio que efectivamente llevo esta credencial.
-      await this.registrarImpresion(folioImpreso);
+        // Constancia de la impresion ANTES de avanzar el folio, para que quede
+        // registrado el folio que efectivamente llevo esta credencial.
+        await this.registrarImpresion(folioImpreso, lienzoFrente, lienzoReverso);
+      } finally {
+        if (desecharLienzos) {
+          lienzoFrente?.dispose();
+          lienzoReverso?.dispose();
+        }
+      }
 
       // El folio se consume DESPUES de que el PDF salio bien: si se avanzara
       // antes y la generacion fallara, ese folio quedaria quemado sin haberse
@@ -1214,27 +1280,81 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     canvas.getContext('2d')?.drawImage(video, 0, 0);
     // PNG y no JPEG: el backend guarda todo en PNG, y capturar en JPEG para
     // luego convertir dejaria los artefactos de compresion grabados.
-    this.fotoCapturada = canvas.toDataURL('image/png');
     this.detenerCamara();
+    this.abrirAjuste('foto', canvas.toDataURL('image/png'));
   }
 
   /** Subida manual, por si el software de la cámara profesional no expone webcam. */
-  onArchivoSeleccionado(evento: any): void {
+  async onArchivoSeleccionado(evento: any): Promise<void> {
     const archivo = evento.target.files[0];
+    evento.target.value = '';
     if (!archivo) return;
 
-    if (archivo.size > 5 * 1024 * 1024) {
-      this.utils.MuestrasToast(TipoToast.Warning, 'La imagen es muy pesada. Máximo 5MB.');
+    if (archivo.size > 8 * 1024 * 1024) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo es muy pesado. Máximo 8MB.');
+      return;
+    }
+
+    this.detenerCamara();
+    if (this.pdfService.esPdf(archivo)) {
+      await this.convertirYAjustarPdf('foto', archivo);
+      return;
+    }
+    if (!archivo.type?.startsWith('image/')) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo debe ser una imagen o un PDF.');
       return;
     }
 
     const lector = new FileReader();
-    lector.onload = () => {
-      this.fotoCapturada = lector.result as string;
-      this.detenerCamara();
-    };
+    lector.onload = () => this.abrirAjuste('foto', lector.result as string);
     lector.readAsDataURL(archivo);
-    evento.target.value = '';
+  }
+
+  // ====================================================================
+  // Ajuste de encuadre (recorte/zoom) -- se abre SIEMPRE tras una captura
+  // de cámara o una carga de archivo (imagen o PDF), para foto y firma. El
+  // trazo a mano (mouse/touch/Wacom) NO pasa por aquí: ya se dibuja directo
+  // y a escala real sobre el canvas de firma.
+  // ====================================================================
+
+  private abrirAjuste(tipo: 'foto' | 'firma', dataUrl: string): void {
+    this.tipoAjusteActual = tipo;
+    this.srcParaAjustar = dataUrl;
+    this.modalManager.openModal({
+      title: tipo === 'foto' ? 'Ajustar fotografía' : 'Ajustar firma',
+      template: this.modalAjusteRef,
+      width: '480px',
+      onAccept: () => this.confirmarAjuste(),
+    });
+  }
+
+  private confirmarAjuste(): void {
+    if (!this.ajustador) return;
+    const resultado = this.ajustador.exportar();
+
+    if (this.tipoAjusteActual === 'foto') {
+      this.fotoCapturada = resultado;
+    } else {
+      // Dibuja el recorte en el canvas visible de firma: confirmarFirma()
+      // lee de ahí al aceptar el modal de firma, no de una variable aparte.
+      this.dibujarImagenEnFirma(resultado);
+    }
+    this.cdr.detectChanges();
+  }
+
+  /** Convierte la primera página de un PDF a imagen y de ahí pasa directo al ajuste de encuadre. */
+  private async convertirYAjustarPdf(tipo: 'foto' | 'firma', archivo: File): Promise<void> {
+    this.convirtiendoPdf = true;
+    this.cdr.detectChanges();
+    try {
+      const dataUrl = await this.pdfService.primeraPaginaComoDataUrl(archivo);
+      this.abrirAjuste(tipo, dataUrl);
+    } catch (err) {
+      this.utils.MuestraErrorInterno(err);
+    } finally {
+      this.convirtiendoPdf = false;
+      this.cdr.detectChanges();
+    }
   }
 
   /**
@@ -1315,20 +1435,29 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Sube una imagen de firma ya existente y la dibuja en el canvas (ajustada, sin deformar). */
-  onArchivoFirmaSeleccionado(evento: any): void {
+  /** Sube una imagen (o PDF) de firma ya existente; pasa por el ajuste de encuadre antes de dibujarla. */
+  async onArchivoFirmaSeleccionado(evento: any): Promise<void> {
     const archivo = evento.target.files[0];
+    evento.target.value = '';
     if (!archivo) return;
 
-    if (archivo.size > 5 * 1024 * 1024) {
-      this.utils.MuestrasToast(TipoToast.Warning, 'La imagen es muy pesada. Máximo 5MB.');
+    if (archivo.size > 8 * 1024 * 1024) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo de firma es muy pesado. Máximo 8MB.');
+      return;
+    }
+
+    if (this.pdfService.esPdf(archivo)) {
+      await this.convertirYAjustarPdf('firma', archivo);
+      return;
+    }
+    if (!archivo.type?.startsWith('image/')) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo de firma debe ser una imagen o un PDF.');
       return;
     }
 
     const lector = new FileReader();
-    lector.onload = () => this.dibujarImagenEnFirma(lector.result as string);
+    lector.onload = () => this.abrirAjuste('firma', lector.result as string);
     lector.readAsDataURL(archivo);
-    evento.target.value = '';
   }
 
   private dibujarImagenEnFirma(dataUrl: string): void {

@@ -1,8 +1,8 @@
 .header{
     min-height: 50px;
-    background-color: var(--color-success);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
     align-items: center;
-    border-bottom: 5px solid rgb(181, 154, 0);
+    border-bottom: 5px solid var(--color-gold);
     margin-bottom: 0px;
     position: fixed;
     width: 100%;
@@ -57,6 +57,13 @@
     height: 32px;
     border-radius: 100%;
     background-color: rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
     color: white;
     transition: all 0.2s ease;
 }

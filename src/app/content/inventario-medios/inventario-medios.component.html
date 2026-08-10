@@ -37,6 +37,64 @@
 </ng-template>
 
 <!-- Captura reutilizable de foto/firma -->
+<!-- ============ Historial de medios de un empleado (solo consulta) ========== -->
+<ng-template #modalVersiones>
+  <div *ngIf="cargandoVersiones" class="text-center text-muted py-5">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Cargando historial...
+  </div>
+
+  <div *ngIf="!cargandoVersiones && versiones">
+    <!-- Lo vigente hoy en disco: es lo que se imprimiría ahora mismo -->
+    <div class="im-ver-actual">
+      <div class="im-ver-etiqueta">
+        <i class="fas fa-circle-check text-success"></i> Vigente hoy
+      </div>
+      <div class="im-ver-medios">
+        <img *ngIf="versiones.foto_actual" [src]="versiones.foto_actual" alt="Foto vigente">
+        <img *ngIf="versiones.firma_actual" [src]="versiones.firma_actual"
+             class="im-ver-firma" alt="Firma vigente">
+      </div>
+      <small class="text-muted">
+        Es lo que hay en <code>/media</code> con el número {{ versiones.num_empleado }}.
+      </small>
+    </div>
+
+    <div class="alert alert-warning py-2 px-3 small" *ngIf="hayMediosReemplazados">
+      <i class="fas fa-triangle-exclamation"></i>
+      Alguna credencial se expidió con una foto o firma <strong>distinta de la vigente</strong>.
+      Las de abajo salen del archivo histórico, así que siguen siendo las que se imprimieron.
+    </div>
+
+    <h6 class="im-ver-titulo">Por impresión ({{ versiones.impresiones.length }})</h6>
+
+    <div class="im-ver-fila" *ngFor="let i of versiones.impresiones">
+      <div class="im-ver-datos">
+        <div class="im-ver-folio">{{ i.folio || 's/n' }}</div>
+        <small class="text-muted d-block">{{ i.fecha_registro | date:'dd/MM/yyyy HH:mm' }}</small>
+      </div>
+
+      <div class="im-ver-medio">
+        <img *ngIf="i.foto" [src]="i.foto" alt="Foto de esa impresión">
+        <div *ngIf="!i.foto" class="im-medio-vacio"><i class="fas fa-camera"></i></div>
+        <span class="im-ver-badge" *ngIf="i.foto && !i.foto_vigente"
+              title="Esta foto ya fue reemplazada en /media">Reemplazada</span>
+      </div>
+
+      <div class="im-ver-medio im-ver-medio-firma">
+        <img *ngIf="i.firma" [src]="i.firma" alt="Firma de esa impresión">
+        <div *ngIf="!i.firma" class="im-medio-vacio"><i class="fas fa-pen-nib"></i></div>
+        <span class="im-ver-badge" *ngIf="i.firma && !i.firma_vigente"
+              title="Esta firma ya fue reemplazada en /media">Reemplazada</span>
+      </div>
+    </div>
+
+    <p class="text-muted small mb-0 mt-2">
+      <i class="fas fa-lock"></i>
+      Estos archivos no se pueden editar ni borrar: son la constancia de lo que se expidió.
+    </p>
+  </div>
+</ng-template>
+
 <app-captura-medios #captura
     (fotoLista)="onFotoCapturada($event)"
     (firmaLista)="onFirmaCapturada($event)">
@@ -58,7 +116,105 @@
         <span class="badge bg-secondary ms-1" *ngIf="totalMedios">{{ totalMedios | number }}</span>
       </button>
     </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="seccion === 'auditoria'"
+              (click)="seleccionarSeccion('auditoria')">
+        <i class="fas fa-clock-rotate-left me-1"></i> Auditoría
+        <span class="badge bg-secondary ms-1" *ngIf="auditoria.length">{{ auditoria.length | number }}</span>
+      </button>
+    </li>
   </ul>
+</div>
+
+<!-- ===================== AUDITORÍA DE MEDIOS (reimpresos) ===================== -->
+<div class="im-contenedor mx-3" *ngIf="seccion === 'auditoria'">
+
+  <div class="alert alert-info py-2 px-3 small mb-2">
+    <i class="fas fa-circle-info"></i>
+    Personas con <strong>más de una credencial impresa</strong>. La tarjeta muestra su foto y firma
+    vigentes; al abrirla se ven las que llevaba <em>cada</em> credencial, tomadas del archivo
+    histórico — no cambian aunque después se les haya recapturado la foto.
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <div class="input-group input-group-sm im-buscador">
+      <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+      <input type="text" class="form-control" placeholder="Buscar por nombre o número de empleado..."
+             [(ngModel)]="busquedaAuditoria" (ngModelChange)="onBusquedaAuditoria()">
+      <button class="btn btn-outline-secondary"
+              (click)="busquedaAuditoria = ''; cargarAuditoria()"><i class="fas fa-eraser"></i></button>
+    </div>
+
+    <div class="form-check form-switch ms-1">
+      <input class="form-check-input" type="checkbox" id="imSoloCambio" [(ngModel)]="soloConCambio">
+      <label class="form-check-label small text-muted" for="imSoloCambio">
+        Solo quienes cambiaron de foto o firma
+      </label>
+    </div>
+
+    <span class="badge bg-light text-dark border">{{ auditoriaVisible.length | number }} empleado(s)</span>
+
+    <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargarAuditoria()"
+            [disabled]="cargandoAuditoria">
+      <i class="fas fa-arrows-rotate"></i> Actualizar
+    </button>
+  </div>
+
+  <div class="im-lista shadow-sm">
+    <div *ngIf="cargandoAuditoria" class="text-center text-muted py-5">
+      <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Revisando el historial...
+    </div>
+
+    <div *ngIf="!cargandoAuditoria && !auditoriaVisible.length" class="text-center text-muted py-5">
+      <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>
+      <div *ngIf="soloConCambio">Nadie ha cambiado de foto o firma entre impresiones.</div>
+      <div *ngIf="!soloConCambio">Todavía nadie tiene más de una credencial impresa.</div>
+    </div>
+
+    <div class="im-tarjetas" *ngIf="!cargandoAuditoria">
+      <div class="im-tarjeta im-tarjeta-clic" *ngFor="let a of auditoriaVisible"
+           (click)="verVersiones(a)" title="Ver los medios de cada impresión">
+        <div class="im-medios">
+          <div class="im-medio" title="Fotografía vigente">
+            <img *ngIf="a.foto_actual" [src]="a.foto_actual" alt="Foto">
+            <div *ngIf="!a.foto_actual" class="im-medio-vacio">
+              <i class="fas fa-camera"></i><small>Sin foto</small>
+            </div>
+          </div>
+          <div class="im-medio im-medio-firma" title="Firma vigente">
+            <img *ngIf="a.firma_actual" [src]="a.firma_actual" alt="Firma">
+            <div *ngIf="!a.firma_actual" class="im-medio-vacio">
+              <i class="fas fa-pen-nib"></i><small>Sin firma</small>
+            </div>
+          </div>
+
+          <span class="im-chip" *ngIf="a.cambio_medios" title="Se reemplazó la foto o la firma">
+            <i class="fas fa-triangle-exclamation"></i> Cambió
+          </span>
+        </div>
+
+        <div class="im-cuerpo">
+          <div class="im-rfc">{{ a.num_empleado }}</div>
+          <div class="im-nombre text-truncate" [title]="a.nombre">{{ a.nombre || '—' }}</div>
+          <div class="im-meta">
+            <span class="badge bg-secondary">{{ a.total_impresiones }} impresiones</span>
+            <span class="badge bg-light text-dark border" *ngIf="a.versiones_foto > 1">
+              {{ a.versiones_foto }} fotos
+            </span>
+            <span class="badge bg-light text-dark border" *ngIf="a.versiones_firma > 1">
+              {{ a.versiones_firma }} firmas
+            </span>
+          </div>
+        </div>
+
+        <div class="im-acciones">
+          <button class="btn btn-sm btn-outline-primary flex-grow-1">
+            <i class="fas fa-clock-rotate-left"></i> Ver versiones
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ===================== FOTOS Y FIRMAS (por num_empleado) ===================== -->
@@ -128,7 +284,7 @@
           <div class="im-rfc">{{ m.num_empleado }}</div>
           <div class="im-nombre text-truncate" [title]="m.nombre">{{ m.nombre || '—' }}</div>
           <div class="im-sin-cruce" *ngIf="!m.en_roster">
-            <i class="fas fa-user-slash"></i> Ya no está en el roster
+            <i class="fas fa-user-slash"></i> Ya no está en el poblado de credencial
           </div>
         </div>
 
@@ -142,6 +298,7 @@
             <i class="fas fa-pen-nib"></i>
           </button>
           <button class="btn btn-sm btn-outline-danger" (click)="confirmarBorrarMedios(m)"
+                  *ngIf="permisosS.tiene('medios_administrar')"
                   title="Eliminar foto y firma del servidor">
             <i class="fas fa-trash"></i>
           </button>
@@ -160,31 +317,31 @@
 
       <!-- Filtros -->
       <div class="d-flex align-items-center gap-2 mb-2 px-1 flex-wrap">
-        <div class="btn-group btn-group-sm im-filtros">
-          <button class="btn btn-outline-secondary" [class.active]="filtro === 'recientes'"
+        <div class="im-filtros" role="group">
+          <button class="im-filtro-btn" [class.active]="filtro === 'recientes'"
                   (click)="seleccionarFiltro('recientes')"
                   title="Capturas de las últimas 24 horas">
             <i class="fas fa-clock me-1"></i>Recientes
-            <span class="badge bg-primary ms-1">{{ totalRecientes }}</span>
+            <span class="im-filtro-badge">{{ totalRecientes }}</span>
           </button>
-          <button class="btn btn-outline-secondary" [class.active]="filtro === 'todos'"
+          <button class="im-filtro-btn" [class.active]="filtro === 'todos'"
                   (click)="seleccionarFiltro('todos')">
-            Todos <span class="badge bg-secondary ms-1">{{ registros.length }}</span>
+            Todos <span class="im-filtro-badge">{{ registros.length }}</span>
           </button>
-          <button class="btn btn-outline-secondary" [class.active]="filtro === 'cruzables'"
+          <button class="im-filtro-btn" [class.active]="filtro === 'cruzables'"
                   (click)="seleccionarFiltro('cruzables')"
-                  title="Ya aparecen en el roster: se pueden renombrar a su número de empleado">
-            Listos para cruzar <span class="badge bg-success ms-1">{{ totalCruzables }}</span>
+                  title="Ya aparecen en el poblado de credencial: se pueden renombrar a su número de empleado">
+            Listos para cruzar <span class="im-filtro-badge im-filtro-badge-success">{{ totalCruzables }}</span>
           </button>
-          <button class="btn btn-outline-secondary" [class.active]="filtro === 'sin_cruce'"
+          <button class="im-filtro-btn" [class.active]="filtro === 'sin_cruce'"
                   (click)="seleccionarFiltro('sin_cruce')"
-                  title="Todavía no aparecen en el roster (o el nombre del archivo no es un RFC)">
-            Sin cruce <span class="badge bg-secondary ms-1">{{ totalSinCruce }}</span>
+                  title="Todavía no aparecen en el poblado de credencial (o el nombre del archivo no es un RFC)">
+            Sin cruce <span class="im-filtro-badge">{{ totalSinCruce }}</span>
           </button>
-          <button class="btn btn-outline-secondary" [class.active]="filtro === 'incompletos'"
+          <button class="im-filtro-btn" [class.active]="filtro === 'incompletos'"
                   (click)="seleccionarFiltro('incompletos')"
                   title="Les falta la foto o la firma">
-            Incompletos <span class="badge bg-danger ms-1">{{ totalIncompletos }}</span>
+            Incompletos <span class="im-filtro-badge im-filtro-badge-danger">{{ totalIncompletos }}</span>
           </button>
         </div>
 
@@ -217,7 +374,7 @@
 
         <div *ngIf="cargando" class="text-center text-muted py-5">
           <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-          <div>Leyendo el inventario y cruzándolo con el roster...</div>
+          <div>Leyendo el inventario y cruzándolo con el poblado de credencial...</div>
           <small class="text-muted">La primera carga tarda unos segundos.</small>
         </div>
 
@@ -258,7 +415,7 @@
               </div>
 
               <div class="im-sin-cruce" *ngIf="!reg.cruce">
-                <i class="fas fa-hourglass-half"></i> Aún no está en el roster
+                <i class="fas fa-hourglass-half"></i> Aún no está en el poblado de credencial
               </div>
 
               <div class="im-fecha" *ngIf="reg.fecha">
@@ -281,17 +438,19 @@
               </button>
               <button class="btn btn-sm btn-outline-secondary"
                       (click)="abrirRenombrar(reg)"
+                      *ngIf="permisosS.tiene('medios_administrar')"
                       title="Corregir el RFC con el que se guardó">
                 <i class="fas fa-i-cursor"></i>
               </button>
               <button class="btn btn-sm btn-outline-danger"
                       (click)="confirmarBorrado(reg)"
+                      *ngIf="permisosS.tiene('medios_administrar')"
                       title="Eliminar esta captura del servidor">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
 
-            <div class="im-acciones pt-0" *ngIf="reg.cruce">
+            <div class="im-acciones pt-0" *ngIf="reg.cruce && permisosS.tiene('medios_administrar')">
               <button class="btn btn-sm btn-success flex-grow-1"
                       [disabled]="migrando"
                       (click)="migrarUno(reg)"
@@ -336,7 +495,7 @@
           tiene foto propia con su número, esa se respeta y no se sobrescribe.
         </div>
 
-        <div class="mt-auto d-flex flex-column gap-3">
+        <div class="mt-auto d-flex flex-column gap-3" *ngIf="permisosS.tiene('medios_administrar')">
           <button class="btn im-btn-cruzar py-2 shadow-sm"
                   [disabled]="!totalCruzables || migrando || cargando"
                   (click)="confirmarMigrarTodos()">

@@ -1,0 +1,287 @@
+<!-- ==================== Modal: alta/edición de usuario ==================== -->
+<ng-template #modalUsuario>
+  <div class="p-1">
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label fw-bold small">Usuario *</label>
+        <input type="text" class="form-control" [(ngModel)]="enFormularioUsuario.username"
+               [disabled]="editandoUsuario" autocomplete="off">
+      </div>
+      <div class="col-6">
+        <label class="form-label fw-bold small">Correo</label>
+        <input type="email" class="form-control" [(ngModel)]="enFormularioUsuario.email">
+      </div>
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label fw-bold small">Nombre(s)</label>
+        <input type="text" class="form-control" [(ngModel)]="enFormularioUsuario.first_name">
+      </div>
+      <div class="col-6">
+        <label class="form-label fw-bold small">Apellidos</label>
+        <input type="text" class="form-control" [(ngModel)]="enFormularioUsuario.last_name">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-bold small">Número de empleado</label>
+      <input type="text" class="form-control" [(ngModel)]="enFormularioUsuario.num_empleado">
+      <small class="text-muted">
+        Opcional. Se usa para mostrar su fotografia en el perfil del usuario del sistema
+      </small>
+    </div>
+
+    <div class="mb-3" *ngIf="!editandoUsuario">
+      <label class="form-label fw-bold small">Contraseña inicial *</label>
+      <input type="password" class="form-control" [(ngModel)]="enFormularioUsuario.password"
+             autocomplete="new-password">
+      <small class="text-muted">Mínimo 8 caracteres. El usuario puede cambiarla después.</small>
+    </div>
+
+    <label class="form-label fw-bold small d-block">Roles</label>
+    <div class="ad-lista-check" *ngIf="roles.length; else sinRoles">
+      <div class="form-check" *ngFor="let rol of roles">
+        <input class="form-check-input" type="checkbox" [id]="'ru-' + rol.id"
+               [checked]="enFormularioUsuario.roles.includes(rol.id)"
+               (change)="toggleRolUsuario(rol.id)">
+        <label class="form-check-label small" [for]="'ru-' + rol.id">{{ rol.name }}</label>
+      </div>
+    </div>
+    <ng-template #sinRoles>
+      <small class="text-muted d-block">
+        Todavía no hay roles creados — ve a la pestaña «Roles» para crear el primero.
+      </small>
+    </ng-template>
+  </div>
+</ng-template>
+
+<!-- ==================== Modal: restablecer contraseña ==================== -->
+<ng-template #modalPassword>
+  <div class="p-1">
+    <div class="mb-2">
+      <label class="form-label fw-bold small">Contraseña nueva</label>
+      <input type="password" class="form-control" [(ngModel)]="passwordNueva" autocomplete="new-password">
+    </div>
+    <div class="mb-1">
+      <label class="form-label fw-bold small">Confirmar</label>
+      <input type="password" class="form-control" [(ngModel)]="passwordConfirmar" autocomplete="new-password">
+    </div>
+    <small class="text-muted d-block mt-2">
+      <i class="fas fa-circle-info"></i>
+      Mínimo 8 caracteres. Al guardar, cualquier sesión anterior de esta cuenta se cierra.
+    </small>
+  </div>
+</ng-template>
+
+<!-- ==================== Modal: alta/edición de rol ==================== -->
+<ng-template #modalRol>
+  <div class="p-1">
+    <div class="mb-3">
+      <label class="form-label fw-bold small">Nombre del rol *</label>
+      <input type="text" class="form-control" [(ngModel)]="enFormularioRol.name"
+             placeholder="Ej. Operador de credencialización">
+    </div>
+
+    <label class="form-label fw-bold small d-block">Acceso a pantallas</label>
+
+    <div class="ad-matriz mb-3">
+      <div class="form-check" *ngFor="let p of permisosPantallas">
+        <input class="form-check-input" type="checkbox" [id]="'rp-' + p.id"
+               [checked]="enFormularioRol.permisos.includes(p.codename)"
+               (change)="togglePermisoRol(p.codename)">
+        <label class="form-check-label small" [for]="'rp-' + p.id">{{ p.name }}</label>
+      </div>
+    </div>
+
+    <label class="form-label fw-bold small d-block">Funcionalidades dentro de una pantalla</label>
+    <p class="text-muted ad-nota">
+      No implica ver la pantalla por sí solo — combínalo con el permiso de acceso correspondiente.
+    </p>
+    <div class="ad-matriz">
+      <div class="form-check" *ngFor="let p of permisosFuncionalidades">
+        <input class="form-check-input" type="checkbox" [id]="'rf-' + p.id"
+               [checked]="enFormularioRol.permisos.includes(p.codename)"
+               (change)="togglePermisoRol(p.codename)">
+        <label class="form-check-label small" [for]="'rf-' + p.id">{{ p.name }}</label>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
+
+<!-- ================================ Pantalla =============================== -->
+<header class="mb-3 mt-2">
+  <div class="d-flex align-items-center gap-3 px-3">
+    <div class="ad-icono"><i class="fas fa-user-shield text-white"></i></div>
+    <div>
+      <h1 class="fw-bold text-dark mb-0 h3">Administración</h1>
+      <p class="text-muted mb-0">Usuarios, roles y permisos del sistema</p>
+    </div>
+  </div>
+</header>
+
+<div class="mx-3 mb-2">
+  <ul class="nav nav-tabs ad-secciones">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="seccion === 'usuarios'" (click)="seleccionarSeccion('usuarios')">
+        <i class="fas fa-users me-1"></i> Usuarios
+        <span class="badge bg-secondary ms-1" *ngIf="usuarios.length">{{ usuarios.length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="seccion === 'roles'" (click)="seleccionarSeccion('roles')">
+        <i class="fas fa-user-tag me-1"></i> Roles
+        <span class="badge bg-secondary ms-1" *ngIf="roles.length">{{ roles.length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="seccion === 'general'" (click)="seleccionarSeccion('general')">
+        <i class="fas fa-sliders me-1"></i> General
+      </button>
+    </li>
+  </ul>
+</div>
+
+<!-- ===================== USUARIOS ===================== -->
+<div class="ad-contenedor mx-3" *ngIf="seccion === 'usuarios'">
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <div class="input-group input-group-sm ad-buscador">
+      <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+      <input type="text" class="form-control" placeholder="Buscar por usuario, nombre o correo..."
+             [(ngModel)]="busquedaUsuarios" (ngModelChange)="onBusquedaUsuarios()">
+    </div>
+
+    <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargarUsuarios()" [disabled]="cargandoUsuarios">
+      <i class="fas fa-arrows-rotate"></i> Actualizar
+    </button>
+    <button class="btn btn-sm ad-btn-nuevo" (click)="nuevoUsuario()">
+      <i class="fas fa-plus"></i> Nuevo usuario
+    </button>
+  </div>
+
+  <div *ngIf="cargandoUsuarios" class="ad-cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Cargando usuarios...
+  </div>
+
+  <ag-grid-angular
+      *ngIf="!cargandoUsuarios"
+      class="ag-theme-alpine ad-grid"
+      [rowData]="usuarios"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [animateRows]="false"
+      [suppressCellFocus]="true"
+      (gridReady)="onGridReady($event)"
+      (cellClicked)="onCellClicked($event)">
+  </ag-grid-angular>
+</div>
+
+<!-- ===================== ROLES ===================== -->
+<div class="ad-contenedor ad-contenedor-roles mx-3" *ngIf="seccion === 'roles'">
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <span class="badge bg-light text-dark border">{{ roles.length }} rol(es)</span>
+    <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargarRoles()" [disabled]="cargandoRoles">
+      <i class="fas fa-arrows-rotate"></i> Actualizar
+    </button>
+    <button class="btn btn-sm ad-btn-nuevo" (click)="nuevoRol()">
+      <i class="fas fa-plus"></i> Nuevo rol
+    </button>
+  </div>
+
+  <div *ngIf="cargandoRoles" class="ad-cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Cargando roles...
+  </div>
+
+  <div *ngIf="!cargandoRoles && !roles.length" class="ad-cargando">
+    <i class="fas fa-user-tag fa-2x mb-2 d-block opacity-50"></i>
+    Todavía no hay roles. Crea el primero para empezar a repartir permisos.
+  </div>
+
+  <div class="ad-roles" *ngIf="!cargandoRoles">
+    <div class="ad-rol-tarjeta" *ngFor="let rol of roles">
+      <div class="ad-rol-cabecera">
+        <div>
+          <div class="ad-rol-nombre">{{ rol.name }}</div>
+          <small class="text-muted">
+            {{ rol.permisos_detalle.length }} permiso(s) · {{ rol.total_usuarios || 0 }} usuario(s)
+          </small>
+        </div>
+        <div class="ad-rol-acciones">
+          <button class="btn btn-sm btn-outline-primary" (click)="editarRol(rol)" title="Editar">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="confirmarEliminarRol(rol)" title="Eliminar">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="ad-rol-permisos">
+        <span class="badge bg-light text-dark border" *ngFor="let p of rol.permisos_detalle">
+          {{ p.name }}
+        </span>
+        <span class="text-muted small" *ngIf="!rol.permisos_detalle.length">Sin permisos asignados.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== GENERAL ===================== -->
+<div class="ad-contenedor mx-3" *ngIf="seccion === 'general'">
+  <div class="ad-respaldo" *ngIf="permisosS.tiene('medios_respaldo'); else sinPermisoRespaldo">
+    <h5 class="ad-respaldo-titulo"><i class="fas fa-box-archive me-2"></i>Respaldo de medios</h5>
+    <p class="text-muted ad-respaldo-nota">
+      Descarga una copia completa (.zip) de las carpetas de <code>/media</code> tal como están
+      en el servidor ahora mismo. Útil para tener un respaldo propio antes de una migración
+      o un mantenimiento.
+    </p>
+
+    <div class="d-flex flex-wrap gap-3">
+      <div class="ad-respaldo-tarjeta">
+        <div class="ad-respaldo-icono"><i class="fas fa-image"></i></div>
+        <div class="flex-grow-1">
+          <div class="fw-bold">Fotografías</div>
+          <small class="text-muted">Carpeta <code>media/fotos/</code></small>
+        </div>
+        <button class="btn ad-btn-nuevo" [disabled]="descargandoFotos" (click)="descargarRespaldoFotos()">
+          <i class="fas" [class.fa-download]="!descargandoFotos"
+             [class.fa-spinner]="descargandoFotos" [class.fa-spin]="descargandoFotos"></i>
+          {{ descargandoFotos ? 'Generando...' : 'Descargar' }}
+        </button>
+      </div>
+
+      <div class="ad-respaldo-tarjeta">
+        <div class="ad-respaldo-icono"><i class="fas fa-signature"></i></div>
+        <div class="flex-grow-1">
+          <div class="fw-bold">Firmas</div>
+          <small class="text-muted">Carpeta <code>media/FIRMAS/</code></small>
+        </div>
+        <button class="btn ad-btn-nuevo" [disabled]="descargandoFirmas" (click)="descargarRespaldoFirmas()">
+          <i class="fas" [class.fa-download]="!descargandoFirmas"
+             [class.fa-spinner]="descargandoFirmas" [class.fa-spin]="descargandoFirmas"></i>
+          {{ descargandoFirmas ? 'Generando...' : 'Descargar' }}
+        </button>
+      </div>
+    </div>
+
+    <p class="text-muted ad-respaldo-nota mt-3">
+      <i class="fas fa-circle-info"></i>
+      Son ~14 mil archivos por carpeta: el zip se arma en el servidor al vuelo y puede tardar
+      varios segundos en empezar a descargar.
+    </p>
+  </div>
+
+  <ng-template #sinPermisoRespaldo>
+    <div class="ad-cargando">
+      <i class="fas fa-lock fa-2x mb-2 d-block opacity-50"></i>
+      No tienes el permiso «Administración: descargar respaldo de fotos y firmas».
+    </div>
+  </ng-template>
+</div>

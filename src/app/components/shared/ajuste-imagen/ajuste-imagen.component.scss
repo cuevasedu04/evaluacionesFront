@@ -1,0 +1,47 @@
+.ai-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ai-marco {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid #dee2e6;
+  cursor: grab;
+
+  &:active { cursor: grabbing; }
+}
+
+// Firma: fondo cuadriculado para distinguir la transparencia real del PNG,
+// mismo patrón que la vista previa de firmas en inventario-medios.
+.ai-marco-transparente {
+  background-image:
+    linear-gradient(45deg, #eceff1 25%, transparent 25%),
+    linear-gradient(-45deg, #eceff1 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eceff1 75%),
+    linear-gradient(-45deg, transparent 75%, #eceff1 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.ai-controles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ai-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  input[type="range"] { width: 160px; }
+}
+
+.ai-ayuda {
+  text-align: center;
+  font-size: 0.72rem;
+}

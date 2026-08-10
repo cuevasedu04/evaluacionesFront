@@ -25,19 +25,16 @@
         
         <!-- Elementos del usuario (lado derecho) -->
         <div class="header-right">
-                    <!-- Botón regresar al siorh -->
-                    <div class="toolbar-siorh-btn header-right-btn" (click)="volverASiorh()">
-                      <span class="toggle-icon"> <i class="fas fa-arrow-left text-white"></i> </span>
-                    </div>
-          <span class="username">{{ usuario?.nombreCompleto || 'Usuario' }} <i class="fas fa-caret-right mx-1 fa-xs"></i>{{usuario?.area || 'Sin área asignada'}}</span>
+          <span class="username">{{ nombreUsuario }}</span>
           <div class="user-menu" (click)="toggleDropdown()">
-            <!-- Ícono de usuario -->
+            <!-- Ícono de usuario: foto si se pudo cruzar por numEmpleado, si no la silueta -->
             <div class="user-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <img *ngIf="usuario?.foto" [src]="usuario.foto" alt="Foto de perfil">
+              <svg *ngIf="!usuario?.foto" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
               </svg>
             </div>
-            
+
             <!-- Dropdown menu -->
             <div class="dropdown-menu" [class.show]="isDropdownOpen">
               <button class="dropdown-item" (click)="logout()">

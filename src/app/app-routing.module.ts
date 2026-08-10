@@ -25,6 +25,8 @@ import { ImprimirCredencialesComponent } from './content/imprimir-credenciales/i
 import { EnrolamientoPrevioComponent } from './content/enrolamiento-previo/enrolamiento-previo.component';
 import { InventarioMediosComponent } from './content/inventario-medios/inventario-medios.component';
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
+import { AuditoriaCredencialesComponent } from './content/auditoria-credenciales/auditoria-credenciales.component';
+import { AdministracionComponent } from './content/administracion/administracion.component';
 
 const routes: Routes = [
   {
@@ -40,43 +42,43 @@ const routes: Routes = [
         path: 'busqueda-enrolamiento-masivos',
         component: BusquedaEnrolamientoMasivosComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_busqueda_enrolamiento_masivos'  },
       },
       {
         path: 'enrolamiento-masivo',
         component: EnrolamientoMasivoComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_enrolamiento_masivo'  },
       },
       {
         path: 'familiar',
         component: FamiliarComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_familiar'  },
       },
       {
         path: 'plantilla-anam',
         component: PlantillaAnamComponent,
         canActivate: [AuthGuard, BlockAccessGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_plantilla_anam'  },
       },
       {
         path: 'provisional',
         component: ProvisionalComponent,
         canActivate: [AuthGuard, BlockAccessGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_provisional'  },
       },
       {
         path: 'busqueda-avanzada',
         component: BusquedaAvanzadaComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_busqueda_avanzada'  },
       },
       {
         path: 'reportes',
         component: ReportesComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_reportes'  },
       },
       // Editor visual de plantillas de credencial (canvas). Independiente de
       // plantilla-anam / provisional / familiar, que siguen funcionando igual.
@@ -84,73 +86,85 @@ const routes: Routes = [
         path: 'plantillas',
         component: PlantillaListaComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_plantillas'  },
       },
       {
         path: 'plantillas/editor',
         component: PlantillaEditorComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_plantillas'  },
       },
       {
         path: 'plantillas/editor/:id',
         component: PlantillaEditorComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_plantillas'  },
       },
       {
         path: 'imprimir-credenciales',
         component: ImprimirCredencialesComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_imprimir_credenciales'  },
       },
       {
         path: 'enrolamiento-previo',
         component: EnrolamientoPrevioComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_enrolamiento_previo'  },
       },
       {
         path: 'inventario-medios',
         component: InventarioMediosComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_inventario_medios'  },
       },
       {
         path: 'catalogo-areas',
         component: CatalogoUnidadesComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_catalogo_areas'  },
+      },
+      {
+        path: 'auditoria-credenciales',
+        component: AuditoriaCredencialesComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_auditoria_credenciales'  },
       },
       {
         path: 'registro-empleado',
         component: RegistroEmpleadoComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_registro_empleado'  },
       },
       {
         path: 'enrolamiento',
         component: EnrolamientoComponent,
         canActivate: [AuthGuard, BlockAccessGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_enrolamiento'  },
       },
       {
         path: 'credencializacion',
         component: CredencializacionComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_credencializacion'  },
       },
       {
         path: 'carga-masiva',
         component: CargaMasivaComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [1, 2, 3, 4, 9999] },
+        data: { permisoRequerido: 'ver_carga_masiva'  },
+      },
+      {
+        path: 'administracion',
+        component: AdministracionComponent,
+        canActivate: [AuthGuard],
+        data: { soloSuperusuario: true },
       },
       {
         path: 'test',
         component: UnitTestComponent,
         canActivate: [AuthGuard],
-        data: { rolesPermitidos: [9999] }, // o lo que tú consideres
+        data: { soloSuperusuario: true },
       },
     ],
   },

@@ -1,0 +1,192 @@
+<!-- ================= Visor de la credencial impresa (solo consulta) ========= -->
+<ng-template #modalCredencial>
+  <div class="ac-visor">
+
+    <!-- Credencial -->
+    <div class="ac-visor-credencial">
+      <div class="btn-group btn-group-sm mb-2" role="group">
+        <button type="button" class="btn"
+                [class.btn-success]="cara === 'frente'"
+                [class.btn-outline-secondary]="cara !== 'frente'"
+                (click)="cambiarCara('frente')">Frente</button>
+        <button type="button" class="btn"
+                [class.btn-success]="cara === 'reverso'"
+                [class.btn-outline-secondary]="cara !== 'reverso'"
+                [disabled]="!tieneReverso"
+                (click)="cambiarCara('reverso')">Reverso</button>
+      </div>
+
+      <div class="ac-lienzo">
+        <div *ngIf="cargandoDetalle" class="text-muted text-center py-5">
+          <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+          <small>Reconstruyendo la credencial...</small>
+        </div>
+
+        <img *ngIf="!cargandoDetalle && imagenActual" [src]="imagenActual"
+             class="ac-credencial-img" alt="Credencial impresa">
+
+        <!-- Impresiones anteriores a que se guardara el lienzo. Se dice
+             explícitamente en vez de dibujar una reconstrucción con la
+             plantilla actual, que sería una suposición, no un registro. -->
+        <div *ngIf="!cargandoDetalle && !imagenActual && detalle && !detalle.tiene_snapshot"
+             class="ac-sin-snapshot">
+          <i class="fas fa-file-circle-question fa-2x mb-2 d-block"></i>
+          <strong class="d-block mb-1">Sin copia del diseño</strong>
+          <small>
+            Esta impresión es anterior a que el sistema guardara el lienzo.
+            Se conserva el registro (folio, fechas y plantilla), pero no la
+            imagen exacta que se expidió.
+          </small>
+        </div>
+
+        <div *ngIf="!cargandoDetalle && !imagenActual && detalle?.tiene_snapshot && cara === 'reverso'"
+             class="ac-sin-snapshot">
+          <i class="fas fa-ban fa-2x mb-2 d-block"></i>
+          <small>Esta credencial se imprimió sin reverso.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Datos de la expedición -->
+    <aside class="ac-visor-datos" *ngIf="detalle">
+      <h6 class="ac-datos-titulo">Datos de la expedición</h6>
+
+      <dl class="ac-datos-lista">
+        <dt>Empleado</dt>
+        <dd>{{ detalle.nombre || '—' }}</dd>
+
+        <dt>No. empleado</dt>
+        <dd>{{ detalle.num_empleado || '—' }}</dd>
+
+        <dt>Folio</dt>
+        <dd class="ac-folio">{{ detalle.folio || '—' }}</dd>
+
+        <dt>Fecha de expedición</dt>
+        <dd>{{ formatearFecha(detalle.fecha_expedicion) || '—' }}</dd>
+
+        <dt>Fin de vigencia</dt>
+        <dd>{{ formatearFecha(detalle.fin_vig) || '—' }}</dd>
+
+        <dt>Plantilla</dt>
+        <dd>{{ detalle.plantilla_credencial || '—' }}</dd>
+
+        <dt>Impresa el</dt>
+        <dd>{{ formatearFechaHora(detalle.fecha_registro) || '—' }}</dd>
+      </dl>
+
+      <div class="alert alert-warning py-2 px-2 small mb-2" *ngIf="detalle.con_ajustes">
+        <i class="fas fa-pen"></i>
+        Se ajustó a mano antes de imprimir: lo que ves no es la plantilla tal
+        cual, sino el diseño exacto que salió.
+      </div>
+
+      <button class="btn btn-sm btn-outline-secondary w-100 mb-3"
+              [disabled]="!detalle.tiene_snapshot || generandoPdf" (click)="descargarPdf()">
+        <i class="fas" [class.fa-download]="!generandoPdf" [class.fa-spinner]="generandoPdf"
+           [class.fa-spin]="generandoPdf"></i>
+        {{ generandoPdf ? 'Generando...' : 'Descargar PDF (duplicado exacto)' }}
+      </button>
+      <p class="text-muted ac-nota mb-3">
+        Mismo PDF que se generó al imprimir, con su folio y fecha originales.
+        No consume folio ni genera otro registro.
+      </p>
+
+      <!-- Historial del empleado -->
+      <div *ngIf="impresionesDelEmpleado.length > 1">
+        <h6 class="ac-datos-titulo">
+          Otras impresiones
+          <span class="badge bg-secondary">{{ impresionesDelEmpleado.length }}</span>
+        </h6>
+        <p class="text-muted ac-nota">
+          Cada reimpresión consume un folio nuevo. Ábrelas para comparar.
+        </p>
+
+        <button *ngFor="let imp of impresionesDelEmpleado"
+                class="ac-impresion"
+                [class.activa]="esImpresionActual(imp)"
+                (click)="abrirDetalle(imp.id_enrolamiento)">
+          <span class="ac-impresion-folio">{{ imp.folio || 's/n' }}</span>
+          <span class="ac-impresion-fecha">{{ formatearFechaHora(imp.fecha_registro) }}</span>
+          <i class="fas fa-pen text-warning" *ngIf="imp.con_ajustes" title="Editada a mano"></i>
+        </button>
+      </div>
+    </aside>
+  </div>
+</ng-template>
+
+
+<!-- ================================ Pantalla =============================== -->
+<header class="mb-3 mt-2">
+  <div class="d-flex align-items-center gap-3 px-3">
+    <div class="ac-icono"><i class="fas fa-clipboard-check text-white"></i></div>
+    <div>
+      <h1 class="fw-bold text-dark mb-0 h3">Auditoría de credenciales</h1>
+      <p class="text-muted mb-0">
+        Historial de todas las credenciales impresas, con la credencial exacta que se expidió
+      </p>
+    </div>
+  </div>
+</header>
+
+<div class="ac-contenedor mx-3">
+
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <div class="input-group input-group-sm ac-buscador">
+      <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+      <input type="text" class="form-control"
+             placeholder="Buscar por nombre, número, folio, CURP, área, plantilla..."
+             [(ngModel)]="busqueda" (ngModelChange)="onBusqueda()">
+    </div>
+
+    <div class="input-group input-group-sm ac-fechas">
+      <span class="input-group-text bg-white" title="Fecha de impresión">
+        <i class="fas fa-calendar-day text-muted"></i>
+      </span>
+      <input type="date" class="form-control" [(ngModel)]="desde"
+             (ngModelChange)="aplicarFiltroFecha()" title="Impresas desde">
+      <span class="input-group-text bg-white">a</span>
+      <input type="date" class="form-control" [(ngModel)]="hasta"
+             (ngModelChange)="aplicarFiltroFecha()" title="Impresas hasta">
+    </div>
+
+    <button class="btn btn-sm btn-outline-secondary" *ngIf="hayFiltros" (click)="limpiarFiltros()">
+      <i class="fas fa-eraser"></i> Limpiar
+    </button>
+
+    <span class="badge bg-light text-dark border">
+      {{ filas.length | number }} impresion(es)
+      <span *ngIf="filas.length !== todasTotal" class="text-muted">de {{ todasTotal | number }}</span>
+    </span>
+
+    <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargar()" [disabled]="cargando">
+      <i class="fas fa-arrows-rotate"></i> Actualizar
+    </button>
+  </div>
+
+  <div *ngIf="cargando" class="ac-cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Cargando historial...
+  </div>
+
+  <div *ngIf="!cargando && !todasTotal" class="ac-vacio">
+    <i class="fas fa-clipboard-list fa-2x mb-2 d-block opacity-50"></i>
+    <strong class="d-block mb-1">Todavía no se ha impreso ninguna credencial</strong>
+    <small class="text-muted">
+      Cada impresión hecha desde «Imprimir credenciales» aparecerá aquí.
+    </small>
+  </div>
+
+  <ag-grid-angular
+      *ngIf="!cargando && todasTotal"
+      class="ag-theme-alpine ac-grid"
+      [rowData]="filas"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [animateRows]="false"
+      [enableBrowserTooltips]="true"
+      [suppressCellFocus]="true"
+      [pagination]="true"
+      [paginationPageSize]="50"
+      (gridReady)="onGridReady($event)"
+      (cellClicked)="onCellClicked($event)">
+  </ag-grid-angular>
+</div>

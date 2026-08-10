@@ -9,6 +9,8 @@ import { ModalManagerService } from '../../components/shared/modal-manager.servi
 import { WacomService } from '../../services/wacom.service';
 import { PlantillaCredencialService } from '../../services/plantilla-credencial.service';
 import { motivoSinCamara, motivoSinWacom, soportaCamara } from '../../services/soporte-navegador';
+import { PdfAImagenService } from '../../services/pdf-a-imagen.service';
+import { AjusteImagenComponent } from '../../components/shared/ajuste-imagen/ajuste-imagen.component';
 
 /** Una captura de enrolamiento previo, identificada por RFC. */
 export interface EnrolamientoPrevio {
@@ -67,6 +69,24 @@ export class EnrolamientoPrevioComponent implements OnInit, OnDestroy {
 
   @ViewChild('modalUnificado') modalUnificado!: TemplateRef<any>;
   @ViewChild('confirmDialog') confirmDialog!: TemplateRef<any>;
+
+  // ---- Ajuste de encuadre (recorte/zoom) tras capturar o cargar ----
+  @ViewChild('modalAjuste') modalAjusteTpl!: TemplateRef<any>;
+  @ViewChild('ajustador') ajustador?: AjusteImagenComponent;
+  srcParaAjustar: string | null = null;
+  tipoAjusteActual: 'foto' | 'firma' = 'foto';
+  convirtiendoPdf = false;
+  private readonly ANCHO_MARCO_FOTO = 300;
+  private readonly ALTO_MARCO_FOTO = 375;
+  private readonly ANCHO_MARCO_FIRMA = 480;
+  private readonly ALTO_MARCO_FIRMA = 180;
+
+  get anchoMarcoAjuste(): number {
+    return this.tipoAjusteActual === 'foto' ? this.ANCHO_MARCO_FOTO : this.ANCHO_MARCO_FIRMA;
+  }
+  get altoMarcoAjuste(): number {
+    return this.tipoAjusteActual === 'foto' ? this.ALTO_MARCO_FOTO : this.ALTO_MARCO_FIRMA;
+  }
 
   // ---- Camara ----
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
@@ -137,6 +157,7 @@ export class EnrolamientoPrevioComponent implements OnInit, OnDestroy {
     private modalManager: ModalManagerService,
     private wacomService: WacomService,
     private cdRef: ChangeDetectorRef,
+    private pdfService: PdfAImagenService,
   ) {
     this.isWacomSupported = this.wacomService.isBrowserSupported();
     this.avisoWacom = motivoSinWacom();
@@ -279,6 +300,41 @@ export class EnrolamientoPrevioComponent implements OnInit, OnDestroy {
   private cerrarModal(): void {
     this.detenerCamara();
     this.modalManager.closeModal();
+  }
+
+  // ====================================================================
+  // Ajuste de encuadre (recorte/zoom) -- se abre SIEMPRE tras una captura
+  // de cámara o una carga de archivo, para foto y firma. El trazo a mano
+  // (mouse/touch/Wacom) NO pasa por aquí: ya se dibuja directo y a escala
+  // real sobre el canvas de firma, así que forzar un recorte después de
+  // cada trazo interrumpiría el dibujo en vez de ayudarlo.
+  // ====================================================================
+
+  private abrirAjuste(tipo: 'foto' | 'firma', dataUrl: string): void {
+    this.tipoAjusteActual = tipo;
+    this.srcParaAjustar = dataUrl;
+    this.modalManager.openModal({
+      title: tipo === 'foto' ? 'Ajustar fotografía' : 'Ajustar firma',
+      template: this.modalAjusteTpl,
+      width: '480px',
+      onAccept: () => this.confirmarAjuste(),
+    });
+  }
+
+  private confirmarAjuste(): void {
+    if (!this.ajustador) return;
+    const resultado = this.ajustador.exportar();
+
+    if (this.tipoAjusteActual === 'foto') {
+      this.fotoCapturada = resultado;
+    } else {
+      this.firmaCapturada = resultado;
+      // Refleja el recorte en el canvas visible de firma, no solo en la
+      // variable: es lo que se ve en el modal principal y lo que
+      // guardarFirmaTemporal() volvería a leer si se sigue dibujando encima.
+      this.dibujarImagenEnFirma(resultado);
+    }
+    this.cdRef.detectChanges();
   }
 
   /**
@@ -512,7 +568,7 @@ export class EnrolamientoPrevioComponent implements OnInit, OnDestroy {
     canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
     // PNG y no JPEG: el backend guarda todo en PNG, y capturar en JPEG para
     // luego convertir dejaria los artefactos de compresion grabados.
-    this.fotoCapturada = canvas.toDataURL('image/png');
+    this.abrirAjuste('foto', canvas.toDataURL('image/png'));
   }
 
   repetirFoto(): void {
@@ -520,23 +576,43 @@ export class EnrolamientoPrevioComponent implements OnInit, OnDestroy {
     this.fotoCapturada = null;
   }
 
-  onArchivoFotoSeleccionado(evento: any): void {
+  async onArchivoFotoSeleccionado(evento: any): Promise<void> {
     const archivo = evento.target.files?.[0];
+    evento.target.value = '';
     if (!archivo) return;
 
-    if (archivo.size > 5 * 1024 * 1024) {
-      this.utils.MuestrasToast(TipoToast.Warning, 'La imagen es muy pesada. Máximo 5MB.');
-      evento.target.value = '';
+    if (archivo.size > 8 * 1024 * 1024) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo es muy pesado. Máximo 8MB.');
+      return;
+    }
+
+    if (this.pdfService.esPdf(archivo)) {
+      await this.convertirYAjustarPdf('foto', archivo);
+      return;
+    }
+    if (!archivo.type?.startsWith('image/')) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo debe ser una imagen o un PDF.');
       return;
     }
 
     const lector = new FileReader();
-    lector.onload = () => {
-      this.fotoCapturada = lector.result as string;
-      this.cdRef.detectChanges();
-    };
+    lector.onload = () => this.abrirAjuste('foto', lector.result as string);
     lector.readAsDataURL(archivo);
-    evento.target.value = '';
+  }
+
+  /** Convierte la primera página de un PDF a imagen y de ahí pasa directo al ajuste de encuadre. */
+  private async convertirYAjustarPdf(tipo: 'foto' | 'firma', archivo: File): Promise<void> {
+    this.convirtiendoPdf = true;
+    this.cdRef.detectChanges();
+    try {
+      const dataUrl = await this.pdfService.primeraPaginaComoDataUrl(archivo);
+      this.abrirAjuste(tipo, dataUrl);
+    } catch (err) {
+      this.utils.MuestraErrorInterno(err);
+    } finally {
+      this.convirtiendoPdf = false;
+      this.cdRef.detectChanges();
+    }
   }
 
   // ====================================================================
@@ -667,25 +743,28 @@ export class EnrolamientoPrevioComponent implements OnInit, OnDestroy {
     }
   }
 
-  onArchivoFirmaSeleccionado(evento: any): void {
+  async onArchivoFirmaSeleccionado(evento: any): Promise<void> {
     const archivo = evento.target.files?.[0];
+    evento.target.value = '';
     if (!archivo) return;
 
-    if (!archivo.type?.startsWith('image/')) {
-      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo de firma debe ser una imagen válida.');
-      evento.target.value = '';
+    if (archivo.size > 8 * 1024 * 1024) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo de firma es muy pesado. Máximo 8MB.');
       return;
     }
-    if (archivo.size > 5 * 1024 * 1024) {
-      this.utils.MuestrasToast(TipoToast.Warning, 'La imagen de firma es muy pesada. Máximo 5MB.');
-      evento.target.value = '';
+
+    if (this.pdfService.esPdf(archivo)) {
+      await this.convertirYAjustarPdf('firma', archivo);
+      return;
+    }
+    if (!archivo.type?.startsWith('image/')) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El archivo de firma debe ser una imagen o un PDF.');
       return;
     }
 
     const lector = new FileReader();
-    lector.onload = () => this.dibujarImagenEnFirma(lector.result as string, true);
+    lector.onload = () => this.abrirAjuste('firma', lector.result as string);
     lector.readAsDataURL(archivo);
-    evento.target.value = '';
   }
 
   /** Dibuja una imagen sobre el canvas de firma, ajustada sin deformar. */

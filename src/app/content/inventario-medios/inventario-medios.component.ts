@@ -5,7 +5,10 @@ import { CapturaMediosComponent } from '../../components/shared/captura-medios/c
 import { TipoToast } from '../../../api/entidades/enumeraciones';
 import { UtilsService } from '../../services/utils.service';
 import { ModalManagerService } from '../../components/shared/modal-manager.service';
-import { PlantillaCredencialService } from '../../services/plantilla-credencial.service';
+import {
+  EmpleadoMediosAuditoria, PlantillaCredencialService,
+} from '../../services/plantilla-credencial.service';
+import { PermisosService } from '../../services/permisos.service';
 
 /** Empleado del roster con el que cruza una captura, si es que cruza. */
 export interface CruceRoster {
@@ -30,7 +33,7 @@ type FiltroInventario = 'todos' | 'cruzables' | 'sin_cruce' | 'incompletos' | 'r
 const HORAS_RECIENTE = 24;
 
 /** Seccion activa del inventario. */
-export type SeccionInventario = 'pendientes' | 'empleados';
+export type SeccionInventario = 'pendientes' | 'empleados' | 'auditoria';
 
 /** Foto/firma ya nombrada por num_empleado. */
 export interface MedioEmpleado {
@@ -73,6 +76,7 @@ export class InventarioMediosComponent implements OnInit {
   @ViewChild('confirmDialog') confirmDialog!: TemplateRef<any>;
   @ViewChild('captura') captura!: CapturaMediosComponent;
   @ViewChild('modalRenombrar') modalRenombrar!: TemplateRef<any>;
+  @ViewChild('modalVersiones') modalVersiones!: TemplateRef<any>;
 
   // ---- Renombrado (corregir un RFC mal capturado) ----
   renombrando: MedioPendiente | null = null;
@@ -101,6 +105,15 @@ export class InventarioMediosComponent implements OnInit {
   private enCaptura: { registro: any; seccion: SeccionInventario } | null = null;
   private temporizadorBusqueda: any = null;
 
+  // ---- Seccion "Auditoria" (medios de quienes tienen reimpresiones) ----
+  auditoria: EmpleadoMediosAuditoria[] = [];
+  cargandoAuditoria = false;
+  busquedaAuditoria = '';
+  soloConCambio = false;
+  /** Historial de medios del empleado abierto en el modal de versiones. */
+  versiones: any = null;
+  cargandoVersiones = false;
+
   registros: MedioPendiente[] = [];
   cargando = false;
   migrando = false;
@@ -113,6 +126,7 @@ export class InventarioMediosComponent implements OnInit {
     private utils: UtilsService,
     private modalManager: ModalManagerService,
     private cdRef: ChangeDetectorRef,
+    public permisosS: PermisosService,
   ) {}
 
   ngOnInit(): void {
@@ -125,7 +139,90 @@ export class InventarioMediosComponent implements OnInit {
 
   seleccionarSeccion(seccion: SeccionInventario): void {
     this.seccion = seccion;
+    // Cada seccion se carga la primera vez que se abre, no al entrar a la
+    // pantalla: son tres consultas caras y casi nunca se usan las tres.
     if (seccion === 'empleados' && !this.medios.length) this.cargarMedios();
+    if (seccion === 'auditoria' && !this.auditoria.length) this.cargarAuditoria();
+  }
+
+  // ====================================================================
+  // Seccion "Auditoria": foto y firma con las que se expidio cada credencial
+  // ====================================================================
+
+  /**
+   * Empleados con mas de una impresion. Son los unicos donde hay historial que
+   * comparar: con una sola credencial, lo archivado y lo vigente coinciden.
+   */
+  cargarAuditoria(): void {
+    this.cargandoAuditoria = true;
+    this.plantillaApi.auditoriaMedios(this.busquedaAuditoria).subscribe({
+      next: (res) => {
+        this.auditoria = res?.resultados || [];
+        this.cargandoAuditoria = false;
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.cargandoAuditoria = false;
+        this.utils.MuestraErrorInterno(err);
+      },
+    });
+  }
+
+  /** Mismo rebote que la otra seccion: la busqueda va al servidor. */
+  onBusquedaAuditoria(): void {
+    clearTimeout(this.temporizadorBusqueda);
+    this.temporizadorBusqueda = setTimeout(() => this.cargarAuditoria(), 350);
+  }
+
+  /** Lo que se pinta en las tarjetas de auditoria, ya filtrado en memoria. */
+  get auditoriaVisible(): EmpleadoMediosAuditoria[] {
+    return this.soloConCambio ? this.auditoria.filter(a => a.cambio_medios) : this.auditoria;
+  }
+
+  /**
+   * Abre el historial de medios de un empleado: que foto y que firma llevaba
+   * CADA credencial que se le imprimio.
+   *
+   * Las imagenes salen del archivo historico (`media/historico/`), asi que
+   * siguen siendo las que se expidieron aunque despues lo hayan recapturado
+   * -- ese es justamente el punto de esta pantalla.
+   */
+  verVersiones(fila: EmpleadoMediosAuditoria): void {
+    this.versiones = null;
+    this.cargandoVersiones = true;
+
+    this.modalManager.openModal({
+      title: `Historial de medios — ${fila.nombre || fila.num_empleado}`,
+      template: this.modalVersiones,
+      width: '820px',
+      showFooter: false,
+    });
+
+    this.plantillaApi.auditoriaMediosDetalle(fila.num_empleado).subscribe({
+      next: (res) => {
+        this.versiones = { ...res, nombre: fila.nombre };
+        this.cargandoVersiones = false;
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.cargandoVersiones = false;
+        this.utils.MuestraErrorInterno(err);
+      },
+    });
+  }
+
+  /**
+   * ¿Alguna impresion llevo una foto o firma distinta de la vigente?
+   *
+   * La comparacion NO se puede hacer aqui por ruta: lo archivado vive en
+   * `historico/<hash>.ext` y lo vigente en `fotos/<numero>.ext`, asi que por
+   * ruta nunca coincidirian aunque fueran el mismo archivo. El servidor las
+   * compara por contenido y manda `foto_vigente` / `firma_vigente`.
+   */
+  get hayMediosReemplazados(): boolean {
+    return (this.versiones?.impresiones || []).some(
+      (i: any) => (i.foto && !i.foto_vigente) || (i.firma && !i.firma_vigente)
+    );
   }
 
   /**
@@ -395,7 +492,7 @@ export class InventarioMediosComponent implements OnInit {
       + 'Los empleados que ya tengan foto/firma propias no se tocan.';
 
     this.modalManager.openModal({
-      title: 'Cruzar capturas con el roster',
+      title: 'Cruzar capturas con el poblado de credencial',
       template: this.confirmDialog,
       onAccept: () => this.migrarTodos(),
     });

@@ -1,9 +1,11 @@
 /*-------------contenedor-principal-----------*/
+// Con box-sizing: border-box global, height ya incluye el padding: no hay que
+// restarle los 50px del header aparte, o el contenedor se queda 50px corto y
+// deja una franja vacia sin contenido al fondo de la pantalla (nada, ni
+// sidebar ni content-wrap, llega a cubrir esos ultimos 50px de viewport).
 .contenedor-principal {
     padding-top: 50px;
-    height: -moz-calc(100vh - (50px));
-    height: -webkit-calc(100vh - (50px));
-    height: calc(100vh - (50px));
+    height: 100vh;
     transition: all 0.3s ease-out;
 }
 
@@ -22,6 +24,9 @@
     overflow-y: auto;
     position: relative;
     padding: 5px;
+    // Separacion visible respecto al sidebar -- antes el contenido (incluidas
+    // varias agGrid) quedaba practicamente pegado a su borde.
+    padding-left: var(--space-xl);
 
     &.expanded {
         margin-left: 0px; // mismo ancho que el sidebar expandido

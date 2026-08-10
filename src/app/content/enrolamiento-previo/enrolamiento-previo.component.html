@@ -6,10 +6,20 @@
   </div>
 </ng-template>
 
+<!-- Ajuste de encuadre (recorte/zoom) tras capturar o cargar foto/firma -->
+<ng-template #modalAjuste>
+  <app-ajuste-imagen #ajustador
+      [src]="srcParaAjustar"
+      [anchoMarco]="anchoMarcoAjuste"
+      [altoMarco]="altoMarcoAjuste"
+      [fondoTransparente]="tipoAjusteActual === 'firma'">
+  </app-ajuste-imagen>
+</ng-template>
+
 <header class="mb-4 mt-2">
   <div class="d-flex align-items-center gap-3 px-3">
-    <div class="p-2 rounded rounded-3 shadow-sm ep-icono">
-      <i class="fas fa-user-clock text-white" style="font-size: 1.5rem;"></i>
+    <div class="ep-icono">
+      <i class="fas fa-user-clock text-white"></i>
     </div>
     <div>
       <h1 class="fw-bold text-dark mb-0 h3">Enrolamiento previo</h1>
@@ -173,7 +183,7 @@
               </option>
             </select>
 
-            <input type="file" #fileInputFoto hidden accept="image/*" (change)="onArchivoFotoSeleccionado($event)">
+            <input type="file" #fileInputFoto hidden accept="image/*,application/pdf" (change)="onArchivoFotoSeleccionado($event)">
 
             <button class="btn w-100 btn-lg rounded-pill shadow-sm ep-btn-foto"
                     (click)="capturarFoto()" *ngIf="!fotoCapturada">
@@ -184,8 +194,10 @@
               <i class="fas fa-redo"></i> Repetir Foto
             </button>
             <button class="btn w-100 btn-lg btn-outline-secondary mt-2 rounded-pill shadow-sm fw-bold"
+                    [disabled]="convirtiendoPdf"
                     (click)="fileInputFoto.click()">
-              <i class="fas fa-upload"></i> {{ fotoCapturada ? 'Cambiar archivo' : 'Subir desde archivo' }}
+              <i class="fas" [class.fa-upload]="!convirtiendoPdf" [class.fa-spinner]="convirtiendoPdf" [class.fa-spin]="convirtiendoPdf"></i>
+              {{ convirtiendoPdf ? 'Convirtiendo PDF...' : (fotoCapturada ? 'Cambiar archivo' : 'Subir imagen o PDF') }}
             </button>
           </div>
         </div>
@@ -233,10 +245,12 @@
                       (click)="limpiarFirma()">
                 <i class="fas fa-eraser"></i> Limpiar
               </button>
-              <input type="file" #fileInputFirma hidden accept="image/*" (change)="onArchivoFirmaSeleccionado($event)">
+              <input type="file" #fileInputFirma hidden accept="image/*,application/pdf" (change)="onArchivoFirmaSeleccionado($event)">
               <button class="btn btn-outline-secondary w-50 btn-lg rounded-pill shadow-sm fw-bold fs-6"
+                      [disabled]="convirtiendoPdf"
                       (click)="fileInputFirma.click()">
-                <i class="fas fa-upload"></i> Subir
+                <i class="fas" [class.fa-upload]="!convirtiendoPdf" [class.fa-spinner]="convirtiendoPdf" [class.fa-spin]="convirtiendoPdf"></i>
+                {{ convirtiendoPdf ? 'Convirtiendo...' : 'Subir' }}
               </button>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { ModalManagerService } from '../../components/shared/modal-manager.servi
 import {
   PlantillaCredencialService, UnidadAdministrativa,
 } from '../../services/plantilla-credencial.service';
+import { PermisosService } from '../../services/permisos.service';
 
 /** Area del roster que todavia no existe en el catalogo. */
 interface AreaSinCatalogo {
@@ -78,10 +79,12 @@ export class CatalogoUnidadesComponent implements OnInit {
       pinned: 'right',
       // Los botones se pintan como HTML y el clic se atiende en onCellClicked
       // leyendo data-accion: mas simple que registrar un componente por celda
-      // para dos iconos.
-      cellRenderer: () => `
+      // para dos iconos. Se omiten del todo (no solo se deshabilitan) para
+      // quien no tenga `areas_administrar`: el backend ya rechaza la accion,
+      // asi que un boton visible pero inutil solo confundiria.
+      cellRenderer: () => this.permisosS.tiene('areas_administrar') ? `
         <span title="Editar"><i class="tool-icon fas fa-pen text-primary me-3" data-accion="editar" style="cursor:pointer"></i></span>
-        <span title="Eliminar"><i class="tool-icon fas fa-trash text-danger" data-accion="eliminar" style="cursor:pointer"></i></span>`,
+        <span title="Eliminar"><i class="tool-icon fas fa-trash text-danger" data-accion="eliminar" style="cursor:pointer"></i></span>` : '',
       cellStyle: { textAlign: 'center' },
     },
   ];
@@ -98,6 +101,7 @@ export class CatalogoUnidadesComponent implements OnInit {
     private utils: UtilsService,
     private modalManager: ModalManagerService,
     private cdRef: ChangeDetectorRef,
+    public permisosS: PermisosService,
   ) {}
 
   ngOnInit(): void {

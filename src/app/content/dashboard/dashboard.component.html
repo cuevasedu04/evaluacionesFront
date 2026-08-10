@@ -1,68 +1,35 @@
-<div class="container-fluid p-4 d-flex align-items-between justify-content-between flex-column h-100">
-        <div class="mt-2">
+<div class="db-pagina p-4">
 
-        <!-- Main Content -->
-        <main class="d-flex justify-content-start align-items-center flex-row gap-4">
-            
-            <div>
-                <img src="img/logo_credencial_camara.png" alt="Logo Credencial" class="img-fluid" style="width: 250px;">
-            </div>
-            
-            <div class="card flex-grow-1 shadow-sm">
-                <div class="card-body">
-                    <h1 class="card-title frmlabel m-0 p-0">Sistema de Credencialización y Enrolamiento</h1>
-                    <p class="card-text mt-3">Aquí podrás realizar consultas, enrolamientos e impresión de credenciales para el personal de la ANAM.</p>
-                    <p class="card-text">Para empezar, selecciona alguno de los modulos a continuación.</p>
-                </div>
-            </div>
+  <header class="db-hero">
+    <div class="db-hero-icono">
+      <i class="fas fa-id-card-clip"></i>
+    </div>
+    <div class="db-hero-texto">
+      <h1 class="db-hero-titulo">Sistema de Credencialización y Enrolamiento</h1>
+      <p class="db-hero-sub">
+        Consultas, enrolamiento e impresión de credenciales para el personal de la ANAM.
+      </p>
+    </div>
+  </header>
 
-        </main>
+  <section class="db-modulos">
+    <h2 class="db-modulos-titulo">Módulos del sistema</h2>
 
-        <section class="module-blocks card w-100 mt-4">
-            <div class="card-body">
-                <h4 class="frmlabel mb-3">Módulos del sistema</h4>
-                <div class="module-blocks-grid">
-                    <button
-                        type="button"
-                        class="module-block anam"
-                        [class.active]="esBloqueActivo('anam')"
-                        (click)="seleccionarBloque('anam')">
-                        <div class="module-title">Sistema de enrolamiento e impresión de credenciales V 1.0</div>
-                        <div class="module-text">Aquí puedes generar credenciales para el personal de la ANAM.</div>
-                        <span class="module-link">ANAM</span>
-                    </button>
-<!-- 
-                    <button
-                        type="button"
-                        class="module-block nuevo-laredo"
-                        [class.active]="esBloqueActivo('nuevo-laredo')"
-                        (click)="seleccionarBloque('nuevo-laredo')">
-                        <div class="module-title">Credenciales Nuevo Laredo</div>
-                        <div class="module-text">Aquí puedes generar credenciales para el personal de ANAM Nuevo Laredo.</div>
-                        <span class="module-link">Nuevo Laredo</span>
-                    </button>
+    <div class="db-grid">
+      <button type="button" class="db-tarjeta" *ngFor="let modulo of modulosVisibles"
+              (click)="abrirModulo(modulo)">
+        <div class="db-tarjeta-icono"><i [class]="modulo.icon"></i></div>
+        <div class="db-tarjeta-titulo">{{ modulo.label }}</div>
+        <p class="db-tarjeta-desc">{{ modulo.descripcion }}</p>
+        <span class="db-tarjeta-ir">Entrar <i class="fas fa-arrow-right"></i></span>
+      </button>
+    </div>
 
-                    <button
-                        type="button"
-                        class="module-block consultas"
-                        [class.ac   tive]="esBloqueActivo('consultas')"
-                        (click)="seleccionarBloque('consultas')">
-                        <div class="module-title">Consultas, carga e impresión</div>
-                        <div class="module-text">Búsqueda avanzada, reportes, carga excel e impresión.</div>
-                        <span class="module-link">Consultas e impresión</span>
-                    </button>
-                    
-                    <button
-                        type="button"
-                        class="module-block enrolamiento-masivo"
-                        [class.active]="esBloqueActivo('enrolamiento-masivo')"
-                        (click)="seleccionarBloque('enrolamiento-masivo')">
-                        <div class="module-title">Enrolamiento masivo</div>
-                        <div class="module-text">Enrolamiento de múltiples empleados de forma simultánea.</div>
-                        <span class="module-link">Enrolamiento masivo</span>
-                    </button> -->
-                </div>
-            </div>
-        </section>
-        </div>
+    <div class="db-vacio" *ngIf="!modulosVisibles.length">
+      <i class="fas fa-lock fa-2x mb-2 d-block opacity-50"></i>
+      Tu cuenta no tiene acceso a ningún módulo todavía. Pide a un superusuario que te asigne un rol
+      desde «Administración».
+    </div>
+  </section>
+
 </div>

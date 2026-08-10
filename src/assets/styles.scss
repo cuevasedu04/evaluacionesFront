@@ -72,6 +72,7 @@
     --color-primary-light: rgba(159, 34, 65, 0.1);
     --color-secondary-hover: #4F1525;
     --color-success-hover: #005A45;
+    --color-success-light: rgba(0, 123, 93, 0.12);
     --color-error-hover: #7A0A2F;
 
     /* Colores para botones */
@@ -117,6 +118,37 @@
     --bg-primary: var(--color-light-bg);
     --bg-white: #FFFFFF;
     --bg-overlay: rgba(13, 50, 77, 0.5);
+
+    /* Espaciado -- escala derivada de los valores que ya predominaban en los
+       componentes (gap/padding 0.25-1rem) antes de tokenizarse. */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.75rem;
+    --space-lg: 1rem;
+    --space-xl: 1.5rem;
+
+    /* Radios de borde -- 4 niveles, tomados de los valores que ya predominaban
+       en distintos contextos (6px y 8px son ambos muy frecuentes pero para
+       cosas distintas -- botones/chips vs. tarjetas/paneles -- por eso van
+       separados en vez de colapsarlos en un solo "medio"). */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-pill: 999px;
+
+    /* Sombras -- tres niveles de elevacion, del patron mas repetido en los
+       componentes existentes (tarjetas sutiles -> modales/credenciales). */
+    --shadow-low: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-high: 0 6px 20px rgba(0, 0, 0, 0.2);
+
+    /* Movimiento -- misma logica: 150/200/300ms y la curva cubic-bezier que
+       ya aparecia sola en un componente, generalizada al resto. */
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --duration-micro: 150ms;
+    --duration-normal: 200ms;
+    --duration-macro: 300ms;
 }
 
 /* ========================================

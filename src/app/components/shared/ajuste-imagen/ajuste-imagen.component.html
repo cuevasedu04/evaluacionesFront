@@ -1,0 +1,23 @@
+<div class="ai-wrap">
+  <div class="ai-marco" [class.ai-marco-transparente]="fondoTransparente"
+       [style.width.px]="anchoMarco" [style.height.px]="altoMarco">
+    <canvas #lienzo></canvas>
+  </div>
+
+  <div class="ai-controles">
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="centrar()" title="Centrar la imagen">
+      <i class="fas fa-compress"></i> Centrar
+    </button>
+
+    <div class="ai-zoom">
+      <i class="fas fa-magnifying-glass-minus text-muted"></i>
+      <input type="range" [min]="zoomMin" [max]="zoomMax" step="0.05"
+             [ngModel]="zoom" (ngModelChange)="onZoomChange($event)">
+      <i class="fas fa-magnifying-glass-plus text-muted"></i>
+    </div>
+  </div>
+
+  <small class="text-muted ai-ayuda">
+    <i class="fas fa-hand"></i> Arrastra la imagen para moverla; usa el control para acercar o alejar.
+  </small>
+</div>

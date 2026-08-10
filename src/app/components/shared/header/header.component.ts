@@ -34,6 +34,12 @@ export class HeaderComponent {
   usuario:any;
   dependenciaDS: any = [];
 
+  /** Nombre a mostrar a la izquierda del circulo -- cae a username si no hay nombreCompleto (ej. cuenta sin first_name/last_name capturados). */
+  get nombreUsuario(): string {
+    const nombre = (this.usuario?.nombreCompleto || '').trim();
+    return nombre || this.usuario?.username || 'Usuario';
+  }
+
   constructor(
     private router: Router,
     private utils: UtilsService,
@@ -78,10 +84,6 @@ export class HeaderComponent {
 
   goHome(){
     this.router.navigate(['/dashboard']);
-  }
-
-  volverASiorh() {
-    window.location.href = '/dashboard'; 
   }
 
 }

@@ -4,6 +4,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { UtilsService } from '../../../services/utils.service';
 import { SessionService } from '../../../services/session.service';
 import { ModuleContextService } from '../../../services/module-context.service';
+import { PermisosService } from '../../../services/permisos.service';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
@@ -22,7 +23,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     public sidebarService: SidebarService,
     private utils: UtilsService,
 	private sessionS: SessionService,
-    public moduleContext: ModuleContextService
+    public moduleContext: ModuleContextService,
+    private permisosS: PermisosService,
   ){
     this.blockEffect = effect(() => {
       this.moduleContext.selectedBlock();
@@ -35,28 +37,28 @@ export class SidebarComponent implements OnInit, OnDestroy {
       label: 'Carga excel',
       icon: 'fas fa-upload',
       link: '/carga-masiva',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_carga_masiva',
     },
     {
       id: 'busqueda-enrolamiento-masivos',
       label: 'Búsqueda enrolamiento masivo',
       icon: 'fas fa-users',
       link: '/busqueda-enrolamiento-masivos',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_busqueda_enrolamiento_masivos',
     },
     {
       id: 'enrolamiento-masivo',
       label: 'Enrolamiento masivo',
       icon: 'fas fa-users',
       link: '/enrolamiento-masivo',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_enrolamiento_masivo',
     },
     {
       id: 'enrolamiento',
       label: 'Enrolamiento',
       icon: 'fas fa-user-plus',
       link: '/enrolamiento',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_enrolamiento',
     },
     //  {
     //    id: 'credencializacion',
@@ -70,73 +72,85 @@ export class SidebarComponent implements OnInit, OnDestroy {
       label: 'Carga manual - NL',
       icon: 'fa-solid fa-id-badge',
       link: '/provisional',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_provisional',
     },
     {
       id: 'familiar',
       label: 'Familiares - NL',
       icon: 'fa-solid fa-id-badge',
       link: '/familiar',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_familiar',
     },
     {
       id: 'plantilla-anam',
       label: 'Carga manual - ANAM',
       icon: 'fa-solid fa-id-badge',
       link: '/plantilla-anam',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_plantilla_anam',
     },
     {
       id: 'busquedaAvanzada',
       label: 'Búsqueda avanzada',
       icon: 'fas fa-search',
       link: '/busqueda-avanzada',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_busqueda_avanzada',
     },
     {
       id: 'reportes',
       label: 'Reportes',
       icon: 'fas fa-chart-pie',
       link: '/reportes',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_reportes',
     },
     {
       id: 'plantillas',
       label: 'Plantillas',
       icon: 'fas fa-vector-square',
       link: '/plantillas',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_plantillas',
     },
     {
       id: 'imprimir-credenciales',
       label: 'Imprimir credenciales',
       icon: 'fas fa-id-card',
       link: '/imprimir-credenciales',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_imprimir_credenciales',
     },
     {
       id: 'enrolamiento-previo',
       label: 'Enrolamiento previo',
       icon: 'fas fa-user-clock',
       link: '/enrolamiento-previo',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_enrolamiento_previo',
     },
     {
       id: 'inventario-medios',
       label: 'Inventario de medios',
       icon: 'fas fa-photo-film',
       link: '/inventario-medios',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_inventario_medios',
     },
     {
       id: 'catalogo-areas',
       label: 'Catálogo de áreas',
       icon: 'fas fa-sitemap',
       link: '/catalogo-areas',
-      rol: [1,2,3,4,9999],
+      permiso: 'ver_catalogo_areas',
     },
-
-
+    {
+      id: 'auditoria-credenciales',
+      label: 'Auditoría de credenciales',
+      icon: 'fas fa-clipboard-check',
+      link: '/auditoria-credenciales',
+      permiso: 'ver_auditoria_credenciales',
+    },
+    {
+      id: 'administracion',
+      label: 'Administración',
+      icon: 'fas fa-user-shield',
+      link: '/administracion',
+      soloSuperusuario: true,
+    },
   ];
   menuUsuario:any = []
   ngOnInit(): void {
@@ -159,7 +173,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   private rebuildMenu(): void {
-    const menuPorRol = this.menuItems.filter(item => item.rol.includes(this.usuario?.idUsuarioRol));
+    // Reemplaza al viejo `rol: [1,2,3,4,9999]`, identico en todos los items
+    // y que en la practica nunca distinguio a nadie (ver CLAUDE.md,
+    // gotcha #4). Cada item ahora declara el permiso concreto que necesita
+    // (`ver_x`) o `soloSuperusuario` para los de administracion -- ver
+    // PermisosService y RecursoSistema.Meta.permissions en el backend.
+    const menuPorPermiso = this.menuItems.filter((item: any) =>
+      item.soloSuperusuario ? this.permisosS.esSuperusuario() : this.permisosS.tiene(item.permiso)
+    );
     const bloque = this.moduleContext.resolveBlockFromRoute(this.router.url);
     const idsPermitidos = this.moduleContext.getAllowedIds(bloque);
 
@@ -169,8 +190,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }
 
     this.menuUsuario = idsPermitidos.length
-      ? menuPorRol.filter(item => idsPermitidos.includes(item.id))
-      : menuPorRol;
+      ? menuPorPermiso.filter(item => idsPermitidos.includes(item.id))
+      : menuPorPermiso;
   }
 
   get mostrarMensajeDashboard(): boolean {

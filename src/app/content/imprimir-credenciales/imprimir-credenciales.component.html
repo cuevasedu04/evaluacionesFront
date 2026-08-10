@@ -1,3 +1,13 @@
+<!-- Ajuste de encuadre (recorte/zoom) tras capturar o cargar foto/firma -->
+<ng-template #modalAjuste>
+  <app-ajuste-imagen #ajustador
+      [src]="srcParaAjustar"
+      [anchoMarco]="anchoMarcoAjuste"
+      [altoMarco]="altoMarcoAjuste"
+      [fondoTransparente]="tipoAjusteActual === 'firma'">
+  </app-ajuste-imagen>
+</ng-template>
+
 <div class="imprimir-credenciales d-flex flex-column">
 
   <!-- ===================== BARRA SUPERIOR ===================== -->
@@ -5,8 +15,8 @@
     <div class="d-flex align-items-center gap-3 flex-wrap">
 
       <div class="d-flex align-items-center gap-2">
-        <div class="p-2 bg-success bg-opacity-10 rounded">
-          <i class="fas fa-id-card text-success"></i>
+        <div class="ic-icono">
+          <i class="fas fa-id-card text-white"></i>
         </div>
         <div>
           <h1 class="h6 fw-bold mb-0">Imprimir credenciales</h1>
@@ -32,7 +42,7 @@
       <span class="badge bg-light text-dark border ic-actualizado"
             *ngIf="!cargandoRoster"
             [title]="ultimaActualizacion
-              ? 'Última sincronización del poblado de credenciales (sicre_tbl_sig)'
+              ? 'Última sincronización del poblado de credencial (sicre_tbl_sig)'
               : 'No se pudo determinar la fecha de última actualización'">
         <i class="fas fa-rotate text-muted"></i>
         <span *ngIf="ultimaActualizacion">
@@ -45,7 +55,7 @@
       <button class="btn btn-sm btn-outline-secondary ic-btn-recargar"
               *ngIf="!cargandoRoster"
               (click)="recargarRoster()"
-              title="Actualizar el roster (descarga los datos más recientes del servidor)">
+              title="Actualizar el poblado de credencial (descarga los datos más recientes del servidor)">
         <i class="fas fa-arrows-rotate"></i> Actualizar
       </button>
 
@@ -87,9 +97,6 @@
           <div class="ic-selector-menu shadow" *ngIf="selectorAbierto">
             <div class="ic-selector-titulo">
               Plantilla para imprimir
-              <small class="d-block text-muted fw-normal">
-                Aplica solo mientras no salgas de esta pantalla.
-              </small>
             </div>
 
             <button type="button"
@@ -135,7 +142,7 @@
     <section class="ic-tabla">
       <div *ngIf="cargandoRoster" class="ic-cargando">
         <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-        <div>Cargando roster completo...</div>
+        <div>Cargando poblado de credencial completo...</div>
         <small class="text-muted">Se descarga una sola vez; después el filtrado es inmediato.</small>
       </div>
 
@@ -256,7 +263,7 @@
             </button>
           </div>
 
-          <button *ngIf="!modoEdicion"
+          <button *ngIf="!modoEdicion && permisosS.tiene('credenciales_editar_ajustes')"
                   class="btn btn-sm btn-outline-primary"
                   [class.flex-grow-1]="!tieneReverso"
                   (click)="activarEdicion()"
@@ -438,9 +445,11 @@
           <i class="fas fa-camera"></i>
         </button>
 
-        <input type="file" #fileInput hidden accept="image/*" (change)="onArchivoSeleccionado($event)">
-        <button class="btn btn-secondary btn-lg mx-2" (click)="fileInput.click()" title="Subir foto de cámara externa">
-          <i class="fas fa-upload"></i> Subir Foto
+        <input type="file" #fileInput hidden accept="image/*,application/pdf" (change)="onArchivoSeleccionado($event)">
+        <button class="btn btn-secondary btn-lg mx-2" [disabled]="convirtiendoPdf"
+                (click)="fileInput.click()" title="Subir foto de cámara externa (imagen o PDF)">
+          <i class="fas" [class.fa-upload]="!convirtiendoPdf" [class.fa-spinner]="convirtiendoPdf" [class.fa-spin]="convirtiendoPdf"></i>
+          {{ convirtiendoPdf ? 'Convirtiendo PDF...' : 'Subir Foto' }}
         </button>
       </div>
 
@@ -487,9 +496,11 @@
         <i class="fas fa-eraser"></i> Limpiar
       </button>
 
-      <input type="file" #fileInputFirma hidden accept="image/*" (change)="onArchivoFirmaSeleccionado($event)">
-      <button class="btn btn-outline-secondary btn-sm mr-2" (click)="fileInputFirma.click()" title="Subir imagen de firma ya existente">
-        <i class="fas fa-upload"></i> Subir Firma
+      <input type="file" #fileInputFirma hidden accept="image/*,application/pdf" (change)="onArchivoFirmaSeleccionado($event)">
+      <button class="btn btn-outline-secondary btn-sm mr-2" [disabled]="convirtiendoPdf"
+              (click)="fileInputFirma.click()" title="Subir imagen o PDF de firma ya existente">
+        <i class="fas" [class.fa-upload]="!convirtiendoPdf" [class.fa-spinner]="convirtiendoPdf" [class.fa-spin]="convirtiendoPdf"></i>
+        {{ convirtiendoPdf ? 'Convirtiendo...' : 'Subir Firma' }}
       </button>
 
       <button *ngIf="isWacomSupported && !wacomConnected"

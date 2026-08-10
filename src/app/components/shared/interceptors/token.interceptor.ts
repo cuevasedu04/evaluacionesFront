@@ -99,7 +99,15 @@ export class TokenInterceptor implements HttpInterceptor {
       try {
         const token = session.tokenWs;
 
-        if (token) {
+        // 'dummy-token' es el valor fijo que SessionService inventa bajo
+        // `environment.bypassLogin` (sesion falsa en memoria, sin pasar por
+        // el backend). Ahora que el backend valida tokens de verdad
+        // (BearerTokenAuthentication), mandarlo como credencial real
+        // provocaria 401 en CADA peticion -- un token que no existe en
+        // `authtoken_token` no cae a "anonimo", DRF lo rechaza explicito.
+        // Bajo bypass simplemente no se manda Authorization, igual que antes
+        // de que existiera autenticacion real en el backend.
+        if (token && token !== 'dummy-token') {
           req = req.clone({
             setHeaders: {
               'authorization': `Bearer ${token}`

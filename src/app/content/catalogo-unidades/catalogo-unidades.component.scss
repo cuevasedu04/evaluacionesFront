@@ -1,22 +1,36 @@
+// Pantalla "Catálogo de áreas". Usa los tokens de src/assets/styles.scss
+// (paleta institucional, radios, sombras, movimiento) -- ver CLAUDE.md.
+
+// Mismo tamaño/tratamiento que el ícono de cabecera en el resto de pantallas
+// nuevas (auditoria-credenciales, administracion, dashboard).
 .cu-icono {
-  background-color: #17365d;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 
-  i { font-size: 1.4rem; }
+  i { font-size: 1.25rem; color: #fff; }
 }
 
 // Alto atado al viewport para que scrollee la tabla y no la pagina completa.
+// Marco (fondo + radio) alrededor de la agGrid, mismo tratamiento que
+// .contenedor-masivo en enrolamiento-previo, y centrado con max-width para
+// que no quede pegada al sidebar en pantallas anchas.
 .cu-contenedor {
   height: calc(100vh - 170px);
   min-height: 400px;
   display: flex;
   flex-direction: column;
+  max-width: 1500px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #f4f6f9;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
 }
 
 .cu-buscador { max-width: 360px; }
@@ -28,7 +42,7 @@
 
   ::ng-deep .cu-celda-corto {
     font-weight: 700;
-    color: #2c784c;
+    color: var(--color-primary);
     letter-spacing: 0.3px;
   }
 }
@@ -48,9 +62,10 @@
 }
 
 .cu-btn-nuevo {
-  background-color: #2c784c;
+  background: var(--color-primary);
   color: #fff;
   font-weight: 600;
+  transition: background var(--duration-micro) var(--ease-standard);
 
-  &:hover { background-color: #24623e; color: #fff; }
+  &:hover { background: var(--color-primary-hover); color: #fff; }
 }

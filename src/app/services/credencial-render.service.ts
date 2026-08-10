@@ -121,6 +121,97 @@ export class CredencialRenderService {
   }
 
   /**
+   * Dibuja un lienzo ya congelado (el snapshot que se guardo al imprimir) y lo
+   * devuelve como imagen. Es el camino de la pantalla de auditoria.
+   *
+   * A diferencia de renderizarCara(), aqui NO se aplica el fondo de la
+   * plantilla ni se vuelve a poblar ningun campo. Ese es justo el punto: el
+   * snapshot ya trae su propio `backgroundImage` y sus textos con los valores
+   * que salieron impresos. Repoblarlo escribiria el folio y la fecha de HOY
+   * sobre una credencial de hace meses, y aplicarle el fondo actual la
+   * repintaria con una plantilla que quiza ya cambio -- en ambos casos la
+   * auditoria mostraria un documento que nunca existio.
+   */
+  async renderizarSnapshotComoImagen(
+    canvasJson: any,
+    ancho = CANVAS_ANCHO_PX,
+    alto = CANVAS_ALTO_PX,
+    multiplicador = 1
+  ): Promise<string> {
+    const canvas = await this.construirCanvasDesdeSnapshot(canvasJson, ancho, alto);
+    try {
+      return this.exportarCanvasComoImagen(canvas, multiplicador);
+    } finally {
+      canvas.dispose();
+    }
+  }
+
+  /**
+   * Regenera el PDF de una credencial ya expedida a partir de sus lienzos
+   * congelados: mismo tamano fisico, misma resolucion de exportacion y mismo
+   * orden de paginas (frente, reverso) que la impresion original.
+   *
+   * Es un duplicado exacto, no una reimpresion: no consume folio, no toca el
+   * historial y no vuelve a poblar ningun campo -- sale con el folio y la
+   * fecha con los que se expidio.
+   */
+  async generarPdfDesdeSnapshots(
+    canvasFrenteJson: any,
+    canvasReversoJson: any | null,
+    opciones: {
+      ancho_px?: number; alto_px?: number;
+      ancho_mm?: number | string; alto_mm?: number | string;
+      nombreArchivo?: string; guardar?: boolean;
+    } = {}
+  ): Promise<jsPDF> {
+    const anchoPx = opciones.ancho_px || CANVAS_ANCHO_PX;
+    const altoPx = opciones.alto_px || CANVAS_ALTO_PX;
+
+    const frente = await this.construirCanvasDesdeSnapshot(canvasFrenteJson, anchoPx, altoPx);
+    const reverso = canvasReversoJson
+      ? await this.construirCanvasDesdeSnapshot(canvasReversoJson, anchoPx, altoPx)
+      : null;
+
+    try {
+      return await this.generarPdfDesdeCanvases(
+        frente, reverso,
+        { ancho_mm: opciones.ancho_mm, alto_mm: opciones.alto_mm },
+        null,
+        {
+          nombreArchivo: opciones.nombreArchivo || 'Credencial.pdf',
+          guardar: opciones.guardar,
+        }
+      );
+    } finally {
+      frente.dispose();
+      reverso?.dispose();
+    }
+  }
+
+  /** Canvas fuera de pantalla con un lienzo congelado, listo para exportar. */
+  private async construirCanvasDesdeSnapshot(
+    canvasJson: any,
+    ancho: number,
+    alto: number
+  ): Promise<fabric.StaticCanvas> {
+    await this.asegurarFuentes();
+
+    const elemento = document.createElement('canvas');
+    elemento.width = ancho;
+    elemento.height = alto;
+
+    const canvas = new fabric.StaticCanvas(elemento, {
+      width: ancho,
+      height: alto,
+      backgroundColor: '#ffffff',
+    });
+
+    await canvas.loadFromJSON(canvasJson);
+    canvas.renderAll();
+    return canvas;
+  }
+
+  /**
    * Construye un canvas INTERACTIVO (fabric.Canvas, no StaticCanvas) enlazado
    * a un <canvas> real del DOM, poblado con los datos del empleado -- para
    * permitir ajustes rapidos (mover/redimensionar/tipografia) antes de

@@ -1,0 +1,225 @@
+// Pantalla "Administración": usuarios y roles.
+//
+// Usa los tokens de src/assets/styles.scss (paleta institucional guinda/oro,
+// radios, sombras, movimiento) en vez de colores sueltos -- piloto del
+// barrido de diseño documentado en CLAUDE.md.
+
+// ModalManagerService aplica `modal-width-520px`/`modal-width-640px` sobre la
+// VENTANA del modal, que vive fuera de este componente -- sin ::ng-deep el
+// encapsulamiento de Angular la deja sin efecto y caen al ancho por omision
+// de Bootstrap (~500px, insuficiente para la matriz de permisos de "Rol").
+// Faltaba: los modales de usuario/rol usaban el ancho por defecto.
+::ng-deep .modal-width-520px .modal-dialog {
+  max-width: 520px;
+  width: 520px;
+}
+
+::ng-deep .modal-width-640px .modal-dialog {
+  max-width: 640px;
+  width: 640px;
+}
+
+.ad-icono {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.ad-secciones {
+  .nav-link {
+    font-size: 0.85rem;
+    color: #6c757d;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: color var(--duration-micro) var(--ease-standard);
+
+    &.active {
+      color: var(--color-primary);
+      font-weight: 600;
+      border-bottom: 2px solid var(--color-primary);
+    }
+  }
+}
+
+// Marco (fondo + radio) alrededor de la agGrid/tarjetas de rol, mismo
+// tratamiento que .contenedor-masivo en enrolamiento-previo, centrado con
+// max-width para que no quede pegado al sidebar en pantallas anchas.
+.ad-contenedor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 230px);
+  min-height: 400px;
+  max-width: 1500px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #f4f6f9;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.ad-contenedor-roles {
+  overflow-y: auto;
+}
+
+.ad-buscador {
+  max-width: 360px;
+  min-width: 220px;
+}
+
+.ad-btn-nuevo {
+  background: var(--color-primary);
+  color: #fff;
+  transition: background var(--duration-micro) var(--ease-standard);
+
+  &:hover {
+    background: var(--color-primary-hover);
+    color: #fff;
+  }
+}
+
+.ad-grid {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  ::ng-deep .ad-grid-foto {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+  }
+}
+
+.ad-cargando {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  text-align: center;
+  padding: 2rem;
+}
+
+// ---------- Modales: checkboxes ----------
+.ad-lista-check {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.ad-nota {
+  font-size: 0.72rem;
+  margin-bottom: 0.4rem;
+}
+
+.ad-matriz {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.15rem var(--space-md);
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-sm);
+  padding: var(--space-md) var(--space-md);
+}
+
+// ---------- Roles: tarjetas ----------
+.ad-roles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ad-rol-tarjeta {
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) 0.9rem;
+  background: #fff;
+  transition: box-shadow var(--duration-micro) var(--ease-standard);
+
+  &:hover {
+    box-shadow: var(--shadow-low);
+  }
+}
+
+.ad-rol-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.ad-rol-nombre {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #343a40;
+}
+
+.ad-rol-acciones {
+  display: flex;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.ad-rol-permisos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+
+  .badge {
+    font-weight: 500;
+    font-size: 0.68rem;
+  }
+}
+
+// ---------- General: respaldo de medios ----------
+.ad-respaldo {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.ad-respaldo-titulo {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.ad-respaldo-nota {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-width: 620px;
+}
+
+.ad-respaldo-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 280px;
+  padding: var(--space-md);
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-md);
+}
+
+.ad-respaldo-icono {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}

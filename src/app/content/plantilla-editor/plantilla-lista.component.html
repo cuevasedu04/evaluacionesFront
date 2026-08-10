@@ -1,24 +1,22 @@
 <div class="container-fluid p-4 animate__animated animate__fadeIn">
 
-  <header class="bg-white border-bottom mb-4 rounded shadow-sm">
-    <div class="container-fluid py-3 px-4">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <header class="mb-4 mt-2">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex align-items-center gap-3">
-          <div class="p-2 bg-primary bg-opacity-10 rounded">
-            <i class="fas fa-vector-square text-primary fs-4"></i>
+          <div class="pl-icono">
+            <i class="fas fa-vector-square text-white"></i>
           </div>
           <div>
-            <h1 class="fw-bold text-dark mb-1 h4">Plantillas de credencial</h1>
-            <p class="text-muted mb-0 small">
+            <h1 class="fw-bold text-dark mb-0 h3">Plantillas de credencial</h1>
+            <p class="text-muted mb-0">
               Diseña, edita y reutiliza plantillas de credencial de forma visual
             </p>
           </div>
         </div>
 
-        <button class="btn btn-success" (click)="nueva()">
+        <button class="btn btn-sm pl-btn-nuevo" (click)="nueva()" *ngIf="permisosS.tiene('plantillas_administrar')">
           <i class="fas fa-plus"></i> Nueva plantilla
         </button>
-      </div>
     </div>
   </header>
 
@@ -40,7 +38,7 @@
   <div *ngIf="!cargando && !plantillasFiltradas.length" class="text-center py-5 text-muted">
     <i class="fas fa-vector-square fa-3x mb-3 d-block opacity-50"></i>
     <p class="mb-3">Aun no hay plantillas creadas.</p>
-    <button class="btn btn-outline-success" (click)="nueva()">
+    <button class="btn btn-sm pl-btn-nuevo" (click)="nueva()" *ngIf="permisosS.tiene('plantillas_administrar')">
       <i class="fas fa-plus"></i> Crear la primera
     </button>
   </div>
@@ -68,7 +66,7 @@
           </p>
         </div>
 
-        <div class="card-footer bg-white border-top py-2 px-3">
+        <div class="card-footer bg-white border-top py-2 px-3" *ngIf="permisosS.tiene('plantillas_administrar')">
           <div class="btn-group btn-group-sm w-100">
             <button class="btn btn-outline-primary" (click)="editar(plantilla)" title="Editar">
               <i class="fas fa-pen"></i>

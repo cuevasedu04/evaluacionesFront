@@ -13,7 +13,7 @@
                 placeholder="Ej. Aduana de Acapulco con sede en Guerrero"
                 [(ngModel)]="enFormulario.nombre"></textarea>
       <small class="text-muted">
-        Debe coincidir con el área que trae el roster. No distingue mayúsculas ni acentos.
+        Debe coincidir con el área que trae el poblado de credencial. No distingue mayúsculas ni acentos.
       </small>
     </div>
 
@@ -65,7 +65,7 @@
     <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargar()" [disabled]="cargando">
       <i class="fas fa-arrows-rotate"></i> Actualizar
     </button>
-    <button class="btn btn-sm cu-btn-nuevo" (click)="nuevo()">
+    <button class="btn btn-sm cu-btn-nuevo" (click)="nuevo()" *ngIf="permisosS.tiene('areas_administrar')">
       <i class="fas fa-plus"></i> Nueva área
     </button>
   </div>
@@ -73,9 +73,9 @@
   <!-- Áreas del roster que nadie ha catalogado: imprimirían el nombre largo -->
   <div class="alert alert-warning py-2 px-3 small" *ngIf="sinCatalogo.length">
     <i class="fas fa-triangle-exclamation"></i>
-    <strong>{{ sinCatalogo.length }} área(s) del roster sin catalogar</strong>
+    <strong>{{ sinCatalogo.length }} área(s) del poblado de credencial sin catalogar</strong>
     ({{ totalEmpleadosSinCatalogo }} empleados). Su credencial saldría con el nombre completo.
-    <div class="mt-2 d-flex flex-wrap gap-2">
+    <div class="mt-2 d-flex flex-wrap gap-2" *ngIf="permisosS.tiene('areas_administrar')">
       <button class="btn btn-sm btn-outline-dark" *ngFor="let a of sinCatalogo"
               (click)="nuevo(a.area)" [title]="a.area">
         <i class="fas fa-plus"></i> {{ a.area.length > 46 ? (a.area | slice:0:46) + '…' : a.area }}

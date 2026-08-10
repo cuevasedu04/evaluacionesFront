@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { TipoToast } from '../../../api/entidades/enumeraciones';
 import { UtilsService } from '../../services/utils.service';
 import { PlantillaCredencial, PlantillaCredencialService } from '../../services/plantilla-credencial.service';
+import { PermisosService } from '../../services/permisos.service';
 
 /** Administracion de plantillas de credencial: listar, crear, duplicar, eliminar. */
 @Component({
@@ -22,6 +23,7 @@ export class PlantillaListaComponent implements OnInit {
     private plantillaApi: PlantillaCredencialService,
     private utils: UtilsService,
     private router: Router,
+    public permisosS: PermisosService,
   ) { }
 
   ngOnInit(): void {
@@ -58,6 +60,11 @@ export class PlantillaListaComponent implements OnInit {
   }
 
   editar(plantilla: PlantillaCredencial): void {
+    // El clic en la miniatura no pasa por el boton (oculto sin el permiso),
+    // asi que se revalida aqui: entrar al editor sin `plantillas_administrar`
+    // terminaria en un 403 al primer guardado, una manera confusa de
+    // enterarse de que no tiene el permiso.
+    if (!this.permisosS.tiene('plantillas_administrar')) return;
     this.router.navigate(['/plantillas/editor', plantilla.id_plantilla]);
   }
 
