@@ -11,7 +11,6 @@ import { EmpleadoSig } from '../../services/plantilla-credencial.service';
 
 /** Columnas de sicre_tbl_sig con su etiqueta legible, en orden de despliegue. */
 export const COLUMNAS_SIG: { campo: string; titulo: string; ancho?: number }[] = [
-  // { campo: 'no_empleado', titulo: 'No. empleado', ancho: 130 },
   { campo: 'empleado_anam', titulo: 'Numero de empleado', ancho: 145 },
   { campo: 'nombres', titulo: 'Nombres', ancho: 170 },
   { campo: 'primer_apellido', titulo: 'Primer apellido', ancho: 150 },
@@ -19,13 +18,8 @@ export const COLUMNAS_SIG: { campo: string; titulo: string; ancho?: number }[] =
   { campo: 'curp', titulo: 'CURP', ancho: 165 },
   { campo: 'area', titulo: 'Área', ancho: 240 },
   { campo: 'cargo', titulo: 'Cargo', ancho: 190 },
-  // { campo: 'estatus', titulo: 'Estatus', ancho: 110 },
-  // { campo: 'estado_hum', titulo: 'Estado HUM', ancho: 120 },
   { campo: 'estado_nom', titulo: 'Estado nómina', ancho: 130 },
   { campo: 'fecha_expedicion', titulo: 'Fecha expedición', ancho: 140 },
-  // { campo: 'firma_drh', titulo: 'Firma DRH', ancho: 220 },
-  // { campo: 'cargo_drh', titulo: 'Cargo DRH', ancho: 130 },
-  // { campo: 'fecha_actualizacion', titulo: 'Actualizado', ancho: 150 },
 ];
 
 /** Ano al que vencen todas las credenciales de esta emision. */

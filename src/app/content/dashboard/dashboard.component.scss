@@ -4,8 +4,50 @@
 // barrido de diseño (ver CLAUDE.md).
 
 .db-pagina {
-  max-width: 1180px;
+  position: relative; // contiene a .db-lanyard-fondo, que es absolute
+  max-width: 1440px;
   margin: 0 auto;
+  min-height: calc(100vh - 200px);
+}
+
+// Capa de fondo a todo lo ancho/alto de la pagina -- ya NO es una columna
+// angosta (ver CLAUDE.md/historial): el "cuarto" le quedaba chico al cordon
+// para balancearse. Con esto la tarjeta tiene TODO el componente para
+// desplazarse, rebotar y arrastrarse; el anclaje del cordon se calcula desde
+// el ancho real del lienzo (ANCLA_FRACCION_X en Lanyard.tsx) para que cuelgue
+// sobre la franja derecha, la que .db-contenido deja libre.
+.db-lanyard-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  // Un widget 3D no aporta nada en pantallas angostas y ahi si estorbaria
+  // (tapado por las tarjetas, que en movil ocupan todo el ancho).
+  @media (max-width: 1150px) {
+    display: none;
+  }
+}
+
+// Todo el contenido (hero + modulos) va EN FRENTE del lanyard
+// (position:relative le da su propio stacking context para que z-index
+// aplique) -- asi la tarjeta pasa visualmente por DETRAS al balancearse, sin
+// "chocar" con nada: son capas de CSS, no colision fisica real.
+//
+// Y va confinado a una COLUMNA IZQUIERDA: el lienzo sigue cubriendo la pagina
+// entera (para que la tarjeta se mueva libre por todos lados), pero la franja
+// derecha queda sin contenido opaco encima, que es donde cuelga la credencial.
+// Sin esto la tarjeta quedaba 100% tapada por el banner y las tarjetas de
+// modulo -- solo asomaba el broche metalico arriba del banner.
+.db-contenido {
+  position: relative;
+  z-index: 1;
+  width: 62%;
+
+  // Sin lanyard visible (ver .db-lanyard-fondo) no hay nada que esquivar:
+  // el contenido recupera el ancho completo.
+  @media (max-width: 1150px) {
+    width: 100%;
+  }
 }
 
 .db-hero {

@@ -145,6 +145,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       permiso: 'ver_auditoria_credenciales',
     },
     {
+      id: 'acuses',
+      label: 'Acuses',
+      icon: 'fas fa-file-signature',
+      link: '/acuses',
+      permiso: 'ver_acuses',
+    },
+    {
       id: 'administracion',
       label: 'Administración',
       icon: 'fas fa-user-shield',

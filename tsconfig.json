@@ -16,7 +16,11 @@
     "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
-    "module": "ES2022"
+    "module": "ES2022",
+    // Solo lo usa src/app/components/shared/lanyard-credencial/Lanyard.tsx
+    // (el componente React del lanyard) -- no afecta a los .ts normales de
+    // Angular, que nunca tienen sintaxis JSX.
+    "jsx": "react-jsx"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

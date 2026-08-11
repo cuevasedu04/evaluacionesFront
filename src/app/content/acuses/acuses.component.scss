@@ -1,0 +1,52 @@
+// Pantalla "Acuses": mismo tratamiento visual que Administración
+// (administracion.component.scss) -- marco con fondo/radio alrededor de la
+// ag-Grid, centrado con max-width. Se replica aqui (prefijo `ac-`) en vez de
+// compartir clases porque el encapsulamiento por componente de Angular no
+// deja que un selector `.ad-contenedor` definido en otro componente le
+// pegue a este.
+
+.ac-icono {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.ac-contenedor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 230px);
+  min-height: 400px;
+  max-width: 1500px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #f4f6f9;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.ac-buscador {
+  max-width: 360px;
+  min-width: 220px;
+}
+
+.ac-grid {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ac-cargando {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  text-align: center;
+  padding: 2rem;
+}

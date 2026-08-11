@@ -37,9 +37,11 @@ import { InventarioMediosComponent } from './content/inventario-medios/inventari
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
 import { AuditoriaCredencialesComponent } from './content/auditoria-credenciales/auditoria-credenciales.component';
 import { AdministracionComponent } from './content/administracion/administracion.component';
+import { AcusesComponent } from './content/acuses/acuses.component';
 import { CapturaMediosComponent } from './components/shared/captura-medios/captura-medios.component';
 import { CredencialPanelPropiedadesComponent } from './components/shared/credencial-panel-propiedades/credencial-panel-propiedades.component';
 import { AjusteImagenComponent } from './components/shared/ajuste-imagen/ajuste-imagen.component';
+import { LanyardCredencialComponent } from './components/shared/lanyard-credencial/lanyard-credencial.component';
 import { EnrolamientoMasivoComponent } from './content/enrolamiento-masivo/enrolamiento-masivo.component';
 import { BusquedaEnrolamientoMasivosComponent } from './content/busqueda-enrolamiento-masivos/busqueda-enrolamiento-masivos.component';
 import { LoginComponent } from './content/login/login.component';
@@ -71,9 +73,11 @@ import { LoginComponent } from './content/login/login.component';
     CatalogoUnidadesComponent,
     AuditoriaCredencialesComponent,
     AdministracionComponent,
+    AcusesComponent,
     CapturaMediosComponent,
     CredencialPanelPropiedadesComponent,
     AjusteImagenComponent,
+    LanyardCredencialComponent,
     EnrolamientoMasivoComponent,
     BusquedaEnrolamientoMasivosComponent
   ],

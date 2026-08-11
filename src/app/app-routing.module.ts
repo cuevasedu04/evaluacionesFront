@@ -27,6 +27,7 @@ import { InventarioMediosComponent } from './content/inventario-medios/inventari
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
 import { AuditoriaCredencialesComponent } from './content/auditoria-credenciales/auditoria-credenciales.component';
 import { AdministracionComponent } from './content/administracion/administracion.component';
+import { AcusesComponent } from './content/acuses/acuses.component';
 
 const routes: Routes = [
   {
@@ -129,6 +130,12 @@ const routes: Routes = [
         component: AuditoriaCredencialesComponent,
         canActivate: [AuthGuard],
         data: { permisoRequerido: 'ver_auditoria_credenciales'  },
+      },
+      {
+        path: 'acuses',
+        component: AcusesComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_acuses'  },
       },
       {
         path: 'registro-empleado',

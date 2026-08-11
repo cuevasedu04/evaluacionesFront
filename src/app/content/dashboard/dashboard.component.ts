@@ -64,6 +64,11 @@ export class DashboardComponent {
       icon: 'fas fa-clipboard-check', link: '/auditoria-credenciales', permiso: 'ver_auditoria_credenciales',
     },
     {
+      id: 'acuses', label: 'Acuses',
+      descripcion: 'Carga el acuse de alta o de baja de credencial para cada empleado.',
+      icon: 'fas fa-file-signature', link: '/acuses', permiso: 'ver_acuses',
+    },
+    {
       id: 'administracion', label: 'Administración',
       descripcion: 'Usuarios, roles y permisos del sistema.',
       icon: 'fas fa-user-shield', link: '/administracion', soloSuperusuario: true,

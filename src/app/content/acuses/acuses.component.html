@@ -1,0 +1,46 @@
+<header class="mb-3 mt-2">
+  <div class="d-flex align-items-center gap-3 px-3">
+    <div class="ac-icono"><i class="fas fa-file-signature text-white"></i></div>
+    <div>
+      <h1 class="fw-bold text-dark mb-0 h3">Acuses</h1>
+      <p class="text-muted mb-0">Acuses de alta y baja de credencial, por empleado</p>
+    </div>
+  </div>
+</header>
+
+<div class="ac-contenedor mx-3">
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <div class="input-group input-group-sm ac-buscador">
+      <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+      <input type="text" class="form-control" placeholder="Buscar por nombre, número de empleado, CURP..."
+             [(ngModel)]="busquedaGlobal" (ngModelChange)="onBusquedaGlobal()">
+    </div>
+
+    <span class="badge bg-light text-dark border">{{ totalFiltrados }} de {{ rowDataActivo.length }}</span>
+
+    <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargarDatos()" [disabled]="cargandoRoster">
+      <i class="fas fa-arrows-rotate"></i> Actualizar
+    </button>
+  </div>
+
+  <div *ngIf="cargandoRoster" class="ac-cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Cargando roster...
+  </div>
+
+  <ag-grid-angular
+      *ngIf="!cargandoRoster"
+      class="ag-theme-alpine ac-grid"
+      [rowData]="rowDataActivo"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [animateRows]="false"
+      [enableBrowserTooltips]="true"
+      [suppressCellFocus]="true"
+      (gridReady)="onGridReady($event)"
+      (cellClicked)="onCellClicked($event)"
+      (filterChanged)="onFiltroCambiado()">
+  </ag-grid-angular>
+</div>
+
+<input #inputArchivo type="file" accept="application/pdf,image/*" style="display:none"
+       (change)="onArchivoSeleccionado($event)">

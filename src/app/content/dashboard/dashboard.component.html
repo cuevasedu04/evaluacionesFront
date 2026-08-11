@@ -1,35 +1,58 @@
 <div class="db-pagina p-4">
 
-  <header class="db-hero">
-    <div class="db-hero-icono">
-      <i class="fas fa-id-card-clip"></i>
-    </div>
-    <div class="db-hero-texto">
-      <h1 class="db-hero-titulo">Sistema de Credencialización y Enrolamiento</h1>
-      <p class="db-hero-sub">
-        Consultas, enrolamiento e impresión de credenciales para el personal de la ANAM.
-      </p>
-    </div>
-  </header>
+  <!-- Decorativo -- credencial ANAM colgando de un cordon, con rebote y
+       arrastrable. Capa de FONDO a todo lo ancho/alto del dashboard (no una
+       columna angosta): asi el cordon tiene todo el componente para
+       balancearse, y el "cuarto" no le queda chico. El anclaje del cordon
+       (ver lanyard-credencial.component.ts) esta corrido hacia la derecha
+       en coordenadas de mundo para que la tarjeta cuelgue del lado derecho
+       aunque el lienzo ocupe todo el ancho. Se oculta en pantallas angostas
+       (ver .scss): un widget 3D no aporta nada en movil.
+  -->
+  <div class="db-lanyard-fondo">
+    <app-lanyard-credencial></app-lanyard-credencial>
+  </div>
 
-  <section class="db-modulos">
-    <h2 class="db-modulos-titulo">Módulos del sistema</h2>
+  <!-- Todo el contenido va en una COLUMNA IZQUIERDA (ver .db-contenido en el
+       .scss) para dejar libre la franja derecha donde cuelga la credencial.
+       Antes el banner y las tarjetas ocupaban el ancho completo y, aunque el
+       lienzo si cubria toda la pagina, la tarjeta quedaba integramente detras
+       de ellos: lo unico que asomaba era el broche metalico por encima del
+       banner, y por eso parecia que la credencial era diminuta. -->
+  <div class="db-contenido">
 
-    <div class="db-grid">
-      <button type="button" class="db-tarjeta" *ngFor="let modulo of modulosVisibles"
-              (click)="abrirModulo(modulo)">
-        <div class="db-tarjeta-icono"><i [class]="modulo.icon"></i></div>
-        <div class="db-tarjeta-titulo">{{ modulo.label }}</div>
-        <p class="db-tarjeta-desc">{{ modulo.descripcion }}</p>
-        <span class="db-tarjeta-ir">Entrar <i class="fas fa-arrow-right"></i></span>
-      </button>
-    </div>
+    <header class="db-hero">
+      <div class="db-hero-icono">
+        <i class="fas fa-id-card-clip"></i>
+      </div>
+      <div class="db-hero-texto">
+        <h1 class="db-hero-titulo">Sistema de Credencialización y Enrolamiento</h1>
+        <p class="db-hero-sub">
+          Consultas, enrolamiento e impresión de credenciales para el personal de la ANAM.
+        </p>
+      </div>
+    </header>
 
-    <div class="db-vacio" *ngIf="!modulosVisibles.length">
-      <i class="fas fa-lock fa-2x mb-2 d-block opacity-50"></i>
-      Tu cuenta no tiene acceso a ningún módulo todavía. Pide a un superusuario que te asigne un rol
-      desde «Administración».
-    </div>
-  </section>
+    <section class="db-modulos">
+      <h2 class="db-modulos-titulo">Módulos del sistema</h2>
+
+      <div class="db-grid">
+        <button type="button" class="db-tarjeta" *ngFor="let modulo of modulosVisibles"
+                (click)="abrirModulo(modulo)">
+          <div class="db-tarjeta-icono"><i [class]="modulo.icon"></i></div>
+          <div class="db-tarjeta-titulo">{{ modulo.label }}</div>
+          <p class="db-tarjeta-desc">{{ modulo.descripcion }}</p>
+          <span class="db-tarjeta-ir">Entrar <i class="fas fa-arrow-right"></i></span>
+        </button>
+      </div>
+
+      <div class="db-vacio" *ngIf="!modulosVisibles.length">
+        <i class="fas fa-lock fa-2x mb-2 d-block opacity-50"></i>
+        Tu cuenta no tiene acceso a ningún módulo todavía. Pide a un superusuario que te asigne un rol
+        desde «Administración».
+      </div>
+    </section>
+
+  </div>
 
 </div>

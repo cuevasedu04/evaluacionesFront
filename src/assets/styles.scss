@@ -46,7 +46,10 @@
 }
 :root {
  /* Colores principales */
-    --color-primary: #9F2241;
+    // Guinda oficial: PANTONE 7421 C / #691C32 (antes #9F2241, un guinda mas
+    // claro que no correspondia al Pantone institucional). --color-secondary
+    // ya usaba este mismo tono -- ahora coinciden a proposito.
+    --color-primary: #691C32;
     --color-secondary: #691C32;
     --color-success: #007B5D;
     --color-gold: #C9A977;
@@ -68,8 +71,8 @@
 
 
     /* Variables derivadas para consistencia */
-    --color-primary-hover: #7A1B34;
-    --color-primary-light: rgba(159, 34, 65, 0.1);
+    --color-primary-hover: #4F1525; // sombra de #691C32, igual a --color-secondary-hover
+    --color-primary-light: rgba(105, 28, 50, 0.1); // #691C32 en rgba
     --color-secondary-hover: #4F1525;
     --color-success-hover: #005A45;
     --color-success-light: rgba(0, 123, 93, 0.12);

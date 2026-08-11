@@ -1,0 +1,28 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lc-contenedor {
+  width: 100%;
+  height: 100%;
+}
+
+// El <div class="lanyard-wrapper"> lo crea REACT, no la plantilla de Angular,
+// asi que no lleva el atributo _ngcontent-* con el que la encapsulacion
+// emulada acota los estilos de este componente: una regla normal
+// `.lanyard-wrapper { ... }` aqui NUNCA le pegaria. Su unico alto venia de
+// Lanyard.css (importado desde el .tsx), y sin el la cadena de `height:100%`
+// se rompia justo ahi: react-three-fiber medía 0 de alto y el <canvas> caia a
+// su tamaño intrinseco por omision, 300x150 -- se vio en el inspector como
+// "canvas 1440 x 150". De ahi los dos sintomas: la credencial diminuta (todo
+// el encuadre vertical aplastado en 150 px) y que desapareciera al arrastrarla
+// hacia abajo (se salia del lienzo).
+//
+// ::ng-deep desde :host compila a `[_nghost-x] .lanyard-wrapper`, que si
+// alcanza a los nodos de React sin volverse un estilo global.
+:host ::ng-deep .lanyard-wrapper {
+  width: 100%;
+  height: 100%;
+}
