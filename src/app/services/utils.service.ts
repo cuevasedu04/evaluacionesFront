@@ -50,8 +50,12 @@ export class UtilsService {
         progressBar: true
       });
     } else {
+      // El backend responde en español ({'mensaje': '...'}), no en inglés
+      // ({'message': '...'}) -- este ultimo nunca vino, asi que TODO error
+      // especifico del servidor (RFC duplicado, folio en uso, plantilla en
+      // uso, etc.) caia siempre al mensaje generico de soporte tecnico.
       this.toastService.error(
-        ex.error.message || 'Ocurrió un error interno, contactar a soporte técnico.', '', {
+        ex?.error?.mensaje || ex?.error?.message || 'Ocurrió un error interno, contactar a soporte técnico.', '', {
         closeButton: true,
         progressBar: true
       });
