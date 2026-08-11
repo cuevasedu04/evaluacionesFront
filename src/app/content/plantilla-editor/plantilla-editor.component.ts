@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild
+  AfterViewInit, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import * as fabric from 'fabric';
@@ -7,6 +7,8 @@ import * as fabric from 'fabric';
 import { TipoToast } from '../../../api/entidades/enumeraciones';
 import { UtilsService } from '../../services/utils.service';
 import { CredencialRenderService } from '../../services/credencial-render.service';
+import { ModalManagerService } from '../../components/shared/modal-manager.service';
+import { PermisosService } from '../../services/permisos.service';
 import {
   FondoDisponible, PlantillaCredencial, PlantillaCredencialService
 } from '../../services/plantilla-credencial.service';
@@ -35,6 +37,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   @ViewChild('canvasEl', { static: false }) canvasEl!: ElementRef<HTMLCanvasElement>;
   @ViewChild('inputFondo') inputFondo!: ElementRef<HTMLInputElement>;
   @ViewChild('inputImagen') inputImagen!: ElementRef<HTMLInputElement>;
+  @ViewChild('confirmDialog') confirmDialog!: TemplateRef<any>;
 
   // ---- Catalogos para la plantilla lateral ----
   readonly campos = CAMPOS_DISPONIBLES;
@@ -60,6 +63,8 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   fondos: FondoDisponible[] = [];
   fondoFrente: string | null = null;
   fondoReverso: string | null = null;
+  borrandoFondo: string | null = null;
+  confirmMessage = '';
 
   plantilla: PlantillaCredencial = {
     clave: '',
@@ -83,6 +88,8 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     private utils: UtilsService,
     private route: ActivatedRoute,
     private router: Router,
+    private modalManager: ModalManagerService,
+    public permisosS: PermisosService,
   ) { }
 
   // ====================================================================
@@ -247,11 +254,18 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
 
   onFondoSeleccionado(evento: any): void {
     const archivo = evento.target?.files?.[0];
+    evento.target.value = '';
     if (!archivo) return;
 
     if (!archivo.type?.startsWith('image/')) {
       this.utils.MuestrasToast(TipoToast.Warning, 'El fondo debe ser una imagen.');
-      evento.target.value = '';
+      return;
+    }
+    // El backend ya sube su propio limite (ver settings.py,
+    // DATA_UPLOAD_MAX_MEMORY_SIZE), pero avisar aqui evita subir 15MB para
+    // enterarse hasta el final que no van a caber.
+    if (archivo.size > 15 * 1024 * 1024) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El fondo es muy pesado. Máximo 15MB.');
       return;
     }
 
@@ -271,7 +285,45 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     };
 
     lector.readAsDataURL(archivo);
-    evento.target.value = '';
+  }
+
+  /** Borra un fondo subido. Se niega si alguna plantilla lo sigue usando (ver borrar-fondo en el backend). */
+  confirmarBorrarFondo(fondo: FondoDisponible, evento: MouseEvent): void {
+    evento.stopPropagation(); // no dispara seleccionarFondo() del botón que lo envuelve
+    this.confirmMessage = `¿Eliminar el fondo «${fondo.nombre}»? Esta acción no se puede deshacer.`;
+
+    this.modalManager.openModal({
+      title: 'Eliminar fondo',
+      template: this.confirmDialog,
+      onAccept: () => {
+        this.borrandoFondo = fondo.ruta;
+        this.plantillaApi.borrarFondo(fondo.ruta).subscribe({
+          next: () => {
+            this.borrandoFondo = null;
+            this.utils.MuestrasToast(TipoToast.Success, 'Fondo eliminado');
+
+            // seleccionarFondo(null) solo toca la cara ACTUAL (this.cara);
+            // aqui hay que limpiar la referencia este donde este, y solo
+            // repintar el canvas si la cara que se esta viendo era la afectada.
+            const eraDeCaraActual =
+              (this.cara === 'frente' && this.fondoFrente === fondo.ruta) ||
+              (this.cara === 'reverso' && this.fondoReverso === fondo.ruta);
+            if (this.fondoFrente === fondo.ruta) this.fondoFrente = null;
+            if (this.fondoReverso === fondo.ruta) this.fondoReverso = null;
+            if (eraDeCaraActual) {
+              this.render.aplicarFondo(this.canvas, null, this.anchoDiseno, this.altoDiseno);
+              this.hayCambios = true;
+            }
+
+            this.cargarFondos();
+          },
+          error: (err) => {
+            this.borrandoFondo = null;
+            this.utils.MuestraErrorInterno(err);
+          },
+        });
+      },
+    });
   }
 
   // ====================================================================

@@ -99,6 +99,7 @@
 }
 
 .fondo-item {
+  position: relative;
   aspect-ratio: 54 / 86;
   padding: 0;
   overflow: hidden;
@@ -122,6 +123,31 @@
     border-color: #2E5DAA;
     box-shadow: 0 0 0 2px rgba(46, 93, 170, 0.25);
   }
+}
+
+.fondo-borrar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    background-color: #dc3545;
+  }
+}
+
+.fondo-item:hover .fondo-borrar {
+  opacity: 1;
 }
 
 .fondo-ninguno {

@@ -225,6 +225,10 @@ export class PlantillaCredencialService {
     return this.http.post(`${this.apiPlantillas}subir-fondo/`, { imagen: imagenBase64, nombre });
   }
 
+  borrarFondo(ruta: string): Observable<any> {
+    return this.http.post(`${this.apiPlantillas}borrar-fondo/`, { ruta });
+  }
+
   // ---- Enrolamiento (datos para poblar la credencial) -------------------
 
   buscarEmpleado(numEmpleado: string): Observable<any> {

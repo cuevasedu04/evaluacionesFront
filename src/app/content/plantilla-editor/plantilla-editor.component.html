@@ -1,3 +1,10 @@
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
 <div class="editor-plantilla d-flex flex-column h-100">
 
   <!-- ===================== BARRA SUPERIOR ===================== -->
@@ -92,6 +99,13 @@
                   (click)="seleccionarFondo(fondo.ruta)"
                   [title]="fondo.nombre">
             <img [src]="fondo.url" [alt]="fondo.nombre">
+            <span class="fondo-borrar"
+                  *ngIf="permisosS.tiene('plantillas_administrar')"
+                  (click)="confirmarBorrarFondo(fondo, $event)"
+                  title="Eliminar este fondo">
+              <i class="fas" [class.fa-trash]="borrandoFondo !== fondo.ruta"
+                 [class.fa-spinner]="borrandoFondo === fondo.ruta" [class.fa-spin]="borrandoFondo === fondo.ruta"></i>
+            </span>
           </button>
         </div>
         <button class="btn btn-sm btn-outline-secondary w-100 mt-2" (click)="abrirSubirFondo()">
