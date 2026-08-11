@@ -14,6 +14,22 @@ import { Injectable } from '@angular/core';
 export class PdfAImagenService {
 
   async primeraPaginaComoDataUrl(archivo: File, escala = 2.5): Promise<string> {
+    // Si el worker no llega a cargar (p.ej. un servidor mal configurado que
+    // sirve el .js con un Content-Type que el navegador rechaza para un
+    // worker de tipo modulo -- ver el comentario mas abajo), pdf.js se queda
+    // esperando una respuesta que nunca llega, en vez de rechazar la promesa.
+    // Sin este limite, el modal de ajuste simplemente nunca se abre y no hay
+    // ningun error que avise por que.
+    return await Promise.race([
+      this.convertir(archivo, escala),
+      new Promise<string>((_, reject) => setTimeout(
+        () => reject(new Error('No se pudo procesar el PDF (tiempo de espera agotado). Intenta de nuevo o sube una imagen.')),
+        20000,
+      )),
+    ]);
+  }
+
+  private async convertir(archivo: File, escala: number): Promise<string> {
     // Import dinamico: pdfjs-dist pesa ~700KB y la inmensa mayoria de
     // capturas son imagen, no PDF. Con `import()` esbuild lo separa en su
     // propio chunk, que solo se descarga la primera vez que alguien de
@@ -24,7 +40,16 @@ export class PdfAImagenService {
     // wacom-webhid.js) en vez de resolverlo via import.meta.url: el build de
     // Angular con esbuild no siempre empaqueta bien los workers de terceros,
     // y esto evita depender de que lo haga.
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/js/pdf.worker.min.mjs';
+    //
+    // Extension .js, NO .mjs, aunque el archivo sea el mismo modulo ES que
+    // trae pdfjs-dist tal cual: pdf.js fija `{ type: 'module' }` al crear el
+    // Worker (no depende de la extension), pero el mime.types por omision de
+    // nginx no mapea `.mjs` -> lo sirve como `application/octet-stream`, y el
+    // navegador rechaza cargar un worker de tipo modulo si el Content-Type no
+    // es de JavaScript. Con `.js` (que nginx SI mapea bien) el mismo archivo
+    // carga sin problema. Confirmado en produccion: funcionaba en local
+    // (servidor de dev de Angular) pero no en el servidor real, mismo commit.
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/js/pdf.worker.min.js';
 
     const buffer = await archivo.arrayBuffer();
     const documento = await pdfjsLib.getDocument({ data: buffer }).promise;

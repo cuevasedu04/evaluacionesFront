@@ -82,6 +82,11 @@ export interface ImpresionAuditoria {
   plantilla_credencial: string | null;
   con_ajustes: boolean;
   fecha_registro: string | null;
+  /** Quién imprimió esta credencial (nombre completo, o username si no lo tiene capturado). Vacío si se imprimió sin sesión. */
+  usuario_registra: string;
+  fecha_modificacion: string | null;
+  /** Quién modificó el registro por última vez. Vacío si nunca se ha modificado. */
+  usuario_modifica: string;
 }
 
 /** Fila del roster SIG (sicre_tbl_sig), tal cual llega del endpoint `todos`. */

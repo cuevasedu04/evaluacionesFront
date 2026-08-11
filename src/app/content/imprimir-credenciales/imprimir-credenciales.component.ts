@@ -244,7 +244,8 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   avisoWacom: string | null = null;
   avisoCamara: string | null = null;
 
-  // ---- Ajuste de encuadre (recorte/zoom) tras capturar o cargar foto/firma ----
+  // ---- Ajuste de encuadre (recorte/zoom) tras capturar/cargar foto/firma, o
+  // al hacer doble clic sobre el campo ya puesto en el canvas de edición ----
   @ViewChild('modalAjuste') modalAjusteRef!: TemplateRef<any>;
   @ViewChild('ajustador') ajustador?: AjusteImagenComponent;
   srcParaAjustar: string | null = null;
@@ -254,13 +255,11 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   private readonly ALTO_MARCO_FOTO = 375;
   private readonly ANCHO_MARCO_FIRMA = 400;
   private readonly ALTO_MARCO_FIRMA = 200;
-
-  get anchoMarcoAjuste(): number {
-    return this.tipoAjusteActual === 'foto' ? this.ANCHO_MARCO_FOTO : this.ANCHO_MARCO_FIRMA;
-  }
-  get altoMarcoAjuste(): number {
-    return this.tipoAjusteActual === 'foto' ? this.ALTO_MARCO_FOTO : this.ALTO_MARCO_FIRMA;
-  }
+  /** Tamaño del marco de ajuste EN USO -- fijo para captura/carga, calculado a partir del campo real cuando se abre por doble clic en el canvas. */
+  anchoMarcoAjuste = this.ANCHO_MARCO_FOTO;
+  altoMarcoAjuste = this.ALTO_MARCO_FOTO;
+  /** Si el ajuste se abrió con doble clic sobre el canvas de edición, a qué imagen y canvas aplicar el resultado. Null = viene del flujo de captura/carga normal. */
+  private origenAjusteCanvas: { imagen: fabric.FabricImage; canvas: fabric.Canvas } | null = null;
 
   /**
    * Foto/firma capturadas en esta sesion, pendientes de guardarse en
@@ -960,6 +959,17 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     canvas.on('selection:updated', () => { this.objetoSeleccionado = canvas.getActiveObject() || null; });
     canvas.on('selection:cleared', () => { this.objetoSeleccionado = null; });
 
+    // Doble clic sobre el campo de foto/firma -> ajuste de encuadre (ver
+    // abrirAjusteCanvas()). Un solo clic ya lo selecciona para el panel de
+    // propiedades normal; el doble clic es la entrada al recorte.
+    canvas.on('mouse:dblclick', (opt: any) => {
+      const objetivo = opt.target as fabric.FabricImage | undefined;
+      const campo = (objetivo as any)?.data?.campo;
+      if (objetivo instanceof fabric.FabricImage && (campo === 'foto' || campo === 'firma')) {
+        this.abrirAjusteCanvas(campo, objetivo, canvas);
+      }
+    });
+
     if (cara === 'frente') {
       this.canvasFrenteEditable = canvas;
     } else {
@@ -1318,8 +1328,11 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   // ====================================================================
 
   private abrirAjuste(tipo: 'foto' | 'firma', dataUrl: string): void {
+    this.origenAjusteCanvas = null; // este es el flujo normal de captura/carga, no el de doble clic en el canvas
     this.tipoAjusteActual = tipo;
     this.srcParaAjustar = dataUrl;
+    this.anchoMarcoAjuste = tipo === 'foto' ? this.ANCHO_MARCO_FOTO : this.ANCHO_MARCO_FIRMA;
+    this.altoMarcoAjuste = tipo === 'foto' ? this.ALTO_MARCO_FOTO : this.ALTO_MARCO_FIRMA;
     this.modalManager.openModal({
       title: tipo === 'foto' ? 'Ajustar fotografía' : 'Ajustar firma',
       template: this.modalAjusteRef,
@@ -1328,9 +1341,56 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     });
   }
 
-  private confirmarAjuste(): void {
+  /**
+   * Doble clic sobre el campo de foto/firma YA puesto en el canvas de edición
+   * rápida (ver el listener 'mouse:dblclick' en asegurarCanvasEditable()).
+   * Antes de esto no había forma de ajustar foto/firma en modo edición:
+   * abrirCamara()/abrirFirma() se deshabilitan a propósito mientras
+   * modoEdicion es true (habría dos formas distintas de terminar poblando el
+   * mismo campo). El marco se calcula de la caja REAL del campo en la
+   * plantilla, no de un tamaño fijo, para que la proporción del recorte
+   * coincida exactamente con cómo se ve en la credencial.
+   */
+  private abrirAjusteCanvas(campo: 'foto' | 'firma', imagen: fabric.FabricImage, canvas: fabric.Canvas): void {
+    const anchoCaja = ((imagen.clipPath as any)?.width || imagen.width || 1) * (imagen.scaleX || 1);
+    const altoCaja = ((imagen.clipPath as any)?.height || imagen.height || 1) * (imagen.scaleY || 1);
+    const [ancho, alto] = this.medidasMarcoAjuste(anchoCaja / (altoCaja || 1));
+
+    this.origenAjusteCanvas = { imagen, canvas };
+    this.tipoAjusteActual = campo;
+    this.srcParaAjustar = imagen.getSrc();
+    this.anchoMarcoAjuste = ancho;
+    this.altoMarcoAjuste = alto;
+
+    this.modalManager.openModal({
+      title: campo === 'foto' ? 'Ajustar fotografía' : 'Ajustar firma',
+      template: this.modalAjusteRef,
+      width: '480px',
+      onAccept: () => this.confirmarAjuste(),
+    });
+  }
+
+  /** Tamaño del marco de ajuste para una proporción dada, acotado a un rango cómodo dentro del modal. */
+  private medidasMarcoAjuste(proporcion: number): [number, number] {
+    const MIN_LADO = 160, MAX_ANCHO = 560, MAX_ALTO = 420;
+    let alto = 340;
+    let ancho = alto * proporcion;
+    const escalar = (factor: number) => { ancho *= factor; alto *= factor; };
+    if (ancho > MAX_ANCHO) escalar(MAX_ANCHO / ancho);
+    if (alto > MAX_ALTO) escalar(MAX_ALTO / alto);
+    if (ancho < MIN_LADO) escalar(MIN_LADO / ancho);
+    if (alto < MIN_LADO) escalar(MIN_LADO / alto);
+    return [Math.round(ancho), Math.round(alto)];
+  }
+
+  private async confirmarAjuste(): Promise<void> {
     if (!this.ajustador) return;
     const resultado = this.ajustador.exportar();
+
+    if (this.origenAjusteCanvas) {
+      await this.aplicarAjusteEnCanvas(resultado);
+      return;
+    }
 
     if (this.tipoAjusteActual === 'foto') {
       this.fotoCapturada = resultado;
@@ -1339,6 +1399,30 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
       // lee de ahí al aceptar el modal de firma, no de una variable aparte.
       this.dibujarImagenEnFirma(resultado);
     }
+    this.cdr.detectChanges();
+  }
+
+  /** Reemplaza el contenido de la imagen ya puesta en el canvas de edición, conservando su posición, ángulo y encuadre en la caja del campo. */
+  private async aplicarAjusteEnCanvas(dataUrl: string): Promise<void> {
+    const origen = this.origenAjusteCanvas;
+    this.origenAjusteCanvas = null;
+    if (!origen) return;
+    const { imagen, canvas } = origen;
+
+    const anchoCaja = ((imagen.clipPath as any)?.width || imagen.width || 1) * (imagen.scaleX || 1);
+    const altoCaja = ((imagen.clipPath as any)?.height || imagen.height || 1) * (imagen.scaleY || 1);
+    const centro = imagen.getCenterPoint();
+    const angulo = imagen.angle;
+
+    await imagen.setSrc(dataUrl);
+
+    // El recorte ya sale con la proporcion de la caja, pero se reescala con
+    // 'cover' (mismo criterio que encajarEnMarcador() en CredencialRenderService)
+    // por si el redondeo del marco del modal la dejo un pixel distinta.
+    const escala = Math.max(anchoCaja / (imagen.width || 1), altoCaja / (imagen.height || 1));
+    imagen.set({ scaleX: escala, scaleY: escala, angle: angulo });
+    imagen.setPositionByOrigin(centro, 'center', 'center');
+    canvas.requestRenderAll();
     this.cdr.detectChanges();
   }
 

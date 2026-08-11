@@ -116,6 +116,18 @@ export class AuditoriaCredencialesComponent implements OnInit {
       cellStyle: { textAlign: 'center' },
     },
     {
+      headerName: 'Impresa por', field: 'usuario_registra', width: 150,
+      valueFormatter: p => p.value || '—',
+    },
+    {
+      headerName: 'Modificada por', field: 'usuario_modifica', width: 150,
+      valueFormatter: p => p.value || '—',
+    },
+    {
+      headerName: 'Modificada el', field: 'fecha_modificacion', width: 165,
+      valueFormatter: p => p.value ? this.formatearFechaHora(p.value) : '—',
+    },
+    {
       headerName: 'Acciones', colId: 'acciones', width: 110, sortable: false, filter: false,
       pinned: 'right',
       // Mismo patrón que el catálogo de áreas: el botón se pinta como HTML y
