@@ -4,11 +4,13 @@ import { CellClickedEvent, ColDef, GridApi, GridReadyEvent } from 'ag-grid-commu
 import { TipoToast } from '../../../api/entidades/enumeraciones';
 import { UtilsService } from '../../services/utils.service';
 import { PlantillaCredencialService, EmpleadoSig } from '../../services/plantilla-credencial.service';
-import { AcuseCredencialService, TipoAcuse } from '../../services/acuse-credencial.service';
+import { AcuseCredencialService, TipoAcuse, AcuseAuditoria } from '../../services/acuse-credencial.service';
 import { COLUMNAS_SIG } from '../imprimir-credenciales/imprimir-credenciales.const';
 
 /** Fila del roster con el estado de sus acuses ya fusionado, para pintar la ag-Grid. */
 type FilaAcuse = EmpleadoSig & { acuse_alta: string | null; acuse_baja: string | null };
+
+type SeccionAcuses = 'roster' | 'auditoria';
 
 const TAMANO_MAXIMO_BYTES = 8 * 1024 * 1024;
 
@@ -34,12 +36,18 @@ const TAMANO_MAXIMO_BYTES = 8 * 1024 * 1024;
 export class AcusesComponent implements OnInit {
   @ViewChild('inputArchivo') inputArchivoRef!: ElementRef<HTMLInputElement>;
 
+  seccion: SeccionAcuses = 'roster';
+
   cargandoRoster = false;
   busquedaGlobal = '';
   totalFiltrados = 0;
 
   private rowData: FilaAcuse[] = [];
   private gridApi!: GridApi;
+
+  cargandoAuditoria = false;
+  auditoriaData: AcuseAuditoria[] = [];
+  private gridApiAuditoria!: GridApi;
 
   readonly defaultColDef: ColDef = {
     sortable: true,
@@ -51,6 +59,7 @@ export class AcusesComponent implements OnInit {
   };
 
   columnDefs: ColDef[] = [];
+  columnDefsAuditoria: ColDef[] = [];
 
   // Empleado/tipo pendientes de resolver en cuanto el usuario elija un
   // archivo en el <input type="file"> oculto -- se dispara desde el click en
@@ -76,7 +85,44 @@ export class AcusesComponent implements OnInit {
       this.columnaAcuse('baja', 'Acuse baja'),
     ];
 
+    this.columnDefsAuditoria = [
+      { field: 'num_empleado', headerName: 'Núm. empleado', width: 140 },
+      { field: 'nombre', headerName: 'Nombre', flex: 1, minWidth: 220 },
+      {
+        field: 'tipo', headerName: 'Tipo', width: 100,
+        valueFormatter: p => p.value === 'alta' ? 'Alta' : 'Baja',
+      },
+      {
+        headerName: 'Archivo', colId: 'archivo', width: 100, sortable: false, filter: false,
+        cellStyle: { textAlign: 'center' },
+        cellRenderer: (p: any) => p.data?.archivo
+          ? '<span title="Ver acuse"><i class="tool-icon fas fa-file-arrow-down text-primary" data-accion="ver-archivo" style="cursor:pointer"></i></span>'
+          : '—',
+      },
+      {
+        field: 'fecha_carga', headerName: 'Cargado', width: 160,
+        valueFormatter: p => this.formatearFechaHora(p.value),
+      },
+      {
+        field: 'usuario_carga', headerName: 'Usuario que cargó', width: 170,
+        valueFormatter: p => p.value || '—',
+      },
+      {
+        field: 'fecha_modificacion', headerName: 'Reemplazado', width: 160,
+        valueFormatter: p => p.value ? this.formatearFechaHora(p.value) : '—',
+      },
+      {
+        field: 'usuario_modifica', headerName: 'Usuario que reemplazó', width: 180,
+        valueFormatter: p => p.value || '—',
+      },
+    ];
+
     this.cargarDatos();
+  }
+
+  seleccionarSeccion(seccion: SeccionAcuses): void {
+    this.seccion = seccion;
+    if (seccion === 'auditoria') this.cargarAuditoria();
   }
 
   private columnaAcuse(tipo: TipoAcuse, titulo: string): ColDef {
@@ -211,5 +257,52 @@ export class AcusesComponent implements OnInit {
       },
       error: (err) => this.utils.MuestraErrorInterno(err),
     });
+  }
+
+  // ====================================================================
+  // Auditoría: quién subió cada acuse y, si se reemplazó, quién y cuándo.
+  // ====================================================================
+
+  cargarAuditoria(): void {
+    this.cargandoAuditoria = true;
+    this.acuseApi.auditoria().subscribe({
+      next: (res) => {
+        this.auditoriaData = res?.resultados || [];
+        this.cargandoAuditoria = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.cargandoAuditoria = false;
+        this.utils.MuestraErrorInterno(err);
+      },
+    });
+  }
+
+  onGridReadyAuditoria(evento: GridReadyEvent): void {
+    this.gridApiAuditoria = evento.api;
+  }
+
+  onCellClickedAuditoria(evento: CellClickedEvent): void {
+    const accion = (evento.event?.target as HTMLElement)?.dataset?.['accion'];
+    if (accion !== 'ver-archivo') return;
+
+    const fila = evento.data as AcuseAuditoria;
+    if (fila.archivo) window.open(fila.archivo, '_blank');
+  }
+
+  /**
+   * '2026-08-11T20:17:46Z' -> '11/08/2026 20:17', en hora LOCAL. No se usa
+   * toISOString/slice: la fecha ya llega con hora, y construir el Date y
+   * leerlo con los getters locales (no UTC) es lo que evita que retroceda
+   * un dia en Mexico, igual que auditoria-credenciales.component.ts.
+   */
+  formatearFechaHora(valor: string | null | undefined): string {
+    if (!valor) return '';
+    const fecha = new Date(valor);
+    if (isNaN(fecha.getTime())) return String(valor);
+
+    const dosDigitos = (n: number) => String(n).padStart(2, '0');
+    return `${dosDigitos(fecha.getDate())}/${dosDigitos(fecha.getMonth() + 1)}/${fecha.getFullYear()}`
+      + ` ${dosDigitos(fecha.getHours())}:${dosDigitos(fecha.getMinutes())}`;
   }
 }

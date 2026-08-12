@@ -289,19 +289,21 @@
         </div>
 
         <div class="im-acciones">
-          <button class="btn btn-sm btn-outline-primary flex-grow-1" (click)="reemplazarFoto(m)"
-                  title="Tomar o subir una foto nueva">
-            <i class="fas fa-camera"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-primary flex-grow-1" (click)="reemplazarFirma(m)"
-                  title="Capturar o subir una firma nueva">
-            <i class="fas fa-pen-nib"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-danger" (click)="confirmarBorrarMedios(m)"
-                  *ngIf="permisosS.tiene('medios_administrar')"
-                  title="Eliminar foto y firma del servidor">
-            <i class="fas fa-trash"></i>
-          </button>
+          <div class="btn-group btn-group-sm w-100">
+            <button class="btn btn-outline-primary" (click)="reemplazarFoto(m)"
+                    title="Tomar o subir una foto nueva">
+              <i class="fas fa-camera"></i>
+            </button>
+            <button class="btn btn-outline-primary" (click)="reemplazarFirma(m)"
+                    title="Capturar o subir una firma nueva">
+              <i class="fas fa-pen-nib"></i>
+            </button>
+            <button class="btn btn-outline-danger" (click)="confirmarBorrarMedios(m)"
+                    *ngIf="permisosS.tiene('medios_administrar')"
+                    title="Eliminar foto y firma del servidor">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -348,8 +350,9 @@
         <div class="input-group input-group-sm im-fecha-filtro ms-auto"
              title="Filtrar por el día en que se capturó el archivo">
           <span class="input-group-text bg-white"><i class="fas fa-calendar-day text-muted"></i></span>
-          <input type="date" class="form-control" [(ngModel)]="fechaPendientes">
-          <button class="btn btn-outline-secondary" (click)="fechaPendientes = ''"
+          <input type="date" class="form-control" [(ngModel)]="fechaPendientes"
+                 (ngModelChange)="onFiltroPendientesCambiado()">
+          <button class="btn btn-outline-secondary" (click)="fechaPendientes = ''; onFiltroPendientesCambiado()"
                   *ngIf="fechaPendientes" title="Quitar fecha">
             <i class="fas fa-xmark"></i>
           </button>
@@ -359,8 +362,8 @@
           <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
           <input type="text" class="form-control"
                  placeholder="Buscar por RFC, número o nombre..."
-                 [(ngModel)]="busqueda">
-          <button class="btn btn-outline-secondary" (click)="busqueda = ''" title="Limpiar">
+                 [(ngModel)]="busqueda" (ngModelChange)="onFiltroPendientesCambiado()">
+          <button class="btn btn-outline-secondary" (click)="busqueda = ''; onFiltroPendientesCambiado()" title="Limpiar">
             <i class="fas fa-eraser"></i>
           </button>
         </div>
@@ -368,6 +371,15 @@
         <button class="btn btn-sm btn-outline-secondary" (click)="cargar()" [disabled]="cargando">
           <i class="fas fa-arrows-rotate"></i> Actualizar
         </button>
+      </div>
+
+      <div class="d-flex align-items-center justify-content-end gap-2 mb-2 px-1" *ngIf="totalPaginasPendientes > 1">
+        <span class="small text-muted">{{ registrosFiltrados.length }} registro(s)</span>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="paginaPendientes <= 1"
+                (click)="irAPaginaPendientes(paginaPendientes - 1)"><i class="fas fa-chevron-left"></i></button>
+        <span class="small text-muted">Página {{ paginaPendientes }} de {{ totalPaginasPendientes }}</span>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="paginaPendientes >= totalPaginasPendientes"
+                (click)="irAPaginaPendientes(paginaPendientes + 1)"><i class="fas fa-chevron-right"></i></button>
       </div>
 
       <div class="im-lista shadow-sm">
@@ -385,7 +397,7 @@
         </div>
 
         <div class="im-tarjetas" *ngIf="!cargando">
-          <div class="im-tarjeta" *ngFor="let reg of registrosFiltrados"
+          <div class="im-tarjeta" *ngFor="let reg of registrosPaginados"
                [class.im-tarjeta-cruzable]="reg.cruce">
 
             <div class="im-medios">
@@ -426,28 +438,30 @@
             </div>
 
             <div class="im-acciones">
-              <button class="btn btn-sm btn-outline-primary flex-grow-1"
-                      (click)="reemplazarFotoPrevio(reg)"
-                      title="Tomar o subir una foto nueva">
-                <i class="fas fa-camera"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-primary flex-grow-1"
-                      (click)="reemplazarFirmaPrevio(reg)"
-                      title="Capturar o subir una firma nueva">
-                <i class="fas fa-pen-nib"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-secondary"
-                      (click)="abrirRenombrar(reg)"
-                      *ngIf="permisosS.tiene('medios_administrar')"
-                      title="Corregir el RFC con el que se guardó">
-                <i class="fas fa-i-cursor"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger"
-                      (click)="confirmarBorrado(reg)"
-                      *ngIf="permisosS.tiene('medios_administrar')"
-                      title="Eliminar esta captura del servidor">
-                <i class="fas fa-trash"></i>
-              </button>
+              <div class="btn-group btn-group-sm w-100">
+                <button class="btn btn-outline-primary"
+                        (click)="reemplazarFotoPrevio(reg)"
+                        title="Tomar o subir una foto nueva">
+                  <i class="fas fa-camera"></i>
+                </button>
+                <button class="btn btn-outline-primary"
+                        (click)="reemplazarFirmaPrevio(reg)"
+                        title="Capturar o subir una firma nueva">
+                  <i class="fas fa-pen-nib"></i>
+                </button>
+                <button class="btn btn-outline-secondary"
+                        (click)="abrirRenombrar(reg)"
+                        *ngIf="permisosS.tiene('medios_administrar')"
+                        title="Corregir el RFC con el que se guardó">
+                  <i class="fas fa-i-cursor"></i>
+                </button>
+                <button class="btn btn-outline-danger"
+                        (click)="confirmarBorrado(reg)"
+                        *ngIf="permisosS.tiene('medios_administrar')"
+                        title="Eliminar esta captura del servidor">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
             </div>
 
             <div class="im-acciones pt-0" *ngIf="reg.cruce && permisosS.tiene('medios_administrar')">

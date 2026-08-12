@@ -118,8 +118,22 @@ export class InventarioMediosComponent implements OnInit {
   cargando = false;
   migrando = false;
   busqueda = '';
-  filtro: FiltroInventario = 'todos';
+  // 'recientes' y no 'todos': entrar directo a los ~1100 pendientes (antes de
+  // paginar, ver registrosPaginados) es lo que hacia lenta la primera pintura
+  // de esta pantalla. "Recientes" es ademas el caso de uso mas comun: llegar
+  // aqui a corregir un RFC que se acaba de capturar mal.
+  filtro: FiltroInventario = 'recientes';
   confirmMessage = '';
+
+  // ---- Paginado de "Pendientes de cruce" ----
+  //
+  // Es client-side (el listado completo ya se descargo en cargar()): no
+  // reduce lo que viaja del servidor, reduce cuantas tarjetas se pintan de
+  // golpe en el DOM. Se resetea a la pagina 1 cada vez que cambia el filtro,
+  // la busqueda o la fecha -- si no, "pagina 3" podria quedar vacia bajo un
+  // filtro que solo tiene una pagina.
+  paginaPendientes = 1;
+  readonly tamPaginaPendientes = 100;
 
   constructor(
     private plantillaApi: PlantillaCredencialService,
@@ -371,6 +385,7 @@ export class InventarioMediosComponent implements OnInit {
     this.plantillaApi.enrolamientosPrevios().subscribe({
       next: (res) => {
         this.registros = (res?.registros || []) as MedioPendiente[];
+        this.paginaPendientes = 1;
         this.cargando = false;
       },
       error: (err) => {
@@ -443,6 +458,34 @@ export class InventarioMediosComponent implements OnInit {
 
   seleccionarFiltro(filtro: FiltroInventario): void {
     this.filtro = filtro;
+    this.paginaPendientes = 1;
+  }
+
+  get totalPaginasPendientes(): number {
+    return Math.max(1, Math.ceil(this.registrosFiltrados.length / this.tamPaginaPendientes));
+  }
+
+  /** Rebanada de 100 en 100 sobre registrosFiltrados, para no pintar de golpe hasta ~1100 tarjetas. */
+  get registrosPaginados(): MedioPendiente[] {
+    const inicio = (this.paginaPendientes - 1) * this.tamPaginaPendientes;
+    return this.registrosFiltrados.slice(inicio, inicio + this.tamPaginaPendientes);
+  }
+
+  irAPaginaPendientes(pagina: number): void {
+    if (pagina < 1 || pagina > this.totalPaginasPendientes || pagina === this.paginaPendientes) return;
+    this.paginaPendientes = pagina;
+  }
+
+  /** Tras borrar/cruzar una fila la pagina actual podria quedar vacia si era la ultima. */
+  private clampPaginaPendientes(): void {
+    if (this.paginaPendientes > this.totalPaginasPendientes) {
+      this.paginaPendientes = this.totalPaginasPendientes;
+    }
+  }
+
+  /** Busqueda y fecha filtran en memoria (ver registrosFiltrados): cualquier cambio puede vaciar la pagina actual. */
+  onFiltroPendientesCambiado(): void {
+    this.paginaPendientes = 1;
   }
 
   // ====================================================================
@@ -460,6 +503,7 @@ export class InventarioMediosComponent implements OnInit {
         if (res?.total_migrados) {
           // Ya no esta pendiente: sale del inventario.
           this.registros = this.registros.filter(r => r.rfc !== registro.rfc);
+          this.clampPaginaPendientes();
           this.utils.MuestrasToast(
             TipoToast.Success,
             `${registro.rfc} → ${registro.cruce!.num_empleado}`
@@ -574,6 +618,7 @@ export class InventarioMediosComponent implements OnInit {
         this.plantillaApi.borrarMediosPrevio(registro.rfc).subscribe({
           next: () => {
             this.registros = this.registros.filter(r => r.rfc !== registro.rfc);
+            this.clampPaginaPendientes();
             this.utils.MuestrasToast(TipoToast.Success, 'Captura eliminada');
             this.cdRef.detectChanges();
           },

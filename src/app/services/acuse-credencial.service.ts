@@ -18,6 +18,21 @@ export interface AcuseCredencial {
   archivo: string | null;
   fecha_carga: string;
   id_usuario_carga: number | null;
+  fecha_modificacion: string | null;
+  id_usuario_modifica: number | null;
+}
+
+/** Fila de la pestaña "Auditoría": mismo registro, con nombre y usuarios ya resueltos. */
+export interface AcuseAuditoria {
+  id_acuse: number;
+  num_empleado: string;
+  nombre: string;
+  tipo: TipoAcuse;
+  archivo: string | null;
+  fecha_carga: string;
+  usuario_carga: string;
+  fecha_modificacion: string | null;
+  usuario_modifica: string;
 }
 
 /**
@@ -50,10 +65,17 @@ export class AcuseCredencialService {
     });
   }
 
-  /** Historial de cargas de un empleado (alta y baja), mas reciente primero. */
+  /** Estado de acuses (alta y baja) de un empleado. */
   porEmpleado(numEmpleado: string): Observable<{ status: string; resultados: AcuseCredencial[] }> {
     return this.http.get<{ status: string; resultados: AcuseCredencial[] }>(
       `${this.api}por-empleado/?num_empleado=${encodeURIComponent(numEmpleado)}`, SIN_LOADER_GLOBAL
+    );
+  }
+
+  /** Historial completo (quien subio y, si se reemplazo, quien y cuando), para la pestaña "Auditoría". */
+  auditoria(): Observable<{ status: string; total: number; resultados: AcuseAuditoria[] }> {
+    return this.http.get<{ status: string; total: number; resultados: AcuseAuditoria[] }>(
+      `${this.api}auditoria/`, SIN_LOADER_GLOBAL
     );
   }
 }

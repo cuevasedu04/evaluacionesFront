@@ -16,6 +16,23 @@
   font-size: 1.25rem;
 }
 
+.ac-secciones {
+  .nav-link {
+    font-size: 0.85rem;
+    color: #6c757d;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: color var(--duration-micro) var(--ease-standard);
+
+    &.active {
+      color: var(--color-primary);
+      font-weight: 600;
+      border-bottom: 2px solid var(--color-primary);
+    }
+  }
+}
+
 .ac-contenedor {
   display: flex;
   flex-direction: column;

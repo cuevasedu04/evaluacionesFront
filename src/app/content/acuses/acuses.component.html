@@ -8,7 +8,24 @@
   </div>
 </header>
 
-<div class="ac-contenedor mx-3">
+<div class="mx-3 mb-2">
+  <ul class="nav nav-tabs ac-secciones">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="seccion === 'roster'" (click)="seleccionarSeccion('roster')">
+        <i class="fas fa-users me-1"></i> Roster
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="seccion === 'auditoria'" (click)="seleccionarSeccion('auditoria')">
+        <i class="fas fa-clipboard-check me-1"></i> Auditoría
+        <span class="badge bg-secondary ms-1" *ngIf="auditoriaData.length">{{ auditoriaData.length }}</span>
+      </button>
+    </li>
+  </ul>
+</div>
+
+<!-- ===================== ROSTER ===================== -->
+<div class="ac-contenedor mx-3" *ngIf="seccion === 'roster'">
   <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
     <div class="input-group input-group-sm ac-buscador">
       <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
@@ -39,6 +56,34 @@
       (gridReady)="onGridReady($event)"
       (cellClicked)="onCellClicked($event)"
       (filterChanged)="onFiltroCambiado()">
+  </ag-grid-angular>
+</div>
+
+<!-- ===================== AUDITORÍA ===================== -->
+<div class="ac-contenedor mx-3" *ngIf="seccion === 'auditoria'">
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <span class="badge bg-light text-dark border">{{ auditoriaData.length }} acuse(s)</span>
+
+    <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="cargarAuditoria()" [disabled]="cargandoAuditoria">
+      <i class="fas fa-arrows-rotate"></i> Actualizar
+    </button>
+  </div>
+
+  <div *ngIf="cargandoAuditoria" class="ac-cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i> Cargando auditoría...
+  </div>
+
+  <ag-grid-angular
+      *ngIf="!cargandoAuditoria"
+      class="ag-theme-alpine ac-grid"
+      [rowData]="auditoriaData"
+      [columnDefs]="columnDefsAuditoria"
+      [defaultColDef]="defaultColDef"
+      [animateRows]="false"
+      [enableBrowserTooltips]="true"
+      [suppressCellFocus]="true"
+      (gridReady)="onGridReadyAuditoria($event)"
+      (cellClicked)="onCellClickedAuditoria($event)">
   </ag-grid-angular>
 </div>
 
