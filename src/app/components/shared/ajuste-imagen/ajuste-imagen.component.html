@@ -9,15 +9,29 @@
       <i class="fas fa-compress"></i> Centrar
     </button>
 
-    <div class="ai-zoom">
-      <i class="fas fa-magnifying-glass-minus text-muted"></i>
-      <input type="range" [min]="zoomMin" [max]="zoomMax" step="0.05"
-             [ngModel]="zoom" (ngModelChange)="onZoomChange($event)">
-      <i class="fas fa-magnifying-glass-plus text-muted"></i>
-    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="rotarIzquierda()" title="Rotar 90° a la izquierda">
+      <i class="fas fa-rotate-left"></i>
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="rotarDerecha()" title="Rotar 90° a la derecha">
+      <i class="fas fa-rotate-right"></i>
+    </button>
+  </div>
+
+  <!-- Zoom y enderezado en la misma rejilla (icono | barra | icono/valor), una
+       fila encima de la otra, para que ambas barras queden alineadas. -->
+  <div class="ai-sliders">
+    <i class="fas fa-magnifying-glass-minus text-muted"></i>
+    <input type="range" class="ai-slider" [min]="zoomMin" [max]="zoomMax" step="0.05"
+           [ngModel]="zoom" (ngModelChange)="onZoomChange($event)">
+    <i class="fas fa-magnifying-glass-plus text-muted"></i>
+
+    <i class="fas fa-ruler-horizontal text-muted" title="Enderezar"></i>
+    <input type="range" class="ai-slider" [min]="inclinacionMin" [max]="inclinacionMax" step="0.5"
+           [ngModel]="inclinacion" (ngModelChange)="onInclinacionChange($event)">
+    <span class="ai-inclinacion-valor">{{ inclinacion }}°</span>
   </div>
 
   <small class="text-muted ai-ayuda">
-    <i class="fas fa-hand"></i> Arrastra la imagen para moverla; usa el control para acercar o alejar.
+    <i class="fas fa-hand"></i> Arrastra la imagen para moverla; usa los controles para acercar, rotar o enderezar.
   </small>
 </div>

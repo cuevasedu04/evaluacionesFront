@@ -76,3 +76,56 @@
   right: 6px;
   font-size: 0.65rem;
 }
+
+// Botonera de acciones de la tarjeta -- mismo "segmented control" (fondo gris
+// + pildoras flotando adentro) que .im-filtros en inventario-medios.component.scss,
+// en vez del btn-group de Bootstrap (fila de botones pegados con bordes, que
+// en tarjetas angostas apretaba los iconos y llegaba a salirse el de borrar).
+.pl-acciones {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: #eef1f4;
+  border-radius: var(--radius-pill);
+}
+
+.pl-accion-btn {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #5a6470;
+  padding: 0.4rem 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--duration-micro) var(--ease-standard),
+              color var(--duration-micro) var(--ease-standard),
+              box-shadow var(--duration-micro) var(--ease-standard);
+
+  &:hover:not(:disabled) {
+    background: #fff;
+    box-shadow: var(--shadow-low);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &.pl-accion-editar:hover:not(:disabled) { color: var(--color-primary); }
+  &.pl-accion-duplicar:hover:not(:disabled) { color: var(--color-dark-gray); }
+  &.pl-accion-activo:hover:not(:disabled) { color: var(--color-gold); }
+  &.pl-accion-eliminar:hover:not(:disabled) { color: var(--color-error); }
+
+  // La plantilla predeterminada: mismo tratamiento "activo" que .im-filtro-btn,
+  // pero el estado no depende de hover porque el boton queda deshabilitado.
+  &.pl-accion-defecto {
+    &.active {
+      background: #fff;
+      color: var(--color-success);
+      box-shadow: var(--shadow-low);
+    }
+    &:not(.active):hover:not(:disabled) { color: var(--color-success); }
+  }
+}

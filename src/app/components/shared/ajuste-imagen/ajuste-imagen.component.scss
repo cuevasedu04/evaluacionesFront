@@ -33,12 +33,27 @@
   gap: var(--space-md);
 }
 
-.ai-zoom {
-  display: flex;
+// Zoom y enderezado comparten esta rejilla de 3 columnas (icono | barra |
+// icono/valor) -- puestas una fila encima de la otra en el MISMO grid, las
+// dos barras arrancan y terminan exactamente alineadas sin importar que el
+// icono de la lupa y el de la regla tengan anchos distintos.
+.ai-sliders {
+  display: grid;
+  // 3ra columna en auto: el icono de lupa y el texto "-45°" tienen anchos
+  // distintos, y auto reserva el mayor de los dos para AMBAS filas (es la
+  // misma columna de grid), así siguen alineadas sin recortar el texto.
+  grid-template-columns: 1.3rem 1fr auto;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem 0.5rem;
+  width: 100%;
+}
 
-  input[type="range"] { width: 160px; }
+.ai-slider { width: 100%; }
+
+.ai-inclinacion-valor {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-align: center;
 }
 
 .ai-ayuda {

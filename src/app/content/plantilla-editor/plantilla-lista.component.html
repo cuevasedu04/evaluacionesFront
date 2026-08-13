@@ -67,26 +67,24 @@
         </div>
 
         <div class="card-footer bg-white border-top py-2 px-3" *ngIf="permisosS.tiene('plantillas_administrar')">
-          <div class="btn-group btn-group-sm w-100">
-            <button class="btn btn-outline-primary" (click)="editar(plantilla)" title="Editar">
+          <div class="pl-acciones">
+            <button class="pl-accion-btn pl-accion-editar" (click)="editar(plantilla)" title="Editar">
               <i class="fas fa-pen"></i>
             </button>
-            <button class="btn btn-outline-secondary" (click)="duplicar(plantilla)" title="Duplicar">
+            <button class="pl-accion-btn pl-accion-duplicar" (click)="duplicar(plantilla)" title="Duplicar">
               <i class="fas fa-copy"></i>
             </button>
-            <button class="btn"
-                    [class.btn-success]="plantilla.por_defecto"
-                    [class.btn-outline-success]="!plantilla.por_defecto"
+            <button class="pl-accion-btn pl-accion-defecto" [class.active]="plantilla.por_defecto"
                     (click)="marcarPorDefecto(plantilla)"
                     [disabled]="plantilla.por_defecto"
                     [title]="plantilla.por_defecto ? 'Ya es la plantilla predeterminada' : 'Usar como plantilla predeterminada'">
               <i class="fas fa-star"></i>
             </button>
-            <button class="btn btn-outline-warning" (click)="alternarActivo(plantilla)"
+            <button class="pl-accion-btn pl-accion-activo" (click)="alternarActivo(plantilla)"
                     [title]="plantilla.activo ? 'Desactivar' : 'Activar'">
               <i class="fas" [class.fa-eye]="plantilla.activo" [class.fa-eye-slash]="!plantilla.activo"></i>
             </button>
-            <button class="btn btn-outline-danger" (click)="eliminar(plantilla)" title="Eliminar">
+            <button class="pl-accion-btn pl-accion-eliminar" (click)="eliminar(plantilla)" title="Eliminar">
               <i class="fas fa-trash"></i>
             </button>
           </div>
