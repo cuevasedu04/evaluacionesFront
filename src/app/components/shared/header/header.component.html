@@ -14,12 +14,18 @@
           (click)="goHome()">
           <span class="toggle-icon"> <i class="fas fa-house"></i> </span>
         </div>
-        <div class="text-white">Sistema de Credencialización y Enrolamiento 
-        
-          <!-- ...existing code... -->
+        <div class="text-white">Sistema de Credencialización y Enrolamiento</div>
 
+        <!-- Fecha de ultima sincronizacion del poblado de credencial
+             (sicre_tbl_sig, sync de Celery cada 30 min) -- vive aqui, en el
+             header global, para que quede visible sin importar la pantalla
+             en la que se esté; la conoce "Imprimir credenciales" al cargar
+             el roster (ver RosterSyncService). Oculto hasta que exista un
+             valor real: nadie la ha visitado todavia en esta sesion. -->
+        <div class="header-sync" *ngIf="textoUltimaActualizacion" title="Última sincronización del poblado de credencial">
+          <i class="fas fa-satellite-dish"></i>
+          <app-split-flap-text [texto]="textoUltimaActualizacion"></app-split-flap-text>
         </div>
-        
 
     </div>
         

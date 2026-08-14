@@ -38,18 +38,9 @@
         </button>
       </div>
 
-      <!-- Ultima sincronizacion del roster SIG (tarea Celery, cada 30 min) -->
-      <span class="badge bg-light text-dark border ic-actualizado"
-            *ngIf="!cargandoRoster"
-            [title]="ultimaActualizacion
-              ? 'Última sincronización del poblado de credencial (sicre_tbl_sig)'
-              : 'No se pudo determinar la fecha de última actualización'">
-        <i class="fas fa-rotate text-muted"></i>
-        <span *ngIf="ultimaActualizacion">
-          Actualizado {{ ultimaActualizacion | date:'dd/MM/yyyy HH:mm' }}
-        </span>
-        <span *ngIf="!ultimaActualizacion" class="text-muted">Sin fecha de actualización</span>
-      </span>
+      <!-- La fecha de ultima sincronizacion del roster SIG se muestra ahora en
+           el header global del sistema (ver RosterSyncService + app-split-flap-text
+           en header.component.html), no aqui. -->
 
       <!-- Botón para recargar el roster SIG manualmente -->
       <button class="btn btn-sm btn-outline-secondary ic-btn-recargar"

@@ -186,6 +186,17 @@ export class PlantillaCredencialService {
     );
   }
 
+  /**
+   * Solo la fecha de sincronizacion mas reciente del roster (un MAX() en el
+   * servidor), sin las ~16k filas de `empleadosSigTodos()` -- para el badge
+   * del header, que la necesita en cuanto se entra al sistema.
+   */
+  empleadosSigUltimaActualizacion(): Observable<{ status: string; fecha_actualizacion: string | null }> {
+    return this.http.get<{ status: string; fecha_actualizacion: string | null }>(
+      '/api-sicre/empleados-sig/ultima-actualizacion/', SIN_LOADER_GLOBAL
+    );
+  }
+
   // ---- Catalogo de unidades administrativas ----------------------------
 
   unidadesListar(): Observable<{ status: string; total: number; registros: UnidadAdministrativa[] }> {

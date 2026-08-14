@@ -21,6 +21,7 @@ import {
 } from '../../services/plantilla-credencial.service';
 import { CANVAS_ALTO_PX, CANVAS_ANCHO_PX, CaraCredencial } from '../plantilla-editor/plantilla-editor.const';
 import { COLUMNAS_SIG, sigAEmpleadoCredencial } from './imprimir-credenciales.const';
+import { RosterSyncService } from '../../services/roster-sync.service';
 
 /** Pestañas del roster en esta pantalla. */
 export type TabRoster = 'activos' | 'bajas' | 'nuevos_hoy';
@@ -330,6 +331,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     private wacomService: WacomService,
     public permisosS: PermisosService,
     private pdfService: PdfAImagenService,
+    private rosterSync: RosterSyncService,
   ) {
     this.columnDefs = COLUMNAS_SIG.map(col => ({
       field: col.campo,
@@ -521,6 +523,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
         this.rowData = res?.registros || [];
         this.totalFiltrados = this.rowData.length;
         this.ultimaActualizacion = this.calcularUltimaActualizacion(this.rowData);
+        this.rosterSync.actualizar(this.ultimaActualizacion);
         this.actualizarNuevosHoy();
         this.cargandoRoster = false;
       },

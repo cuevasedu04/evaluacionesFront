@@ -1,0 +1,13 @@
+// Selector explicito, no `:host`: este componente usa `encapsulation: None`
+// (ver split-flap-text.component.ts) para que el CSS de SplitFlapText.css le
+// pegue a los nodos que pinta React, y con encapsulacion desactivada mejor no
+// depender de como Angular reescriba `:host` en ese modo.
+app-split-flap-text {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sft-contenedor {
+  display: inline-flex;
+  align-items: center;
+}

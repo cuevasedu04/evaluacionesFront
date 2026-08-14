@@ -36,6 +36,20 @@
     gap: 12px;
 }
 
+// Badge de "última sincronización del poblado de credencial" -- ver
+// header.component.ts (textoUltimaActualizacion) y RosterSyncService.
+.header-sync {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1.25rem;
+    padding: 0.3rem 0.7rem;
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: var(--radius-pill);
+    color: var(--color-gold);
+    font-size: 0.8rem;
+}
+
 .username {
     font-size: 0.9rem;
     font-weight: 500;
@@ -134,7 +148,11 @@
     .username {
         display: none;
     }
-    
+
+    .header-sync {
+        display: none;
+    }
+
     .header-right {
         gap: 8px;
     }

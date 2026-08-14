@@ -10,6 +10,7 @@ import { SizeFormatPipe } from '../../pipes/size-files-format';
 import localeEsMx from '@angular/common/locales/es-MX';
 import { GraficasComponent } from './graficas/graficas.component';
 import { LoaderComponent } from './loader/loader.component';
+import { SplitFlapTextComponent } from './split-flap-text/split-flap-text.component';
 registerLocaleData(localeEsMx, 'es-MX');
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ registerLocaleData(localeEsMx, 'es-MX');
     FechaMexicoPipe,
     GraficasComponent,
     LoaderComponent,
-    SizeFormatPipe
+    SizeFormatPipe,
+    SplitFlapTextComponent
   ],
   imports: [
     CommonModule,
@@ -32,7 +34,8 @@ registerLocaleData(localeEsMx, 'es-MX');
     FechaMexicoPipe,
     GraficasComponent,
     LoaderComponent,
-    SizeFormatPipe
+    SizeFormatPipe,
+    SplitFlapTextComponent
   ],
 })
 export class SharedModule { }

@@ -8,6 +8,8 @@ import { UtilsService } from '../../../services/utils.service';
 import { TipoToast } from '../../../../api/entidades/enumeraciones';
 import { CatalogoService } from '../../../../api/catalogo/catalogo.service';
 import { SessionService } from '../../../services/session.service';
+import { RosterSyncService } from '../../../services/roster-sync.service';
+import { PlantillaCredencialService } from '../../../services/plantilla-credencial.service';
 
 @Component({
   selector: 'app-header',
@@ -44,9 +46,26 @@ export class HeaderComponent {
     private router: Router,
     private utils: UtilsService,
     private catalogoApi: CatalogoService,
-	private sessionS: SessionService
+	private sessionS: SessionService,
+    public rosterSync: RosterSyncService,
+    private plantillaApi: PlantillaCredencialService,
   ) {
-    
+
+  }
+
+  /**
+   * "ACTUALIZADO DD/MM HH:MM" para el badge tipo tablero de aeropuerto.
+   * Vive en el header (no en "Imprimir credenciales") para que la fecha de
+   * sincronizacion del poblado de credencial quede visible en todo el
+   * sistema, no solo en esa pantalla -- ver RosterSyncService.
+   */
+  get textoUltimaActualizacion(): string {
+    const fecha = this.rosterSync.ultimaActualizacion();
+    if (!fecha) return '';
+
+    const dosDigitos = (n: number) => String(n).padStart(2, '0');
+    return `ACTUALIZADO ${dosDigitos(fecha.getDate())}/${dosDigitos(fecha.getMonth() + 1)} `
+      + `${dosDigitos(fecha.getHours())}:${dosDigitos(fecha.getMinutes())}`;
   }
 
    isDropdownOpen = false;
@@ -75,7 +94,20 @@ export class HeaderComponent {
   ngOnInit() {
 	this.usuario = this.sessionS.getUsuario();
     document.addEventListener('click', this.onDocumentClick.bind(this));
-    
+
+    // Se pide de entrada, al montar el header (o sea, en cuanto se entra al
+    // sistema autenticado) -- NO se espera a que alguien visite "Imprimir
+    // credenciales". Es un MAX() en el servidor, no las ~16k filas del
+    // roster completo (ver empleadosSigUltimaActualizacion), asi que pedirlo
+    // aqui de una vez es barato.
+    this.plantillaApi.empleadosSigUltimaActualizacion().subscribe({
+      next: (res) => {
+        if (res?.fecha_actualizacion) {
+          this.rosterSync.actualizar(new Date(res.fecha_actualizacion));
+        }
+      },
+      error: () => {}, // El header no debe romperse por esto; "Imprimir credenciales" la sigue actualizando igual.
+    });
   }
 
   ngOnDestroy() {
