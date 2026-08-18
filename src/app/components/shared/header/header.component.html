@@ -1,3 +1,13 @@
+<ng-template #confirmActualizarDialog>
+  <div class="modal-body text-center p-3">
+    <i class="fas fa-arrows-rotate text-primary mb-3" style="font-size: 2.5rem;"></i>
+    <p class="mb-0">
+      Se va a solicitar una actualización manual del poblado de credencial.
+      Este proceso puede tardar algunos minutos. ¿Deseas continuar?
+    </p>
+  </div>
+</ng-template>
+
 <header class="header ">
       <div class="header-content">
         <!-- Logo o título (lado izquierdo) -->
@@ -22,9 +32,21 @@
              en la que se esté; la conoce "Imprimir credenciales" al cargar
              el roster (ver RosterSyncService). Oculto hasta que exista un
              valor real: nadie la ha visitado todavia en esta sesion. -->
-        <div class="header-sync" *ngIf="textoUltimaActualizacion" title="Última sincronización del poblado de credencial">
-          <i class="fas fa-satellite-dish"></i>
-          <app-split-flap-text [texto]="textoUltimaActualizacion"></app-split-flap-text>
+        <div class="header-sync" *ngIf="textoUltimaActualizacion">
+          <span title="Última sincronización del poblado de credencial">
+            <i class="fas fa-satellite-dish"></i>
+            <app-split-flap-text [texto]="textoUltimaActualizacion"></app-split-flap-text>
+          </span>
+
+          <button type="button" class="header-sync-btn" (click)="abrirConfirmacionActualizar()"
+                  [disabled]="actualizandoManualmente"
+                  title="Actualizar el poblado de credencial ahora">
+            <i class="fas fa-arrows-rotate" [class.fa-spin]="actualizandoManualmente"></i>
+          </button>
+
+          <div class="header-sync-progreso" *ngIf="actualizandoManualmente" title="Actualizando el poblado de credencial...">
+            <div class="header-sync-progreso-barra"></div>
+          </div>
         </div>
 
     </div>

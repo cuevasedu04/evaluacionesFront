@@ -197,6 +197,20 @@ export class PlantillaCredencialService {
     );
   }
 
+  /**
+   * Dispara manualmente la sincronizacion del roster (boton "Actualizar" del
+   * header). El backend hace de proxy hacia Control_De_Plazas_Backend -- ver
+   * SigViewSet.forzar_actualizacion -- asi que aqui no hay ningun token de
+   * servicio, solo la sesion normal del usuario. No espera a que la tarea
+   * termine; el header sondea `empleadosSigUltimaActualizacion()` para saber
+   * cuando sí terminó.
+   */
+  forzarActualizacionRoster(): Observable<{ status: string; task_id?: string; mensaje?: string }> {
+    return this.http.post<{ status: string; task_id?: string; mensaje?: string }>(
+      '/api-sicre/empleados-sig/forzar-actualizacion/', {}, SIN_LOADER_GLOBAL
+    );
+  }
+
   // ---- Catalogo de unidades administrativas ----------------------------
 
   unidadesListar(): Observable<{ status: string; total: number; registros: UnidadAdministrativa[] }> {

@@ -6,7 +6,16 @@
     margin-bottom: 0px;
     position: fixed;
     width: 100%;
-    z-index: 1000;
+    // Por encima de LoaderComponent (loader.component.scss, .loader-overlay
+    // usa z-index: 9999, fullscreen). Antes el header quedaba TAPADO cada vez
+    // que cualquier pantalla tenia una peticion en curso sin `X-Skip-Loader`
+    // -- el badge de sincronizacion (y el resto del header) se pintaban bien,
+    // pero por debajo del overlay, invisibles hasta que esa peticion
+    // terminara. Con el dashboard/la mayoria de pantallas disparando alguna
+    // carga al entrar, esto se leia como "el badge tarda en aparecer, solo
+    // se ve despues de que carga la pantalla" -- que es justo el overlay
+    // encima, no el badge en si.
+    z-index: 10000;
 }
 
 .header-content {
@@ -41,13 +50,68 @@
 .header-sync {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     margin-left: 1.25rem;
     padding: 0.3rem 0.7rem;
     background: rgba(0, 0, 0, 0.18);
     border-radius: var(--radius-pill);
     color: var(--color-gold);
     font-size: 0.8rem;
+
+    > span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}
+
+.header-sync-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--color-gold);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+    }
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.7;
+    }
+}
+
+// Barra indeterminada (no hay % real: el disparo solo encola la tarea, no
+// reporta avance -- ver forzar_actualizacion en el backend). Se sondea hasta
+// detectar que la fecha cambio, ver RosterSyncService.activarSondeoRapido.
+.header-sync-progreso {
+    width: 70px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.header-sync-progreso-barra {
+    width: 40%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-gold);
+    animation: header-sync-progreso-desplazar 1.1s ease-in-out infinite;
+}
+
+@keyframes header-sync-progreso-desplazar {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
 }
 
 .username {
