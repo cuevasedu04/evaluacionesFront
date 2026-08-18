@@ -1486,18 +1486,34 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
       onAccept: () => this.confirmarFirma(),
     });
 
-    // Un setTimeout(200) fijo no garantiza que el navegador ya haya PINTADO
-    // el modal (con su transicion de apertura) antes de medir el <canvas>
-    // con offsetWidth/offsetHeight -- si se mide antes de tiempo, esos salen
-    // en 0 y el canvas queda con resolucion interna 0x0. En ese estado los
-    // eventos de mouse SI se disparan (por eso no habia ningun error), pero
-    // no hay un solo pixel donde dibujar: el trazo es completamente invisible.
-    // Mismo patron ya usado en asegurarCanvasEditable()/imprimir() de este
-    // componente para el problema equivalente.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      this.inicializarCanvasFirma();
-      if (this.wacomConnected) this.wacomService.limpiarPantalla();
-    }));
+    // Un numero fijo de requestAnimationFrame NO garantiza que Angular ya haya
+    // creado la embedded view del <ng-template #modalFirma> (el ngIf que la
+    // monta corre en su propio ciclo de deteccion de cambios, que puede caer
+    // varios frames despues de este). Si se mide/inicializa antes de tiempo,
+    // this.firmaCanvasRef sigue siendo undefined -- inicializarCanvasFirma()
+    // explota con "can't access property nativeElement", this.cxFirma nunca
+    // se setea, y el trazo de la Wacom se descarta en silencio (procesarTrazoWacom
+    // corta en el primer if por cxFirma nulo): el canvas se queda en blanco sin
+    // ningun error visible para el operador.
+    // Por eso se reintenta en cada frame hasta que el ViewChild exista de
+    // verdad, con un tope para no quedar reintentando para siempre si el
+    // modal nunca llega a montarse.
+    this.esperarCanvasFirmaYcanzar(0);
+  }
+
+  private esperarCanvasFirmaYcanzar(intentos: number): void {
+    const MAX_INTENTOS = 30; // ~30 frames a 60Hz, medio segundo de margen.
+    if (!this.firmaCanvasRef) {
+      if (intentos >= MAX_INTENTOS) {
+        console.error('inicializarCanvasFirma: firmaCanvasRef nunca se resolvio tras', MAX_INTENTOS, 'frames.');
+        this.utils.MuestrasToast(TipoToast.Error, 'No se pudo preparar el lienzo de firma. Cierre el modal e intente de nuevo.');
+        return;
+      }
+      requestAnimationFrame(() => this.esperarCanvasFirmaYcanzar(intentos + 1));
+      return;
+    }
+    this.inicializarCanvasFirma();
+    if (this.wacomConnected) this.wacomService.limpiarPantalla();
   }
 
   inicializarCanvasFirma(): void {

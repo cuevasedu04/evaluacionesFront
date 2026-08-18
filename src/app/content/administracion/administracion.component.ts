@@ -73,7 +73,7 @@ export class AdministracionComponent implements OnInit {
     {
       headerName: '', colId: 'foto', width: 56, sortable: false, filter: false,
       cellRenderer: (p: any) => p.data.foto
-        ? `<img src="${p.data.foto}" class="ad-grid-foto" alt="Foto">`
+        ? `<img src="${p.data.foto}" class="adm-grid-foto" alt="Foto">`
         : '<i class="fas fa-user-circle text-muted" style="font-size:1.4rem"></i>',
       cellStyle: { textAlign: 'center' },
     },

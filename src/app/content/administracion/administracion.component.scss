@@ -19,7 +19,7 @@
   width: 640px;
 }
 
-.ad-icono {
+.adm-icono {
   width: 46px;
   height: 46px;
   border-radius: var(--radius-lg);
@@ -30,7 +30,7 @@
   font-size: 1.25rem;
 }
 
-.ad-secciones {
+.adm-secciones {
   .nav-link {
     font-size: 0.85rem;
     color: #6c757d;
@@ -50,7 +50,7 @@
 // Marco (fondo + radio) alrededor de la agGrid/tarjetas de rol, mismo
 // tratamiento que .contenedor-masivo en enrolamiento-previo, centrado con
 // max-width para que no quede pegado al sidebar en pantallas anchas.
-.ad-contenedor {
+.adm-contenedor {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 230px);
@@ -63,16 +63,16 @@
   padding: var(--space-xl) var(--space-lg);
 }
 
-.ad-contenedor-roles {
+.adm-contenedor-roles {
   overflow-y: auto;
 }
 
-.ad-buscador {
+.adm-buscador {
   max-width: 360px;
   min-width: 220px;
 }
 
-.ad-btn-nuevo {
+.adm-btn-nuevo {
   background: var(--color-primary);
   color: #fff;
   transition: background var(--duration-micro) var(--ease-standard);
@@ -83,12 +83,12 @@
   }
 }
 
-.ad-grid {
+.adm-grid {
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
 
-  ::ng-deep .ad-grid-foto {
+  ::ng-deep .adm-grid-foto {
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -97,7 +97,7 @@
   }
 }
 
-.ad-cargando {
+.adm-cargando {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -109,7 +109,7 @@
 }
 
 // ---------- Modales: checkboxes ----------
-.ad-lista-check {
+.adm-lista-check {
   max-height: 220px;
   overflow-y: auto;
   border: 1px solid #e9ecef;
@@ -117,12 +117,12 @@
   padding: var(--space-sm) var(--space-md);
 }
 
-.ad-nota {
+.adm-nota {
   font-size: 0.72rem;
   margin-bottom: 0.4rem;
 }
 
-.ad-matriz {
+.adm-matriz {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.15rem var(--space-md);
@@ -132,13 +132,13 @@
 }
 
 // ---------- Roles: tarjetas ----------
-.ad-roles {
+.adm-roles {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
 
-.ad-rol-tarjeta {
+.adm-rol-tarjeta {
   border: 1px solid #e9ecef;
   border-radius: var(--radius-md);
   padding: var(--space-md) 0.9rem;
@@ -150,7 +150,7 @@
   }
 }
 
-.ad-rol-cabecera {
+.adm-rol-cabecera {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -158,19 +158,19 @@
   margin-bottom: 0.5rem;
 }
 
-.ad-rol-nombre {
+.adm-rol-nombre {
   font-weight: 700;
   font-size: 0.95rem;
   color: #343a40;
 }
 
-.ad-rol-acciones {
+.adm-rol-acciones {
   display: flex;
   gap: 0.35rem;
   flex: 0 0 auto;
 }
 
-.ad-rol-permisos {
+.adm-rol-permisos {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
@@ -182,25 +182,25 @@
 }
 
 // ---------- General: respaldo de medios ----------
-.ad-respaldo {
+.adm-respaldo {
   background: #fff;
   border: 1px solid #e9ecef;
   border-radius: var(--radius-md);
   padding: var(--space-lg);
 }
 
-.ad-respaldo-titulo {
+.adm-respaldo-titulo {
   color: var(--color-primary);
   font-weight: 700;
 }
 
-.ad-respaldo-nota {
+.adm-respaldo-nota {
   font-size: 0.82rem;
   line-height: 1.45;
   max-width: 620px;
 }
 
-.ad-respaldo-tarjeta {
+.adm-respaldo-tarjeta {
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -211,7 +211,7 @@
   border-radius: var(--radius-md);
 }
 
-.ad-respaldo-icono {
+.adm-respaldo-icono {
   width: 42px;
   height: 42px;
   flex: 0 0 auto;
