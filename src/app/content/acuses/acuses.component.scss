@@ -67,3 +67,18 @@
   text-align: center;
   padding: 2rem;
 }
+
+// ---------- Modal de gestion de acuses (ver/agregar/eliminar) ----------
+::ng-deep .modal-width-560px .modal-dialog {
+  max-width: 560px;
+  width: 560px;
+}
+
+.ac-gestion {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.ac-gestion-cabecera {
+  flex: 0 0 auto;
+}

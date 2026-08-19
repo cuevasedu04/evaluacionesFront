@@ -21,6 +21,12 @@ body {
   overflow: hidden;
 }
 
+.login-logo {
+  width: 400px; // 4x el tamaño anterior (100px)
+  max-width: 100%; // por si el panel izquierdo (55% del viewport) queda mas angosto que 400px justo antes de ocultarse en @media (max-width: 768px)
+  height: auto;
+}
+
 .left-title {
   font-size: 34px;
   font-family: 'Patria', serif;
