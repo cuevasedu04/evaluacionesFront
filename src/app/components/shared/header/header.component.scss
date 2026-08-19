@@ -6,16 +6,17 @@
     margin-bottom: 0px;
     position: fixed;
     width: 100%;
-    // Por encima de LoaderComponent (loader.component.scss, .loader-overlay
-    // usa z-index: 9999, fullscreen). Antes el header quedaba TAPADO cada vez
-    // que cualquier pantalla tenia una peticion en curso sin `X-Skip-Loader`
-    // -- el badge de sincronizacion (y el resto del header) se pintaban bien,
-    // pero por debajo del overlay, invisibles hasta que esa peticion
-    // terminara. Con el dashboard/la mayoria de pantallas disparando alguna
-    // carga al entrar, esto se leia como "el badge tarda en aparecer, solo
-    // se ve despues de que carga la pantalla" -- que es justo el overlay
-    // encima, no el badge en si.
-    z-index: 10000;
+    // NO subir esto por encima de ~1040: Bootstrap usa z-index 1050/1055 para
+    // el backdrop y la ventana de CUALQUIER modal (ver .modal-width-* en los
+    // componentes que abren modales) -- un header por encima de eso tapa la
+    // parte superior de cualquier modal centrado. Se probo subirlo a 10000
+    // pensando que .loader-overlay (z-index 9999, fullscreen) ocultaba el
+    // badge de sincronizacion visualmente, pero .loader-overlay no tiene
+    // fondo (esta comentado en loader.component.scss): es transparente, asi
+    // que nunca pudo tapar nada visualmente, solo bloquear clics. El fix real
+    // del badge fue otro (RosterSyncService.iniciarSondeo() llamado desde
+    // HeaderComponent.ngOnInit(), no este z-index).
+    z-index: 1000;
 }
 
 .header-content {

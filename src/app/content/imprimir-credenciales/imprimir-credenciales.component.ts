@@ -218,6 +218,16 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   @ViewChild('canvasEdicionFrente') canvasEdicionFrenteRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('canvasEdicionReverso') canvasEdicionReversoRef!: ElementRef<HTMLCanvasElement>;
 
+  // El modo edicion se despliega en un modal aparte -- mucho mas espacio que
+  // la columna de preview, que ademas comparte pantalla con el roster y el
+  // panel de propiedades. Ver activarEdicion()/salirDeEdicion().
+  @ViewChild('modalEdicion') modalEdicionRef!: TemplateRef<any>;
+  private modalEdicionInstancia: NgbModalRef | undefined;
+
+  /** Zoom del lienzo editable dentro del modal (1 = tamaño de diseño, 638x1016 px). Mismo mecanismo `cssOnly` que plantilla-editor. */
+  zoomEdicion = 1;
+  private zoomEdicionInicializado = false;
+
   // ---- Captura de foto (modal reutilizado de plantilla-enrolamiento) ----
   @ViewChild('modalCamara') modalCamaraRef!: TemplateRef<any>;
   @ViewChild('videoElement') videoElementRef!: ElementRef<HTMLVideoElement>;
@@ -908,6 +918,27 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     if (!this.permisosS.tiene('credenciales_editar_ajustes')) return;
 
     this.modoEdicion = true;
+
+    this.modalEdicionInstancia = this.modalManager.openModal({
+      title: `Editar credencial — ${this.empleadoSeleccionado.nombre} ${this.empleadoSeleccionado.apellidos}`,
+      template: this.modalEdicionRef,
+      showFooter: false,
+      width: '1100px',
+    });
+    // hidden (no accept/cancel) cubre CUALQUIER forma de cerrar el modal --
+    // el boton "Descartar", la X, o ESC -- en un solo lugar, en vez de
+    // repetir la limpieza en cada boton que pudiera cerrarlo.
+    this.modalEdicionInstancia.hidden.subscribe(() => this.salirDeEdicion());
+
+    // El modal recien abierto todavia no PINTO su tamaño final -- medir el
+    // contenedor del lienzo antes de esto da 0x0 (mismo gotcha que
+    // ajuste-imagen.component.ts: canvas dentro de un modal). Doble rAF: el
+    // primero se dispara justo antes del proximo pintado, el segundo ya
+    // despues de que ese pintado ocurrio.
+    await new Promise<void>(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
     await this.asegurarCanvasEditable(this.cara);
   }
 
@@ -956,7 +987,11 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
       this.plantillaEfectiva!, cara, this.empleadoSeleccionado, elemento
     );
 
-    this.ajustarEscalaCanvas(canvas, elemento);
+    if (this.zoomEdicionInicializado) {
+      this.aplicarZoomEdicion(canvas);
+    } else {
+      this.inicializarZoomEdicion(canvas, elemento);
+    }
 
     canvas.on('selection:created', () => { this.objetoSeleccionado = canvas.getActiveObject() || null; });
     canvas.on('selection:updated', () => { this.objetoSeleccionado = canvas.getActiveObject() || null; });
@@ -981,29 +1016,46 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Escala el canvas para que quepa en el panel usando SOLO el tamaño CSS
-   * (`cssOnly: true`), igual que plantilla-editor: la resolución interna
-   * sigue siendo la de diseño (638x1016), así que las coordenadas que se
-   * exportan al PDF no dependen del tamaño de pantalla, y Fabric mapea bien
-   * las coordenadas del puntero al arrastrar.
+   * Primera vez que se construye un canvas en esta sesion de edicion: calcula
+   * un zoom inicial que quepa en el contenedor del modal y lo deja fijo en
+   * `zoomEdicion`, para que cambiar de cara o usar +/- parta de ese mismo
+   * valor -- no de un recalculo por contenedor cada vez.
    */
-  private ajustarEscalaCanvas(canvas: fabric.Canvas, elemento: HTMLCanvasElement): void {
+  private inicializarZoomEdicion(canvas: fabric.Canvas, elemento: HTMLCanvasElement): void {
     const contenedor = elemento.parentElement?.parentElement; // .canvas-container -> .ic-lienzo-editable
     const anchoDiseno = canvas.getWidth();
     const altoDiseno = canvas.getHeight();
-    if (!contenedor || !anchoDiseno || !altoDiseno) return;
+    const dispAncho = contenedor?.clientWidth || anchoDiseno;
+    const dispAlto = contenedor?.clientHeight || altoDiseno;
 
-    const dispAncho = contenedor.clientWidth || anchoDiseno;
-    const dispAlto = contenedor.clientHeight || altoDiseno;
+    // Un margen para que no quede pegado a los bordes del contenedor.
+    const ajuste = Math.min(dispAncho / anchoDiseno, dispAlto / altoDiseno) * 0.94;
+    this.zoomEdicion = (isFinite(ajuste) && ajuste > 0) ? Number(ajuste.toFixed(2)) : 1;
+    this.zoomEdicionInicializado = true;
+    this.aplicarZoomEdicion(canvas);
+  }
 
-    // Un margen para que no quede pegado a los bordes del panel.
-    const escala = Math.min(dispAncho / anchoDiseno, dispAlto / altoDiseno) * 0.94;
-    if (!isFinite(escala) || escala <= 0) return;
-
+  /**
+   * Aplica `zoomEdicion` usando SOLO el tamaño CSS (`cssOnly: true`), igual
+   * que plantilla-editor: la resolución interna sigue siendo la de diseño
+   * (638x1016), así que las coordenadas que se exportan al PDF no dependen
+   * del tamaño de pantalla, y Fabric mapea bien las coordenadas del puntero
+   * al arrastrar.
+   */
+  private aplicarZoomEdicion(canvas: fabric.Canvas): void {
+    const anchoDiseno = canvas.getWidth();
+    const altoDiseno = canvas.getHeight();
     canvas.setDimensions(
-      { width: `${anchoDiseno * escala}px`, height: `${altoDiseno * escala}px` },
+      { width: `${anchoDiseno * this.zoomEdicion}px`, height: `${altoDiseno * this.zoomEdicion}px` },
       { cssOnly: true }
     );
+  }
+
+  /** Botones +/- de zoom del modal de edicion. Afecta a ambas caras por igual. */
+  cambiarZoomEdicion(delta: number): void {
+    this.zoomEdicion = Math.min(1.5, Math.max(0.3, Number((this.zoomEdicion + delta).toFixed(2))));
+    if (this.canvasFrenteEditable) this.aplicarZoomEdicion(this.canvasFrenteEditable);
+    if (this.canvasReversoEditable) this.aplicarZoomEdicion(this.canvasReversoEditable);
   }
 
   /**
@@ -1034,9 +1086,13 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
 
   /** Sale de edicion y descarta los canvases editables (no se guarda nada). */
   salirDeEdicion(): void {
+    if (!this.modoEdicion) return; // ya se limpio -- p.ej. via el propio cierre del modal (ver activarEdicion)
     this.destruirCanvasEditables();
     this.modoEdicion = false;
     this.objetoSeleccionado = null;
+    this.zoomEdicionInicializado = false;
+    this.modalEdicionInstancia?.dismiss();
+    this.modalEdicionInstancia = undefined;
   }
 
   private destruirCanvasEditables(): void {
@@ -1373,9 +1429,16 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Tamaño del marco de ajuste para una proporción dada, acotado a un rango cómodo dentro del modal. */
+  /**
+   * Tamaño del marco de ajuste para una proporción dada, acotado a un rango
+   * cómodo dentro del modal. El modal de ajuste (abrirAjuste()/
+   * abrirAjusteCanvas()) siempre abre con `width: '480px'` -- MAX_ANCHO tiene
+   * que quedar por debajo de eso (menos el padding de .modal-body) o el
+   * marco se sale visualmente de la ventana para campos de firma muy anchos
+   * (proporcion grande). 560 excedía ese ancho; 420 deja margen de sobra.
+   */
   private medidasMarcoAjuste(proporcion: number): [number, number] {
-    const MIN_LADO = 160, MAX_ANCHO = 560, MAX_ALTO = 420;
+    const MIN_LADO = 160, MAX_ANCHO = 420, MAX_ALTO = 420;
     let alto = 340;
     let ancho = alto * proporcion;
     const escalar = (factor: number) => { ancho *= factor; alto *= factor; };

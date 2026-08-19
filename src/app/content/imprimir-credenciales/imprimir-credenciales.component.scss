@@ -290,6 +290,70 @@
   overflow-y: auto;
 }
 
+// ---------- Modal de edición rápida ----------
+// ModalManagerService aplica `modal-width-1100px` a la VENTANA del modal, que
+// vive fuera de este componente (NgbModal la inserta en el <body>), así que
+// hace falta ::ng-deep o el encapsulamiento de Angular la deja sin efecto.
+::ng-deep .modal-width-1100px .modal-dialog {
+  max-width: 1100px;
+  width: 1100px;
+}
+
+::ng-deep .modal-width-1100px .modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+::ng-deep .modal-width-1100px .modal-body {
+  display: flex;
+  flex-direction: column;
+}
+
+// El alto NO se intenta forzar desde afuera (.modal-dialog/.modal-content/
+// .modal-body son de ngb-modal-window, fuera de este componente, y dos
+// intentos con `height:100%`/`align-items:stretch`/`height:92vh` encadenados
+// ahí NO se reflejaron en el navegador -- .modal-content seguia
+// encogiendose a su contenido pase lo que pase). En vez de pelear con esa
+// cadena, el alto se fija DIRECTO en .ic-modal-edicion, un elemento propio
+// de ESTE componente (estilo con scope normal, sin ::ng-deep, sin ambigüedad
+// posible): un vh absoluto aquí no depende de que ningún ancestro "estire"
+// nada -- los ancestros (que ya no tienen alto propio, arriba) simplemente
+// CRECEN para contener este div, como hace cualquier caja en flujo normal.
+.ic-modal-edicion {
+  height: 84vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ic-modal-toolbar {
+  flex: 0 0 auto;
+}
+
+.ic-modal-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.ic-modal-lienzo {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0; // sin esto, un lienzo con mucho zoom podia forzar a .ic-modal-cuerpo (y con el, al modal entero) a crecer en vez de hacer scroll interno
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  background: #eef1f5;
+  border-radius: var(--radius-sm);
+}
+
+.ic-modal-acciones {
+  flex: 0 0 auto;
+}
+
 .ic-propiedades-titulo {
   padding: 0.7rem 0.85rem;
   font-size: 0.78rem;

@@ -8,6 +8,92 @@
   </app-ajuste-imagen>
 </ng-template>
 
+<!-- Modo edición rápida: lienzo interactivo + panel de propiedades, en un
+     modal aparte para que el lienzo no quede apretado entre el roster y el
+     panel (ver activarEdicion()/salirDeEdicion() y la nota de diseño ahí). -->
+<ng-template #modalEdicion>
+  <div class="ic-modal-edicion">
+
+    <div class="ic-modal-toolbar d-flex align-items-center gap-2 flex-wrap">
+      <div class="btn-group btn-group-sm" *ngIf="tieneReverso">
+        <button class="btn btn-outline-success" [class.active]="cara === 'frente'"
+                (click)="cambiarCara('frente')">
+          <i class="fas fa-id-card"></i> Frente
+        </button>
+        <button class="btn btn-outline-success" [class.active]="cara === 'reverso'"
+                (click)="cambiarCara('reverso')">
+          <i class="fas fa-address-card"></i> Reverso
+        </button>
+      </div>
+
+      <div class="btn-group btn-group-sm ms-auto" title="Zoom del lienzo">
+        <button class="btn btn-outline-secondary" (click)="cambiarZoomEdicion(-0.1)" title="Alejar">
+          <i class="fas fa-magnifying-glass-minus"></i>
+        </button>
+        <span class="btn btn-outline-secondary disabled">{{ (zoomEdicion * 100) | number:'1.0-0' }}%</span>
+        <button class="btn btn-outline-secondary" (click)="cambiarZoomEdicion(0.1)" title="Acercar">
+          <i class="fas fa-magnifying-glass-plus"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="ic-aviso-edicion flex-shrink-0">
+      <i class="fas fa-triangle-exclamation"></i>
+      Ajustes temporales: se pierden al cambiar de empleado o salir.
+      Para que sean permanentes, edita la plantilla en
+      <a routerLink="/plantillas">Plantillas</a>.
+    </div>
+
+    <div class="ic-aviso-edicion flex-shrink-0" *ngIf="hayMediosPendientes">
+      <i class="fas fa-camera-retro"></i>
+      {{ fotoPendiente && firmaPendiente ? 'Foto y firma capturadas' : (fotoPendiente ? 'Foto capturada' : 'Firma capturada') }}:
+      se guardarán al imprimir la credencial.
+    </div>
+
+    <!--
+      IMPORTANTE: se muestran/ocultan con [style.display], NUNCA con *ngIf.
+      Fabric queda enlazado a un elemento <canvas> real del DOM; si *ngIf lo
+      destruyera al cambiar de cara, esa instancia de Fabric quedaría
+      apuntando a un nodo ya eliminado (la credencial se ve en blanco) y,
+      peor, forzaría reconstruir el canvas desde cero al volver -- perdiendo
+      cualquier ajuste que se hubiera hecho en esa cara.
+    -->
+    <div class="ic-modal-cuerpo">
+      <div class="ic-modal-lienzo">
+        <div class="ic-lienzo-editable" [style.display]="cara === 'frente' ? 'flex' : 'none'">
+          <canvas #canvasEdicionFrente></canvas>
+        </div>
+        <div class="ic-lienzo-editable" *ngIf="tieneReverso"
+             [style.display]="cara === 'reverso' ? 'flex' : 'none'">
+          <canvas #canvasEdicionReverso></canvas>
+        </div>
+      </div>
+
+      <aside class="ic-propiedades border-start bg-white">
+        <div class="ic-propiedades-titulo border-bottom">
+          <i class="fas fa-sliders-h"></i> Ajustes rápidos
+        </div>
+        <app-credencial-panel-propiedades
+            [canvas]="canvasActivo"
+            [objeto]="objetoSeleccionado"
+            (seleccionCambiada)="objetoSeleccionado = $event">
+        </app-credencial-panel-propiedades>
+      </aside>
+    </div>
+
+    <div class="ic-modal-acciones border-top d-flex align-items-center gap-2 flex-shrink-0">
+      <button class="btn btn-success flex-grow-1"
+              (click)="imprimir()"
+              [disabled]="!plantilla || generandoPdf || generandoPreview">
+        <i class="fas" [class.fa-print]="!generandoPdf"
+           [class.fa-spinner]="generandoPdf" [class.fa-spin]="generandoPdf"></i>
+        {{ generandoPdf ? 'Generando...' : 'Imprimir credencial' }}
+      </button>
+    </div>
+    <small class="text-muted d-block text-center mt-1 flex-shrink-0">El PDF incluirá los ajustes que hiciste aquí.</small>
+  </div>
+</ng-template>
+
 <div class="imprimir-credenciales d-flex flex-column">
 
   <!-- ===================== BARRA SUPERIOR ===================== -->
@@ -263,21 +349,6 @@
             <i class="fas fa-pen"></i> Editar
           </button>
 
-          <button *ngIf="modoEdicion"
-                  class="btn btn-sm btn-outline-secondary"
-                  [class.flex-grow-1]="!tieneReverso"
-                  (click)="salirDeEdicion()"
-                  title="Descartar los ajustes y volver a la plantilla original">
-            <i class="fas fa-rotate-left"></i> Descartar
-          </button>
-        </div>
-
-        <!-- Aviso de edición temporal -->
-        <div class="ic-aviso-edicion" *ngIf="modoEdicion">
-          <i class="fas fa-triangle-exclamation"></i>
-          Ajustes temporales: se pierden al cambiar de empleado o salir.
-          Para que sean permanentes, edita la plantilla en
-          <a routerLink="/plantillas">Plantillas</a>.
         </div>
 
         <!-- Aviso de foto/firma capturada pero aun no guardada en disco -->
@@ -345,29 +416,6 @@
                class="text-center text-muted py-4">
             <small>Esta plantilla no tiene reverso.</small>
           </div>
-
-          <!--
-            Modo edición: canvas Fabric interactivo (uno por cara).
-
-            IMPORTANTE: se muestran/ocultan con [style.display], NUNCA con
-            *ngIf. Fabric queda enlazado a un elemento <canvas> real del DOM;
-            si *ngIf lo destruyera al cambiar de cara, esa instancia de Fabric
-            quedaría apuntando a un nodo ya eliminado (la credencial se ve en
-            blanco) y, peor, forzaría reconstruir el canvas desde cero al
-            volver -- perdiendo cualquier ajuste que se hubiera hecho en esa
-            cara. Con [style.display] el elemento nunca se destruye: solo se
-            oculta, así que Fabric sigue mostrando el contenido correcto y
-            los ajustes de ambas caras sobreviven el cambio de cara.
-          -->
-          <ng-container *ngIf="modoEdicion">
-            <div class="ic-lienzo-editable" [style.display]="cara === 'frente' ? 'flex' : 'none'">
-              <canvas #canvasEdicionFrente></canvas>
-            </div>
-            <div class="ic-lienzo-editable" *ngIf="tieneReverso"
-                 [style.display]="cara === 'reverso' ? 'flex' : 'none'">
-              <canvas #canvasEdicionReverso></canvas>
-            </div>
-          </ng-container>
         </div>
 
         <!-- Acciones -->
@@ -386,18 +434,6 @@
           </small>
         </div>
       </ng-container>
-    </aside>
-
-    <!-- ---------- PANEL DE PROPIEDADES (solo en modo edición) ---------- -->
-    <aside class="ic-propiedades border-start bg-white" *ngIf="modoEdicion">
-      <div class="ic-propiedades-titulo border-bottom">
-        <i class="fas fa-sliders-h"></i> Ajustes rápidos
-      </div>
-      <app-credencial-panel-propiedades
-          [canvas]="canvasActivo"
-          [objeto]="objetoSeleccionado"
-          (seleccionCambiada)="objetoSeleccionado = $event">
-      </app-credencial-panel-propiedades>
     </aside>
   </div>
 </div>
