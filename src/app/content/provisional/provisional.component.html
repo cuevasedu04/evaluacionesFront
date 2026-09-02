@@ -9,7 +9,7 @@
                     </div>
                     <div>
                         <h1 class="fw-bold text-dark mb-1 h4">Carga manual Nuevo Laredo</h1>
-                        <p class="text-muted mb-0 small">Generación de credenciales manualmente</p>
+                        <p class="text-muted mb-0 small">Generación de constancias manualmente</p>
                     </div>
                 </div>
             </div>
@@ -20,7 +20,7 @@
 <div [class.card]="!isPrintMode" [class.shadow-sm]="!isPrintMode">
     <div class="card-header bg-white border-bottom" *ngIf="!isPrintMode">
         <h6 class="mb-0 font-weight-bold">
-             <i class="fas fa-id-card text-muted"></i> Credencial 
+             <i class="fas fa-id-card text-muted"></i> Constancia
         </h6>
     </div>
     <div [class.card-body]="!isPrintMode">
@@ -58,7 +58,7 @@
                 
                 <!-- Imagen de fondo -->
                  <img [src]="obtenerImagenFrente()" 
-                     alt="Credencial Frente" 
+                     alt="Constancia Frente"
                      class="credencial-bg">
                 
                 <!-- Campos editables posicionados sobre la imagen -->
@@ -222,7 +222,7 @@
                 
                 <!-- Imagen de fondo -->
                  <img [src]="obtenerImagenReverso()" 
-                     alt="Credencial Reverso" 
+                     alt="Constancia Reverso"
                      class="credencial-bg">
                 
                 <!-- Campos editables posicionados sobre la imagen -->

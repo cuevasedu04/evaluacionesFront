@@ -32,6 +32,8 @@ import { PlantillaAnamComponent } from './content/plantilla-anam/plantilla-anam.
 import { PlantillaEditorComponent } from './content/plantilla-editor/plantilla-editor.component';
 import { PlantillaListaComponent } from './content/plantilla-editor/plantilla-lista.component';
 import { ImprimirCredencialesComponent } from './content/imprimir-credenciales/imprimir-credenciales.component';
+import { GeneradorMasivoComponent } from './content/generador-masivo/generador-masivo.component';
+import { CorreoElectronicoComponent } from './content/correo-electronico/correo-electronico.component';
 import { EnrolamientoPrevioComponent } from './content/enrolamiento-previo/enrolamiento-previo.component';
 import { InventarioMediosComponent } from './content/inventario-medios/inventario-medios.component';
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
@@ -68,6 +70,8 @@ import { LoginComponent } from './content/login/login.component';
     PlantillaEditorComponent,
     PlantillaListaComponent,
     ImprimirCredencialesComponent,
+    GeneradorMasivoComponent,
+    CorreoElectronicoComponent,
     EnrolamientoPrevioComponent,
     InventarioMediosComponent,
     CatalogoUnidadesComponent,

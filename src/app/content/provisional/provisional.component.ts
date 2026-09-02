@@ -816,7 +816,7 @@ export class ProvisionalComponent implements OnInit, AfterViewInit, OnDestroy, O
       updateRequest$.subscribe({
         next: () => {
           this.guardando = false;
-          this.utils.MuestrasToast(TipoToast.Success, `Credencial ${this.tipoCredencialLabel} actualizada exitosamente`);
+          this.utils.MuestrasToast(TipoToast.Success, `Constancia ${this.tipoCredencialLabel} actualizada exitosamente`);
           this.enrolamientoCompletado.emit();
         },
         error: (err) => {
@@ -835,7 +835,7 @@ export class ProvisionalComponent implements OnInit, AfterViewInit, OnDestroy, O
     createRequest$.subscribe({
       next: () => {
         this.guardando = false;
-        this.utils.MuestrasToast(TipoToast.Success, `Credencial ${this.tipoCredencialLabel} guardada exitosamente`);
+        this.utils.MuestrasToast(TipoToast.Success, `Constancia ${this.tipoCredencialLabel} guardada exitosamente`);
         this.empleado = null;
         this.enrolamientoCompletado.emit();
         setTimeout(() => {

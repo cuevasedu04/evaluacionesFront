@@ -101,10 +101,10 @@ export class ReportesComponent implements OnInit {
 
   abrirModalDetalle(tipo: string): void {
     if (tipo === 'pendientes') {
-      this.tituloModal = 'Credenciales Pendientes de Imprimir';
+      this.tituloModal = 'Constancias Pendientes de Imprimir';
       this.datosModal = this.detallePendientes;
     } else if (tipo === 'incompletas') {
-      this.tituloModal = 'Credenciales Incompletas (sin foto o firma)';
+      this.tituloModal = 'Constancias Incompletas (sin foto o firma)';
       this.datosModal = this.detalleIncompletas;
     }
 

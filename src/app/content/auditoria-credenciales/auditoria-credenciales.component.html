@@ -19,11 +19,11 @@
       <div class="ac-lienzo">
         <div *ngIf="cargandoDetalle" class="text-muted text-center py-5">
           <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-          <small>Reconstruyendo la credencial...</small>
+          <small>Reconstruyendo la constancia...</small>
         </div>
 
         <img *ngIf="!cargandoDetalle && imagenActual" [src]="imagenActual"
-             class="ac-credencial-img" alt="Credencial impresa">
+             class="ac-credencial-img" alt="Constancia impresa">
 
         <!-- Impresiones anteriores a que se guardara el lienzo. Se dice
              explícitamente en vez de dibujar una reconstrucción con la
@@ -42,7 +42,7 @@
         <div *ngIf="!cargandoDetalle && !imagenActual && detalle?.tiene_snapshot && cara === 'reverso'"
              class="ac-sin-snapshot">
           <i class="fas fa-ban fa-2x mb-2 d-block"></i>
-          <small>Esta credencial se imprimió sin reverso.</small>
+          <small>Esta constancia se imprimió sin reverso.</small>
         </div>
       </div>
     </div>
@@ -120,9 +120,9 @@
   <div class="d-flex align-items-center gap-3 px-3">
     <div class="ac-icono"><i class="fas fa-clipboard-check text-white"></i></div>
     <div>
-      <h1 class="fw-bold text-dark mb-0 h3">Auditoría de credenciales</h1>
+      <h1 class="fw-bold text-dark mb-0 h3">Auditoría de constancias</h1>
       <p class="text-muted mb-0">
-        Historial de todas las credenciales impresas, con la credencial exacta que se expidió
+        Historial de todas las constancias impresas, con la constancia exacta que se expidió
       </p>
     </div>
   </div>
@@ -169,9 +169,9 @@
 
   <div *ngIf="!cargando && !todasTotal" class="ac-vacio">
     <i class="fas fa-clipboard-list fa-2x mb-2 d-block opacity-50"></i>
-    <strong class="d-block mb-1">Todavía no se ha impreso ninguna credencial</strong>
+    <strong class="d-block mb-1">Todavía no se ha impreso ninguna constancia</strong>
     <small class="text-muted">
-      Cada impresión hecha desde «Imprimir credenciales» aparecerá aquí.
+      Cada impresión hecha desde «Imprimir constancias» aparecerá aquí.
     </small>
   </div>
 

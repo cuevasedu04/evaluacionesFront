@@ -359,7 +359,7 @@ export class BusquedaEnrolamientoMasivosComponent implements OnInit, OnDestroy {
     this.empleadoActualGenerando = '';
     this.cargarFolioMaximo();
     this.modalManager.openModal({
-      title: 'Generar PDF de credenciales',
+      title: 'Generar PDF de constancias',
       template: this.modalGenerarPDF,
       showFooter: false,
       width: '580px'
@@ -474,7 +474,7 @@ export class BusquedaEnrolamientoMasivosComponent implements OnInit, OnDestroy {
 
       this.empleadoImprimir = null;
       const folioFinal = String(folioNum - 1).padStart(6, '0');
-      pdf.save(`Credenciales_${this.loteSeleccionado}_${this.folioInicial}-${folioFinal}.pdf`);
+      pdf.save(`Constancias_${this.loteSeleccionado}_${this.folioInicial}-${folioFinal}.pdf`);
 
       this.estadoModalPDF = 'completado';
       this.cdRef.detectChanges();
@@ -483,7 +483,7 @@ export class BusquedaEnrolamientoMasivosComponent implements OnInit, OnDestroy {
       console.error('Error en generarPDFLote:', e);
       this.empleadoImprimir = null;
       this.estadoModalPDF = 'configuracion';
-      this.utils.MuestrasToast(TipoToast.Error, 'Error al generar el PDF de credenciales');
+      this.utils.MuestrasToast(TipoToast.Error, 'Error al generar el PDF de constancias');
       this.cdRef.detectChanges();
     }
   }
@@ -617,7 +617,7 @@ export class BusquedaEnrolamientoMasivosComponent implements OnInit, OnDestroy {
           }
         }
 
-        pdf.save(`Credencial_${persona.rfc || persona.num_empleado}.pdf`);
+        pdf.save(`Constancia_${persona.rfc || persona.num_empleado}.pdf`);
         this.utils.MuestrasToast(TipoToast.Success, 'PDF generado correctamente');
       } catch (e) {
         console.error(e);

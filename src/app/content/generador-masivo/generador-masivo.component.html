@@ -1,0 +1,291 @@
+<div class="generador-masivo d-flex flex-column">
+
+  <!-- ===================== BARRA SUPERIOR ===================== -->
+  <header class="gm-topbar bg-white border-bottom px-3 py-2">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="gm-icono">
+          <i class="fas fa-layer-group text-white"></i>
+        </div>
+        <div>
+          <h1 class="h6 fw-bold mb-0">Generador masivo</h1>
+          <small class="text-muted">Agrega empleados a la lista y genera todas sus constancias de una vez</small>
+        </div>
+      </div>
+
+      <div class="vr d-none d-lg-block"></div>
+
+      <!-- Buscador global -->
+      <div class="input-group input-group-sm gm-buscador">
+        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+        <input type="text" class="form-control"
+               placeholder="Buscar en todas las columnas..."
+               [(ngModel)]="busquedaGlobal"
+               (ngModelChange)="onBusquedaGlobal()">
+        <button class="btn btn-outline-secondary" (click)="limpiarFiltros()" title="Limpiar filtros">
+          <i class="fas fa-eraser"></i>
+        </button>
+      </div>
+
+      <!-- Selector de plantilla (mismo patron que "Imprimir credenciales") -->
+      <div class="d-flex align-items-center gap-2 ms-auto" #selectorPlantilla>
+        <div class="gm-selector position-relative" *ngIf="!cargandoPlantilla">
+          <button type="button"
+                  class="btn btn-sm d-flex align-items-center gap-2"
+                  [class.btn-success]="plantilla"
+                  [class.btn-warning]="!plantilla"
+                  (click)="alternarSelector()"
+                  title="Cambiar la plantilla que se usará para generar">
+            <i class="fas fa-vector-square"></i>
+            <span class="text-truncate gm-selector-nombre">
+              {{ plantilla ? plantilla.nombre : 'Sin plantilla' }}
+            </span>
+            <i class="fas fa-caret-down"></i>
+          </button>
+
+          <div class="gm-selector-menu shadow" *ngIf="selectorAbierto">
+            <div class="gm-selector-titulo">Plantilla para generar</div>
+
+            <button type="button"
+                    class="gm-selector-item"
+                    *ngFor="let p of plantillasDisponibles"
+                    [class.activa]="p.id_plantilla === plantilla?.id_plantilla"
+                    (click)="usarPlantilla(p)">
+              <img *ngIf="p.fondo_frente_url" [src]="p.fondo_frente_url" class="gm-selector-mini" alt="">
+              <span *ngIf="!p.fondo_frente_url" class="gm-selector-mini gm-selector-mini-vacia">
+                <i class="fas fa-image"></i>
+              </span>
+              <span class="flex-grow-1 text-start">
+                <span class="d-block text-truncate">{{ p.nombre }}</span>
+                <small class="text-muted">{{ p.clave }}</small>
+              </span>
+              <i class="fas fa-star text-warning" *ngIf="p.por_defecto" title="Predeterminada"></i>
+              <i class="fas fa-check text-success" *ngIf="p.id_plantilla === plantilla?.id_plantilla"></i>
+            </button>
+
+            <div class="gm-selector-vacio text-muted" *ngIf="!plantillasDisponibles.length">
+              <small>No hay plantillas activas.</small>
+            </div>
+
+            <button type="button" class="gm-selector-restaurar" *ngIf="plantillaAnulada"
+                    (click)="restaurarPlantillaPorDefecto()">
+              <i class="fas fa-rotate-left"></i> Volver a la predeterminada
+            </button>
+          </div>
+        </div>
+
+        <small class="text-muted" *ngIf="origenPlantilla === 'primera_activa' && !plantillaAnulada"
+               title="Ninguna plantilla está marcada como predeterminada; se usa la primera activa.">
+          <i class="fas fa-info-circle"></i>
+        </small>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== CUERPO ===================== -->
+  <div class="gm-cuerpo flex-grow-1 d-flex overflow-hidden">
+
+    <!-- ---------- IZQUIERDA: roster ---------- -->
+    <section class="gm-tabla">
+      <div *ngIf="cargandoRoster" class="gm-cargando">
+        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+        <div>Cargando poblado de constancia completo...</div>
+      </div>
+
+      <div *ngIf="!cargandoRoster" class="gm-tabs">
+        <ul class="nav nav-tabs border-bottom-0 gm-tabs-nav">
+          <li class="nav-item">
+            <button class="nav-link"
+                    [class.active]="tabActiva === 'activos'"
+                    (click)="seleccionarTab('activos')">
+              <i class="fas fa-users me-1"></i>
+              Activos
+              <span class="badge bg-secondary ms-1">{{ activosData.length }}</span>
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link"
+                    [class.active]="tabActiva === 'bajas'"
+                    (click)="seleccionarTab('bajas')"
+                    title="Personal con estado de nómina 'Baja'">
+              <i class="fas fa-user-slash me-1"></i>
+              Bajas
+              <span class="badge bg-danger ms-1">{{ bajasData.length }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <ag-grid-angular
+          *ngIf="!cargandoRoster"
+          class="ag-theme-alpine gm-grid"
+          [rowData]="rowDataActivo"
+          [columnDefs]="columnDefs"
+          [defaultColDef]="defaultColDef"
+          [animateRows]="false"
+          [enableBrowserTooltips]="true"
+          [suppressCellFocus]="true"
+          (gridReady)="onGridReady($event)"
+          (cellClicked)="onCellClicked($event)"
+          (filterChanged)="onFiltroCambiado()">
+      </ag-grid-angular>
+    </section>
+
+    <!-- ---------- DERECHA: lista a generar ---------- -->
+    <aside class="gm-lista border-start bg-white">
+
+      <div class="gm-lista-encabezado border-bottom d-flex align-items-center justify-content-between">
+        <div>
+          <div class="fw-bold">Lista para generar</div>
+          <small class="text-muted">{{ lista.length }} empleado(s)</small>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" *ngIf="lista.length" (click)="vaciarLista()" title="Vaciar lista">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+
+      <div class="gm-lista-vacia text-muted" *ngIf="!lista.length">
+        <i class="fas fa-list-check fa-2x mb-2 d-block"></i>
+        <p class="mb-0 small">Da clic en el "+" de una fila de la tabla para agregarla aquí.</p>
+      </div>
+
+      <div class="gm-lista-cuerpo" *ngIf="lista.length">
+        <div class="gm-lista-item" *ngFor="let e of lista">
+          <div class="flex-grow-1 text-truncate">
+            <div class="text-truncate fw-semibold" [title]="e.datos.nombre + ' ' + e.datos.apellidos">
+              {{ e.datos.nombre }} {{ e.datos.apellidos }}
+            </div>
+            <small class="text-muted">No. {{ e.datos.num_empleado || '—' }}</small>
+          </div>
+          <button class="btn btn-sm btn-link text-danger" (click)="quitarDeLista(e.id)" title="Quitar de la lista">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="gm-lista-acciones border-top">
+        <div class="gm-progreso" *ngIf="generando">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>
+              {{ modoGeneracion === 'zip' ? 'Generando ZIP...' : (modoGeneracion === 'correo' ? 'Enviando correos...' : 'Generando PDF...') }}
+            </span>
+            <span>{{ progresoActual }} / {{ progresoTotal }}</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar" role="progressbar"
+                 [style.width.%]="progresoTotal ? (progresoActual / progresoTotal * 100) : 0">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-success w-100 mb-2"
+                (click)="generarUnSoloPdf()"
+                [disabled]="!puedeGenerar">
+          <i class="fas" [class.fa-file-pdf]="!(generando && modoGeneracion === 'pdf')"
+             [class.fa-spinner]="generando && modoGeneracion === 'pdf'"
+             [class.fa-spin]="generando && modoGeneracion === 'pdf'"></i>
+          Generar un solo PDF
+        </button>
+
+        <button class="btn btn-outline-success w-100 mb-3"
+                (click)="generarZip()"
+                [disabled]="!puedeGenerar">
+          <i class="fas" [class.fa-file-zipper]="!(generando && modoGeneracion === 'zip')"
+             [class.fa-spinner]="generando && modoGeneracion === 'zip'"
+             [class.fa-spin]="generando && modoGeneracion === 'zip'"></i>
+          Generar ZIP (un PDF por constancia)
+        </button>
+
+        <small class="text-muted d-block text-center mb-2" *ngIf="!plantilla">
+          <i class="fas fa-triangle-exclamation text-warning"></i> Elige una plantilla para poder generar.
+        </small>
+
+        <!-- Envio por correo -->
+        <div class="gm-envio-correo border-top pt-3">
+
+          <!-- Estado del Agente de Correo local (ver AgenteCorreoService) -->
+          <div class="gm-agente-estado d-flex align-items-center gap-2 mb-2"
+               [class.gm-agente-ok]="agenteDisponible === true"
+               [class.gm-agente-mal]="agenteDisponible === false">
+            <i class="fas" [class.fa-circle-check]="agenteDisponible === true"
+               [class.fa-circle-exclamation]="agenteDisponible === false"
+               [class.fa-spinner]="verificandoAgente" [class.fa-spin]="verificandoAgente"
+               [class.text-success]="agenteDisponible === true"
+               [class.text-danger]="agenteDisponible === false"></i>
+            <small class="flex-grow-1">
+              <ng-container [ngSwitch]="agenteDisponible">
+                <span *ngSwitchCase="true">Agente de Correo conectado</span>
+                <span *ngSwitchCase="false">Agente de Correo no detectado</span>
+                <span *ngSwitchDefault>Verificando el Agente de Correo...</span>
+              </ng-container>
+            </small>
+            <button class="btn btn-sm btn-link p-0" title="Verificar de nuevo" (click)="verificarAgente()">
+              <i class="fas fa-rotate"></i>
+            </button>
+          </div>
+
+          <label class="form-label small fw-semibold mb-1">Plantilla de correo</label>
+          <div class="gm-selector-correo position-relative mb-2" #selectorPlantillaCorreo>
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center gap-2"
+                    (click)="alternarSelectorCorreo()"
+                    [disabled]="cargandoPlantillasCorreo">
+              <i class="fas fa-envelope-open-text"></i>
+              <span class="text-truncate flex-grow-1 text-start">
+                {{ plantillaCorreo ? plantillaCorreo.nombre : 'Sin plantilla de correo' }}
+              </span>
+              <i class="fas fa-caret-down"></i>
+            </button>
+
+            <div class="gm-selector-menu shadow" *ngIf="selectorCorreoAbierto">
+              <button type="button"
+                      class="gm-selector-item"
+                      *ngFor="let p of plantillasCorreoDisponibles"
+                      [class.activa]="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"
+                      (click)="usarPlantillaCorreo(p)">
+                <span class="flex-grow-1 text-start text-truncate">{{ p.nombre }}</span>
+                <i class="fas fa-check text-success" *ngIf="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"></i>
+              </button>
+              <div class="gm-selector-vacio text-muted" *ngIf="!plantillasCorreoDisponibles.length">
+                <small>No hay plantillas de correo. Créalas en "Correo electrónico".</small>
+              </div>
+            </div>
+          </div>
+
+          <label class="form-label small fw-semibold mb-1">Nombre del curso</label>
+          <input type="text" class="form-control form-control-sm mb-2"
+                 placeholder="Ej. Ciberseguridad básica 2026"
+                 [(ngModel)]="nombreCurso">
+
+          <button class="btn btn-outline-primary w-100"
+                  (click)="enviarPorCorreo()"
+                  [disabled]="!puedeGenerar">
+            <i class="fas" [class.fa-envelope]="!(generando && modoGeneracion === 'correo')"
+               [class.fa-spinner]="generando && modoGeneracion === 'correo'"
+               [class.fa-spin]="generando && modoGeneracion === 'correo'"></i>
+            Enviar por correo
+          </button>
+          <small class="text-muted d-block mt-1">
+            <i class="fas fa-circle-info"></i>
+            Usa la plantilla configurada en
+            <a routerLink="/correo-electronico">Correo electrónico</a>. Outlook debe estar abierto durante el envío.
+          </small>
+        </div>
+
+        <!-- Resultados del ultimo envio -->
+        <div class="gm-resultados-envio border-top pt-2 mt-2" *ngIf="resultadosEnvio.length">
+          <div class="fw-semibold small mb-1">Resultado del envío</div>
+          <div class="gm-resultado-item" *ngFor="let r of resultadosEnvio">
+            <i class="fas" [class.fa-circle-check]="r.estado === 'enviado'"
+               [class.text-success]="r.estado === 'enviado'"
+               [class.fa-circle-exclamation]="r.estado !== 'enviado'"
+               [class.text-warning]="r.estado !== 'enviado'"></i>
+            <span class="text-truncate flex-grow-1" [title]="r.nombre">{{ r.nombre }}</span>
+            <small class="text-muted" [title]="r.mensaje">{{ etiquetaEstadoEnvio(r.estado) }}</small>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

@@ -187,6 +187,19 @@ export class PlantillaCredencialService {
   }
 
   /**
+   * Correo institucional (EjeCentral.DATOS_PERSONALES.EMAIL_ADDR2) de varios
+   * empleados de golpe, por num_empleado -- para el envio masivo de
+   * constancias. La respuesta viene indexada por el mismo num_empleado que
+   * se mandó; los que no tengan correo registrado simplemente no aparecen
+   * como llave.
+   */
+  correosLote(nosEmpleado: string[]): Observable<{ status: string; correos: Record<string, string> }> {
+    return this.http.post<{ status: string; correos: Record<string, string> }>(
+      '/api-sicre/empleados-sig/correos-lote/', { nos_empleado: nosEmpleado }, SIN_LOADER_GLOBAL
+    );
+  }
+
+  /**
    * Solo la fecha de sincronizacion mas reciente del roster (un MAX() en el
    * servidor), sin las ~16k filas de `empleadosSigTodos()` -- para el badge
    * del header, que la necesita en cuanto se entra al sistema.
@@ -194,20 +207,6 @@ export class PlantillaCredencialService {
   empleadosSigUltimaActualizacion(): Observable<{ status: string; fecha_actualizacion: string | null }> {
     return this.http.get<{ status: string; fecha_actualizacion: string | null }>(
       '/api-sicre/empleados-sig/ultima-actualizacion/', SIN_LOADER_GLOBAL
-    );
-  }
-
-  /**
-   * Dispara manualmente la sincronizacion del roster (boton "Actualizar" del
-   * header). El backend hace de proxy hacia Control_De_Plazas_Backend -- ver
-   * SigViewSet.forzar_actualizacion -- asi que aqui no hay ningun token de
-   * servicio, solo la sesion normal del usuario. No espera a que la tarea
-   * termine; el header sondea `empleadosSigUltimaActualizacion()` para saber
-   * cuando sí terminó.
-   */
-  forzarActualizacionRoster(): Observable<{ status: string; task_id?: string; mensaje?: string }> {
-    return this.http.post<{ status: string; task_id?: string; mensaje?: string }>(
-      '/api-sicre/empleados-sig/forzar-actualizacion/', {}, SIN_LOADER_GLOBAL
     );
   }
 

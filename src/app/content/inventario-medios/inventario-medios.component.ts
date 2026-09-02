@@ -357,7 +357,7 @@ export class InventarioMediosComponent implements OnInit {
     this.confirmMessage =
       `¿Eliminar la foto y la firma de ${registro.num_empleado}`
       + `${registro.nombre ? ' (' + registro.nombre + ')' : ''}? `
-      + 'Se borran del servidor y su credencial saldría sin foto.';
+      + 'Se borran del servidor y su constancia saldría sin foto.';
 
     this.modalManager.openModal({
       title: 'Eliminar archivos',
@@ -536,7 +536,7 @@ export class InventarioMediosComponent implements OnInit {
       + 'Los empleados que ya tengan foto/firma propias no se tocan.';
 
     this.modalManager.openModal({
-      title: 'Cruzar capturas con el poblado de credencial',
+      title: 'Cruzar capturas con el poblado de constancia',
       template: this.confirmDialog,
       onAccept: () => this.migrarTodos(),
     });

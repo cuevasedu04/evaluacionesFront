@@ -14,19 +14,19 @@ export interface LayoutCredencial {
 export const LAYOUTS_CREDENCIAL: LayoutCredencial[] = [
   {
     valor: 'ANAM_2025',
-    label: 'Credencial ANAM nueva',
+    label: 'Constancia ANAM nueva',
   },
   {
     valor: 'ANAM_CLASICA',
-    label: 'Credencial ANAM roja',
+    label: 'Constancia ANAM roja',
   },
   {
     valor: 'NUEVO_LAREDO',
-    label: 'Credencial Nuevo Laredo',
+    label: 'Constancia Nuevo Laredo',
   },
   {
     valor: 'FAMILIAR',
-    label: 'Credencial Familiar',
+    label: 'Constancia Familiar',
   },
 ];
 

@@ -146,7 +146,7 @@ export class CredencializacionComponent implements OnInit {
     this.empleadoSeleccionado = { ...persona };
     this.esEditable = false;
     this.modalManager.openModal({
-      title: 'Visualizar Credencial',
+      title: 'Visualizar Constancia',
       template: this.modalVisualizar,
       width: '400px',
       showFooter: false
@@ -330,7 +330,7 @@ export class CredencializacionComponent implements OnInit {
                 pdf.addImage(imgDataBack, 'PNG', xOffset, yOffset, imgWidth, imgHeight, '', 'FAST');
             }
 
-            pdf.save(`Credencial_${persona.num_empleado}.pdf`);
+            pdf.save(`Constancia_${persona.num_empleado}.pdf`);
             this.utils.MuestrasToast(TipoToast.Success, 'PDF generado correctamente');
 
             // Marcar como impreso en el backend y actualizar tabla

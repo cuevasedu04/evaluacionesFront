@@ -13,7 +13,7 @@
                 placeholder="Ej. Aduana de Acapulco con sede en Guerrero"
                 [(ngModel)]="enFormulario.nombre"></textarea>
       <small class="text-muted">
-        Debe coincidir con el área que trae el poblado de credencial. No distingue mayúsculas ni acentos.
+        Debe coincidir con el área que trae el poblado de constancia. No distingue mayúsculas ni acentos.
       </small>
     </div>
 
@@ -23,7 +23,7 @@
              placeholder="Ej. ANAM, DGTI, Acapulco"
              [(ngModel)]="enFormulario.nombre_compactado">
       <small class="text-muted">
-        Este texto es el que aparece en la credencial, tal cual lo escribas.
+        Este texto es el que aparece en la constancia, tal cual lo escribas.
       </small>
     </div>
 
@@ -42,7 +42,7 @@
     <div>
       <h1 class="fw-bold text-dark mb-0 h3">Catálogo de áreas</h1>
       <p class="text-muted mb-0">
-        Nombre corto que se imprime en la credencial para cada unidad administrativa
+        Nombre corto que se imprime en la constancia para cada unidad administrativa
       </p>
     </div>
   </div>
@@ -73,8 +73,8 @@
   <!-- Áreas del roster que nadie ha catalogado: imprimirían el nombre largo -->
   <div class="alert alert-warning py-2 px-3 small" *ngIf="sinCatalogo.length">
     <i class="fas fa-triangle-exclamation"></i>
-    <strong>{{ sinCatalogo.length }} área(s) del poblado de credencial sin catalogar</strong>
-    ({{ totalEmpleadosSinCatalogo }} empleados). Su credencial saldría con el nombre completo.
+    <strong>{{ sinCatalogo.length }} área(s) del poblado de constancia sin catalogar</strong>
+    ({{ totalEmpleadosSinCatalogo }} empleados). Su constancia saldría con el nombre completo.
     <div class="mt-2 d-flex flex-wrap gap-2" *ngIf="permisosS.tiene('areas_administrar')">
       <button class="btn btn-sm btn-outline-dark" *ngFor="let a of sinCatalogo"
               (click)="nuevo(a.area)" [title]="a.area">

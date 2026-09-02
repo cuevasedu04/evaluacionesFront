@@ -69,14 +69,14 @@
                 <div class="col-md-4">
                     <div class="card-ld-stats bg-gray rounded-3 border-4 d-flex flex-column align-content-around">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-fill"> 
-                <h3>Total de Credenciales</h3> 
+                <h3>Total de Constancias</h3>
                 <span><i class="fa-solid fa-id-card fa-2x text-deep-blue"></i></span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="display-4 fw-bold text-deep-blue">{{ totalCredenciales }}</h3>
             </div>
             <div>
-                <span class="text-muted small">Total de credenciales registradas</span>
+                <span class="text-muted small">Total de constancias registradas</span>
             </div>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
                 <div class="col-md-4">
         <div class="card-ld-stats bg-gray rounded-3 border-4 d-flex flex-column align-content-around">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-fill"> 
-                <h3>Credenciales Completas</h3> 
+                <h3>Constancias Completas</h3>
                 <span><i class="fa-solid fa-check-circle fa-2x text-success"></i></span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
@@ -104,7 +104,7 @@
                 <div class="col-md-4">
         <div class="card-ld-stats bg-gray rounded-3 border-4 d-flex flex-column align-content-around">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-fill"> 
-                <h3>Credenciales Impresas</h3> 
+                <h3>Constancias Impresas</h3>
                 <span><i class="fa-solid fa-print fa-2x text-deep-blue"></i></span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
@@ -114,7 +114,7 @@
                 </span>
             </div>
             <div>
-                <span class="text-muted small">Credenciales ya impresas</span>
+                <span class="text-muted small">Constancias ya impresas</span>
             </div>
                     </div>
                 </div>
@@ -148,7 +148,7 @@
              (click)="abrirModalDetalle('incompletas')"
              >
             <div class="d-flex justify-content-between align-items-center mb-2 flex-fill"> 
-                <h3>Credenciales Incompletas</h3> 
+                <h3>Constancias Incompletas</h3>
                 <span><i class="fa-solid fa-exclamation-triangle fa-2x" style="color: #d9534f;"></i></span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
@@ -174,7 +174,7 @@
                 <h3 class="display-4 fw-bold text-deep-blue">{{ credencialesImpresasHoy }}</h3>
             </div>
             <div>
-                <span class="text-muted small">Credenciales impresas hoy</span>
+                <span class="text-muted small">Constancias impresas hoy</span>
             </div>
                     </div>
                 </div>
@@ -187,7 +187,7 @@
     <div class="charts-section" *ngIf="porAdscripcion && porAdscripcion.length > 0">
         <div class="section-title">
             <i class="fas fa-building text-success me-2"></i>
-             Credenciales por Adscripción
+             Constancias por Adscripción
         </div>
         <div class="bg-light rounded-3 p-4">
             <div class="table-responsive">
@@ -195,7 +195,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Adscripción</th>
-                            <th class="text-center">Total Credenciales</th>
+                            <th class="text-center">Total Constancias</th>
                         </tr>
                     </thead>
                     <tbody>

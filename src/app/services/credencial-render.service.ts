@@ -11,6 +11,7 @@ import {
   MULTIPLICADOR_EXPORT,
   CaraCredencial,
   FUENTES_PERSONALIZADAS,
+  CAMPOS_QR_POR_DEFECTO,
 } from '../content/plantilla-editor/plantilla-editor.const';
 import { PlantillaCredencial } from './plantilla-credencial.service';
 
@@ -99,7 +100,7 @@ export class CredencialRenderService {
       : (plantilla.fondo_reverso_url || plantilla.fondo_reverso);
 
     await this.aplicarFondo(canvas, fondo, ancho, alto);
-    await this.poblarDatos(canvas, empleado);
+    await this.poblarDatos(canvas, empleado, false, plantilla.nombre);
 
     canvas.renderAll();
     return canvas;
@@ -252,7 +253,7 @@ export class CredencialRenderService {
       : (plantilla.fondo_reverso_url || plantilla.fondo_reverso);
 
     await this.aplicarFondo(canvas, fondo, ancho, alto);
-    await this.poblarDatos(canvas, empleado, true);
+    await this.poblarDatos(canvas, empleado, true, plantilla.nombre);
 
     canvas.renderAll();
     return canvas;
@@ -443,7 +444,9 @@ export class CredencialRenderService {
    * seleccionables/movibles -- true solo en construirCanvasEditable(); en el
    * render normal (preview/PDF) siempre van fijas.
    */
-  private async poblarDatos(canvas: fabric.StaticCanvas, empleado: any, interactivo = false): Promise<void> {
+  private async poblarDatos(
+    canvas: fabric.StaticCanvas, empleado: any, interactivo = false, nombrePlantilla?: string
+  ): Promise<void> {
     if (!empleado) return;
 
     const objetos = [...canvas.getObjects()];
@@ -474,17 +477,38 @@ export class CredencialRenderService {
           break;
 
         case 'qr':
-          await this.aplicarQr(canvas, objeto, empleado, interactivo);
+          await this.aplicarQr(canvas, objeto, empleado, interactivo, nombrePlantilla);
           break;
       }
     }
   }
 
+  private static readonly PARTES_FECHA: Record<string, 'dia' | 'mes' | 'anio'> = {
+    fecha_expedicion_dia: 'dia',
+    fecha_expedicion_mes: 'mes',
+    fecha_expedicion_anio: 'anio',
+  };
+
   private aplicarTexto(objeto: fabric.FabricObject, data: any, empleado: any): void {
     const texto = objeto as fabric.Textbox;
     if (typeof texto.set !== 'function') return;
 
-    let valor = empleado?.[data.campo] ?? '';
+    const parteFecha = CredencialRenderService.PARTES_FECHA[data.campo];
+
+    let valor: any;
+    if (data.campo === 'nombre_completo') {
+      // No es un campo propio del dataset del empleado: se arma aqui
+      // concatenando nombre + apellidos, para no tener que agregarlo a cada
+      // fuente de datos (roster SIG, historico, datos de ejemplo...).
+      valor = `${empleado?.nombre || ''} ${empleado?.apellidos || ''}`.trim();
+    } else if (parteFecha) {
+      // Tampoco son campos propios: se resuelven aqui a partir de
+      // empleado.fecha_expedicion, para plantillas tipo "...el ___ de ___
+      // de ___" con dia/mes/año en recuadros separados.
+      valor = this.parteDeFecha(empleado?.fecha_expedicion, parteFecha);
+    } else {
+      valor = empleado?.[data.campo] ?? '';
+    }
 
     if (data.tipo === 'fecha' && valor) {
       valor = this.formatearFecha(valor);
@@ -531,13 +555,14 @@ export class CredencialRenderService {
     canvas: fabric.StaticCanvas,
     marcador: fabric.FabricObject,
     empleado: any,
-    interactivo = false
+    interactivo = false,
+    nombrePlantilla?: string
   ): Promise<void> {
     const capa = canvas.getObjects().indexOf(marcador);
     const data: any = (marcador as any).data;
 
     try {
-      const contenido = this.construirContenidoQr(empleado);
+      const contenido = this.construirContenidoQr(empleado, nombrePlantilla, data?.camposQr, data?.textoQrLibre);
       const dataUrl = await QRCode.toDataURL(contenido, {
         errorCorrectionLevel: 'M',
         margin: 1,
@@ -606,21 +631,29 @@ export class CredencialRenderService {
   // Utilidades
   // ====================================================================
 
-  construirContenidoQr(empleado: any): string {
-    return [
-      empleado?.num_empleado || '',
-      empleado?.rfc || '',
-      empleado?.curp || '',
-      empleado?.nombre || '',
-      empleado?.paterno || '',
-      empleado?.materno || '',
-      empleado?.puesto || '',
-      empleado?.adscripcion || '',
-      empleado?.inicio_vig || '',
-      empleado?.fin_vig || '',
-      empleado?.folio || '',
-      empleado?.fecha_expedicion || '',
-    ].join('|');
+  /**
+   * Contenido del QR, a partir de la seleccion de datos guardada en el
+   * marcador (`data.camposQr`, ver PlantillaEditorComponent.abrirSelectorCamposQr).
+   * Si no trae seleccion -- QRs colocados antes de que existiera este picker --
+   * cae al set fijo que traia el sistema antes (CAMPOS_QR_POR_DEFECTO), asi
+   * que un QR ya impreso/guardado no cambia de contenido solo.
+   */
+  construirContenidoQr(empleado: any, nombrePlantilla?: string, camposQr?: string[], textoLibre?: string): string {
+    const claves = camposQr?.length ? camposQr : CAMPOS_QR_POR_DEFECTO;
+    const partes = claves.map(clave => this.resolverCampoQr(clave, empleado, nombrePlantilla));
+    if (textoLibre?.trim()) partes.push(textoLibre.trim());
+    return partes.join('|');
+  }
+
+  /** 'nombre_completo' y 'nombre_plantilla' no son propiedades del dataset del empleado; el resto sale directo de ahi. */
+  private resolverCampoQr(clave: string, empleado: any, nombrePlantilla?: string): string {
+    if (clave === 'nombre_completo') {
+      return `${empleado?.nombre || ''} ${empleado?.apellidos || ''}`.trim();
+    }
+    if (clave === 'nombre_plantilla') {
+      return nombrePlantilla || '';
+    }
+    return empleado?.[clave] ?? '';
   }
 
   formatearFecha(valor: any): string {
@@ -631,5 +664,27 @@ export class CredencialRenderService {
     const dia = String(fecha.getDate()).padStart(2, '0');
     const mes = String(fecha.getMonth() + 1).padStart(2, '0');
     return `${dia}/${mes}/${fecha.getFullYear()}`;
+  }
+
+  private static readonly NOMBRES_MES = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  ];
+
+  /**
+   * Un solo componente de una fecha, para plantillas tipo "...el ___ de ___
+   * de ___" con dia/mes/año en recuadros separados en vez de una fecha
+   * junta. 'dia' y 'anio' salen como numero simple (sin cero a la
+   * izquierda -- "5", no "05"); 'mes' sale como nombre completo en
+   * minusculas ("agosto"), que es como se leen estas frases formales.
+   */
+  private parteDeFecha(valor: any, parte: 'dia' | 'mes' | 'anio'): string {
+    if (!valor) return '';
+    const fecha = valor instanceof Date ? valor : new Date(String(valor).includes('T') ? valor : `${valor}T00:00:00`);
+    if (isNaN(fecha.getTime())) return '';
+
+    if (parte === 'dia') return String(fecha.getDate());
+    if (parte === 'anio') return String(fecha.getFullYear());
+    return CredencialRenderService.NOMBRES_MES[fecha.getMonth()];
   }
 }

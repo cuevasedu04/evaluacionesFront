@@ -11,7 +11,7 @@
 					</div>
 					<div>
 						<h1 class="fw-bold text-dark mb-1 h4">Carga manual</h1>
-						<p class="text-muted mb-0 small">Generación de credenciales manualmente</p>
+						<p class="text-muted mb-0 small">Generación de constancias manualmente</p>
 					</div>
 				</div>
 			</div>
@@ -22,7 +22,7 @@
 <div [class.card]="!isPrintMode" [class.shadow-sm]="!isPrintMode">
 	<div class="card-header bg-white border-bottom" *ngIf="!isPrintMode">
 		<h6 class="mb-0 font-weight-bold">
-			 <i class="fas fa-id-card text-muted"></i> Credencial 
+			 <i class="fas fa-id-card text-muted"></i> Constancia
 		</h6>
 	</div>
 	<div [class.card-body]="!isPrintMode">
@@ -61,7 +61,7 @@
 				 [ngStyle]="isPrintMode ? {'width': '638px', 'height': '1001px', 'border-radius': '0', 'box-shadow': 'none', 'margin': '0'} : {'width': '400px', 'height': '628px', 'border-radius': '10px', 'box-shadow': '0 8px 20px rgba(0,0,0,0.2)'}" style="position: relative; overflow: hidden;">
 				 <img [src]="obtenerImagenFrente()" 
 					 (error)="$any($event.target).src='img/frontal_credencial.png'"
-					 alt="Credencial Frente" 
+					 alt="Constancia Frente"
 					 class="anam-bg-image-front">
                 
 				<!-- Campos editables posicionados sobre la imagen -->
@@ -225,7 +225,7 @@
 				 [ngClass]="[obtenerClaseLayout(), getLayoutActual() === 'ANAM_2025' ? 'layout-anam-2025' : '']"
 				 [ngStyle]="isPrintMode ? {'width': '638px', 'height': '1001px', 'border-radius': '0', 'box-shadow': 'none', 'margin': '0'} : {'width': '400px', 'height': '628px', 'border-radius': '10px', 'box-shadow': '0 8px 20px rgba(0,0,0,0.2)'}" style="position: relative; overflow: hidden;">
 				 <img [src]="obtenerImagenReverso()" 
-					 alt="Credencial Reverso" 
+					 alt="Constancia Reverso"
 					 (error)="$any($event.target).src='img/reverso.jpg'"
 					 class="anam-bg-image-back">
                 
@@ -375,7 +375,7 @@
 		<!-- Selector de Nivel de Credencial -->
 		<div class="mt-3" *ngIf="!isPrintMode && getLayoutActual() === 'ANAM_2025'">
 			<label class="form-label small font-weight-bold mb-1">
-				<i class="fas fa-id-badge mr-1"></i> Tipo de Credencial
+				<i class="fas fa-id-badge mr-1"></i> Tipo de Constancia
 			</label>
 			<select class="form-control form-control-sm"
 					[ngModel]="empleado?.nivel_credencial"

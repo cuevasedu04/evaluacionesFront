@@ -24,7 +24,7 @@ import { COLUMNAS_SIG, sigAEmpleadoCredencial } from './imprimir-credenciales.co
 import { RosterSyncService } from '../../services/roster-sync.service';
 
 /** Pestañas del roster en esta pantalla. */
-export type TabRoster = 'activos' | 'bajas' | 'nuevos_hoy';
+export type TabRoster = 'activos' | 'bajas';
 
 /**
  * Pantalla "Imprimir credenciales".
@@ -65,9 +65,8 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   // ---- Tabs ----
   /**
    * Pestaña activa.
-   *  - 'activos'    : personal que NO esta dado de baja.
-   *  - 'bajas'      : estado_nom = 'Baja'.
-   *  - 'nuevos_hoy' : altas detectadas hoy (ver actualizarNuevosHoy).
+   *  - 'activos' : personal que NO esta dado de baja.
+   *  - 'bajas'   : estado_nom = 'Baja'.
    */
   tabActiva: TabRoster = 'activos';
 
@@ -97,52 +96,9 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   activosData: EmpleadoSig[] = [];
   bajasData: EmpleadoSig[] = [];
 
-  /**
-   * Caché de filas cuyo `fecha_actualizacion` es de hoy.
-   * Se calcula una sola vez al terminar de cargar el roster (no en cada ciclo
-   * de detección de cambios), porque recorrer 16k filas en cada render
-   * sería costoso.
-   */
-  nuevosHoyData: EmpleadoSig[] = [];
-
-  get contadorNuevosHoy(): number {
-    return this.nuevosHoyData.length;
-  }
-
-  /**
-   * Calcula y actualiza el caché de nuevos ingresos del día.
-   *
-   * OJO: se filtra por `fecha_primera_deteccion`, NO por
-   * `fecha_actualizacion`. Esta última se reescribe en CADA sincronización
-   * (cada 30 min) para TODOS los empleados del roster, así que filtrar por
-   * ella marcaría al roster COMPLETO como "de hoy" en cuanto corriera el
-   * primer sync del día -- no sirve para aislar altas reales.
-   * `fecha_primera_deteccion` en cambio se escribe una sola vez, la primera
-   * vez que Control_De_Plazas_Backend detecta a ese empleado, y ya no se
-   * toca en syncs siguientes (ver ese proyecto,
-   * _obtener_fechas_primera_deteccion / _leer_csv_poblado_credenciales).
-   *
-   * La fecha llega del backend en UTC. Comparar por PREFIJO DE STRING contra
-   * la fecha local del navegador sería incorrecto: para un usuario en México
-   * (UTC-6), la medianoche UTC cae ~18:00-19:00 hora local -- horario
-   * laboral típico en el que sí pueden llegar altas nuevas. Por eso se
-   * comparan los componentes de fecha en hora LOCAL (los getters sin "UTC"
-   * de Date ya convierten automáticamente), tanto para "hoy" como para la
-   * fecha parseada.
-   */
-  private actualizarNuevosHoy(): void {
+  private actualizarCaches(): void {
     this.activosData = this.rowData.filter(f => !this.esBajaFila(f));
     this.bajasData = this.rowData.filter(f => this.esBajaFila(f));
-
-    const hoy = new Date();
-    this.nuevosHoyData = this.rowData.filter(f => {
-      if (!f.fecha_primera_deteccion) return false;
-      const fecha = new Date(f.fecha_primera_deteccion);
-      if (isNaN(fecha.getTime())) return false;
-      return fecha.getFullYear() === hoy.getFullYear()
-        && fecha.getMonth() === hoy.getMonth()
-        && fecha.getDate() === hoy.getDate();
-    });
   }
 
   readonly defaultColDef: ColDef = {
@@ -477,7 +433,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
       // esa impresion quedaria fuera del historial auditable.
       this.utils.MuestrasToast(
         TipoToast.Warning,
-        'La credencial se generó, pero no se pudo registrar en el historial de impresiones.'
+        'La constancia se generó, pero no se pudo registrar en el historial de impresiones.'
       );
     }
   }
@@ -534,7 +490,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
         this.totalFiltrados = this.rowData.length;
         this.ultimaActualizacion = this.calcularUltimaActualizacion(this.rowData);
         this.rosterSync.actualizar(this.ultimaActualizacion);
-        this.actualizarNuevosHoy();
+        this.actualizarCaches();
         this.cargandoRoster = false;
       },
       error: (err) => {
@@ -658,9 +614,8 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   /** Filas que alimentan la grid según la pestaña activa. */
   get rowDataActivo(): EmpleadoSig[] {
     switch (this.tabActiva) {
-      case 'bajas':      return this.bajasData;
-      case 'nuevos_hoy': return this.nuevosHoyData;
-      default:           return this.activosData;
+      case 'bajas': return this.bajasData;
+      default:      return this.activosData;
     }
   }
 
@@ -920,7 +875,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     this.modoEdicion = true;
 
     this.modalEdicionInstancia = this.modalManager.openModal({
-      title: `Editar credencial — ${this.empleadoSeleccionado.nombre} ${this.empleadoSeleccionado.apellidos}`,
+      title: `Editar constancia — ${this.empleadoSeleccionado.nombre} ${this.empleadoSeleccionado.apellidos}`,
       template: this.modalEdicionRef,
       showFooter: false,
       width: '1100px',
@@ -1133,7 +1088,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
 
-    const nombreArchivo = `Credencial_${this.empleadoSeleccionado.num_empleado || 'sin_numero'}.pdf`;
+    const nombreArchivo = `Constancia_${this.empleadoSeleccionado.num_empleado || 'sin_numero'}.pdf`;
     // Se captura antes de imprimir: consumirFolio() lo avanza despues.
     const folioImpreso = this.folioSiguiente;
 
@@ -1255,7 +1210,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
         // la bandera, el proximo intento lo reintenta solo.
         this.utils.MuestrasToast(
           TipoToast.Warning,
-          'La credencial se generó, pero no se pudo renombrar la foto/firma al número de empleado.'
+          'La constancia se generó, pero no se pudo renombrar la foto/firma al número de empleado.'
         );
       }
     }
@@ -1274,7 +1229,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     } catch {
       this.utils.MuestrasToast(
         TipoToast.Warning,
-        'La credencial se generó, pero no se pudo guardar la foto/firma de forma permanente. Se reintentará la próxima vez que imprimas.'
+        'La constancia se generó, pero no se pudo guardar la foto/firma de forma permanente. Se reintentará la próxima vez que imprimas.'
       );
     }
   }
@@ -1519,7 +1474,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     this.empleadoSeleccionado.foto = this.fotoCapturada;
     this.fotoPendiente = this.fotoCapturada;
     this.modalCamaraInstancia?.close();
-    this.utils.MuestrasToast(TipoToast.Success, 'Fotografía lista. Se guardará al imprimir la credencial.');
+    this.utils.MuestrasToast(TipoToast.Success, 'Fotografía lista. Se guardará al imprimir la constancia.');
     this.generarPreview();
   }
 
@@ -1765,7 +1720,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     this.empleadoSeleccionado.firma = dataUrl;
     this.firmaPendiente = dataUrl;
     this.modalFirmaInstancia?.close();
-    this.utils.MuestrasToast(TipoToast.Success, 'Firma lista. Se guardará al imprimir la credencial.');
+    this.utils.MuestrasToast(TipoToast.Success, 'Firma lista. Se guardará al imprimir la constancia.');
     this.generarPreview();
   }
 }

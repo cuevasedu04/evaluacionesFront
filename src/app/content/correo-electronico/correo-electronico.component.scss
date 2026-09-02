@@ -1,0 +1,121 @@
+.correo-electronico {
+  height: calc(100vh - 120px);
+  min-height: 600px;
+  background: #eef1f5;
+}
+
+.ce-icono {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.ce-topbar {
+  flex: 0 0 auto;
+  box-shadow: var(--shadow-low);
+  z-index: 5;
+}
+
+.ce-cuerpo {
+  min-height: 0;
+}
+
+.ce-lista {
+  flex: 0 0 260px;
+  width: 260px;
+  min-width: 0;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+
+.ce-lista-item {
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  margin-bottom: 0.3rem;
+  transition: background var(--duration-micro) var(--ease-standard);
+
+  &:hover {
+    background: #f1f3f5;
+  }
+
+  &.activa {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+  }
+}
+
+.ce-editor-panel {
+  min-height: 0;
+}
+
+.ce-contenido {
+  max-width: 760px;
+}
+
+.ce-seccion {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ce-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 0.4rem 0.5rem;
+}
+
+.ce-select {
+  width: auto;
+  max-width: 130px;
+}
+
+.ce-select-chico {
+  width: auto;
+  max-width: 100px;
+}
+
+.ce-color {
+  width: 32px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #ced4da;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  cursor: pointer;
+}
+
+.ce-editor {
+  min-height: 220px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: #fff;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 0.2rem var(--color-primary-light);
+  }
+
+  p {
+    margin: 0 0 0.6rem;
+  }
+}

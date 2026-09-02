@@ -133,7 +133,7 @@ export class AuditoriaCredencialesComponent implements OnInit {
       // Mismo patrón que el catálogo de áreas: el botón se pinta como HTML y
       // el clic se atiende en onCellClicked leyendo data-accion.
       cellRenderer: () => `
-        <span title="Ver la credencial que se imprimió">
+        <span title="Ver la constancia que se imprimió">
           <i class="tool-icon fas fa-id-card text-primary" data-accion="ver" style="cursor:pointer"></i>
         </span>`,
       cellStyle: { textAlign: 'center' },
@@ -240,7 +240,7 @@ export class AuditoriaCredencialesComponent implements OnInit {
     this.abrirDetalle(fila.id_enrolamiento);
 
     this.modalManager.openModal({
-      title: `Credencial impresa — ${fila.nombre || fila.num_empleado || ''}`,
+      title: `Constancia impresa — ${fila.nombre || fila.num_empleado || ''}`,
       template: this.modalCredencial,
       width: '900px',
       showFooter: false,
@@ -339,7 +339,7 @@ export class AuditoriaCredencialesComponent implements OnInit {
         this.detalle.canvas_reverso || null,
         {
           nombreArchivo:
-            `Credencial_${this.detalle.num_empleado || 'sin_numero'}`
+            `Constancia_${this.detalle.num_empleado || 'sin_numero'}`
             + `_folio_${this.detalle.folio || 'sn'}.pdf`,
         }
       );

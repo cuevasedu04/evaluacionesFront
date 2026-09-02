@@ -288,7 +288,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
   actionsRenderer(params: any) {
     return `
       <div class="d-flex gap-2 justify-content-center align-items-center w-100 h-100">
-        <span class="tooltip-wrapper" data-tooltip="Visualizar Credencial">
+        <span class="tooltip-wrapper" data-tooltip="Visualizar Constancia">
           <i class="tool-icon fas fa-eye" data-action="view" data-id="${params.data.id_enrolamiento}" title="Visualizar" style="cursor: pointer;"></i>
         </span>
         <span class="tooltip-wrapper" data-tooltip="Imprimir">
@@ -387,7 +387,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
         .map((col: any) => col.getColId());
 
       this.gridApi.exportDataAsCsv({
-        fileName: `reporte_credenciales_${dateStr}.csv`,
+        fileName: `reporte_constancias_${dateStr}.csv`,
         columnKeys: columnKeys
       });
     }
@@ -415,7 +415,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
       this.empleadoSeleccionado = JSON.parse(JSON.stringify(persona));
       this.esEditable = false;
       this.modalManager.openModal({
-        title: 'Visualizar Credencial',
+        title: 'Visualizar Constancia',
         template: this.modalVisualizar,
         width: '400px',
         showFooter: false
@@ -435,7 +435,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
         this.empleadoSeleccionado = empleado;
         this.esEditable = false;
         this.modalManager.openModal({
-          title: 'Visualizar Credencial',
+          title: 'Visualizar Constancia',
           template: this.modalVisualizar,
           width: '400px',
           showFooter: false
@@ -450,7 +450,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
         this.empleadoSeleccionado = empleado;
         this.esEditable = false;
         this.modalManager.openModal({
-          title: 'Visualizar Credencial',
+          title: 'Visualizar Constancia',
           template: this.modalVisualizar,
           width: '400px',
           showFooter: false
@@ -645,7 +645,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
                 pdf.addImage(imgDataBack, 'PNG', xOffset, yOffset, imgWidth, imgHeight, '', 'FAST');
             }
 
-            pdf.save(`Credencial_${persona.num_empleado}.pdf`);
+            pdf.save(`Constancia_${persona.num_empleado}.pdf`);
             this.utils.MuestrasToast(TipoToast.Success, 'PDF generado correctamente');
 
             if (persona.id_enrolamiento) {

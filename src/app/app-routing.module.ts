@@ -22,6 +22,8 @@ import { LoginComponent } from './content/login/login.component';
 import { PlantillaEditorComponent } from './content/plantilla-editor/plantilla-editor.component';
 import { PlantillaListaComponent } from './content/plantilla-editor/plantilla-lista.component';
 import { ImprimirCredencialesComponent } from './content/imprimir-credenciales/imprimir-credenciales.component';
+import { GeneradorMasivoComponent } from './content/generador-masivo/generador-masivo.component';
+import { CorreoElectronicoComponent } from './content/correo-electronico/correo-electronico.component';
 import { EnrolamientoPrevioComponent } from './content/enrolamiento-previo/enrolamiento-previo.component';
 import { InventarioMediosComponent } from './content/inventario-medios/inventario-medios.component';
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
@@ -106,6 +108,18 @@ const routes: Routes = [
         component: ImprimirCredencialesComponent,
         canActivate: [AuthGuard],
         data: { permisoRequerido: 'ver_imprimir_credenciales'  },
+      },
+      {
+        path: 'generador-masivo',
+        component: GeneradorMasivoComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_generador_masivo'  },
+      },
+      {
+        path: 'correo-electronico',
+        component: CorreoElectronicoComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_correo_electronico'  },
       },
       {
         path: 'enrolamiento-previo',

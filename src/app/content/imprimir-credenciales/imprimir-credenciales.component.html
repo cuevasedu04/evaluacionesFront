@@ -47,7 +47,7 @@
     <div class="ic-aviso-edicion flex-shrink-0" *ngIf="hayMediosPendientes">
       <i class="fas fa-camera-retro"></i>
       {{ fotoPendiente && firmaPendiente ? 'Foto y firma capturadas' : (fotoPendiente ? 'Foto capturada' : 'Firma capturada') }}:
-      se guardarán al imprimir la credencial.
+      se guardarán al imprimir la constancia.
     </div>
 
     <!--
@@ -87,7 +87,7 @@
               [disabled]="!plantilla || generandoPdf || generandoPreview">
         <i class="fas" [class.fa-print]="!generandoPdf"
            [class.fa-spinner]="generandoPdf" [class.fa-spin]="generandoPdf"></i>
-        {{ generandoPdf ? 'Generando...' : 'Imprimir credencial' }}
+        {{ generandoPdf ? 'Generando...' : 'Imprimir constancia' }}
       </button>
     </div>
     <small class="text-muted d-block text-center mt-1 flex-shrink-0">El PDF incluirá los ajustes que hiciste aquí.</small>
@@ -105,8 +105,8 @@
           <i class="fas fa-id-card text-white"></i>
         </div>
         <div>
-          <h1 class="h6 fw-bold mb-0">Imprimir credenciales</h1>
-          <small class="text-muted">Selecciona un empleado para generar su credencial</small>
+          <h1 class="h6 fw-bold mb-0">Imprimir constancias</h1>
+          <small class="text-muted">Selecciona un empleado para generar su constancia</small>
         </div>
       </div>
 
@@ -132,14 +132,14 @@
       <button class="btn btn-sm btn-outline-secondary ic-btn-recargar"
               *ngIf="!cargandoRoster"
               (click)="recargarRoster()"
-              title="Actualizar el poblado de credencial (descarga los datos más recientes del servidor)">
+              title="Actualizar el poblado de constancia (descarga los datos más recientes del servidor)">
         <i class="fas fa-arrows-rotate"></i> Actualizar
       </button>
 
       <!-- Consecutivo de folio: editable, avanza solo al generar cada PDF -->
       <div class="ms-auto d-flex align-items-center gap-2">
         <div class="input-group input-group-sm ic-folio"
-             title="Folio de la siguiente credencial. Avanza solo al generar cada PDF; puedes fijar el que necesites.">
+             title="Folio de la siguiente constancia. Avanza solo al generar cada PDF; puedes fijar el que necesites.">
           <span class="input-group-text bg-white">
             <i class="fas fa-hashtag text-muted"></i>
           </span>
@@ -219,7 +219,7 @@
     <section class="ic-tabla">
       <div *ngIf="cargandoRoster" class="ic-cargando">
         <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-        <div>Cargando poblado de credencial completo...</div>
+        <div>Cargando poblado de constancia completo...</div>
         <small class="text-muted">Se descarga una sola vez; después el filtrado es inmediato.</small>
       </div>
 
@@ -243,19 +243,6 @@
               <i class="fas fa-user-slash me-1"></i>
               Bajas
               <span class="badge bg-danger ms-1">{{ bajasData.length }}</span>
-            </button>
-          </li>
-          <li class="nav-item">
-            <button class="nav-link"
-                    [class.active]="tabActiva === 'nuevos_hoy'"
-                    (click)="seleccionarTab('nuevos_hoy')">
-              <i class="fas fa-user-plus me-1"></i>
-              Nuevos ingresos hoy
-              <span class="badge ms-1"
-                    [class.bg-success]="contadorNuevosHoy > 0"
-                    [class.bg-secondary]="contadorNuevosHoy === 0">
-                {{ contadorNuevosHoy }}
-              </span>
             </button>
           </li>
         </ul>
@@ -283,7 +270,7 @@
       <!-- Sin selección -->
       <div *ngIf="!empleadoSeleccionado" class="ic-vacio text-muted">
         <i class="fas fa-hand-pointer fa-2x mb-2 d-block"></i>
-        <p class="mb-0 small">Selecciona un empleado de la tabla para ver su credencial.</p>
+        <p class="mb-0 small">Selecciona un empleado de la tabla para ver su constancia.</p>
       </div>
 
       <ng-container *ngIf="empleadoSeleccionado">
@@ -355,7 +342,7 @@
         <div class="ic-aviso-edicion" *ngIf="hayMediosPendientes">
           <i class="fas fa-camera-retro"></i>
           {{ fotoPendiente && firmaPendiente ? 'Foto y firma capturadas' : (fotoPendiente ? 'Foto capturada' : 'Firma capturada') }}:
-          se guardarán al imprimir la credencial. Si cambias de empleado antes, se pierden.
+          se guardarán al imprimir la constancia. Si cambias de empleado antes, se pierden.
         </div>
 
         <!-- Vista previa / lienzo editable -->
@@ -377,7 +364,7 @@
           <div class="ic-preview-imagen-wrap" *ngIf="!modoEdicion && !generandoPreview && previewActual">
             <img [src]="previewActual"
                  class="ic-credencial-img"
-                 alt="Vista previa de la credencial">
+                 alt="Vista previa de la constancia">
 
             <!--
               Hotspot clicable sobre el campo de foto: abre el mismo modal de
@@ -425,7 +412,7 @@
                   [disabled]="!plantilla || generandoPdf || generandoPreview">
             <i class="fas" [class.fa-print]="!generandoPdf"
                [class.fa-spinner]="generandoPdf" [class.fa-spin]="generandoPdf"></i>
-            {{ generandoPdf ? 'Generando...' : 'Imprimir credencial' }}
+            {{ generandoPdf ? 'Generando...' : 'Imprimir constancia' }}
           </button>
           <small class="text-muted d-block text-center mt-2">
             {{ modoEdicion

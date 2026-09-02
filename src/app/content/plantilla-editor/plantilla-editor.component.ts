@@ -13,9 +13,12 @@ import {
   FondoDisponible, PlantillaCredencial, PlantillaCredencialService
 } from '../../services/plantilla-credencial.service';
 import {
-  CAMPOS_DISPONIBLES, CANVAS_ALTO_PX, CANVAS_ANCHO_PX,
-  CaraCredencial, CampoPlantilla, CREDENCIAL_ALTO_MM, CREDENCIAL_ANCHO_MM,
+  CAMPOS_DISPONIBLES, CampoPlantilla,
   ELEMENTOS_ESTATICOS, FUENTE_POR_DEFECTO,
+  TamanoPapel, TAMANOS_PAPEL, OrientacionPapel,
+  TAMANO_PAPEL_POR_DEFECTO, ORIENTACION_POR_DEFECTO,
+  dimensionesPapel, tamanoPapelDesdeMm,
+  CAMPOS_QR_DISPONIBLES, CAMPOS_QR_POR_DEFECTO, CampoQr,
 } from './plantilla-editor.const';
 
 /**
@@ -38,17 +41,33 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   @ViewChild('inputFondo') inputFondo!: ElementRef<HTMLInputElement>;
   @ViewChild('inputImagen') inputImagen!: ElementRef<HTMLInputElement>;
   @ViewChild('confirmDialog') confirmDialog!: TemplateRef<any>;
+  @ViewChild('qrCamposDialog') qrCamposDialog!: TemplateRef<any>;
 
   // ---- Catalogos para la plantilla lateral ----
   readonly campos = CAMPOS_DISPONIBLES;
   readonly estaticos = ELEMENTOS_ESTATICOS;
 
-  readonly anchoDiseno = CANVAS_ANCHO_PX;
-  readonly altoDiseno = CANVAS_ALTO_PX;
+  // ---- Seleccion de datos del QR (modal previo a colocarlo en el lienzo) ----
+  readonly camposQrDisponibles: CampoQr[] = CAMPOS_QR_DISPONIBLES;
+  camposQrSeleccion: string[] = [];
+  /** Texto fijo opcional que se agrega al final del contenido del QR, igual para todos los empleados. */
+  textoQrLibre = '';
+  private campoQrPendiente: CampoPlantilla | null = null;
+
+  // ---- Tamano de papel y orientacion ----
+  // A diferencia de la credencial CR80 (tamano fijo), aqui el lienzo cambia
+  // de resolucion segun lo que elija el usuario -- ver cambiarTamanoPapel().
+  readonly tamanosPapel = TAMANOS_PAPEL;
+  tamanoPapel: TamanoPapel = TAMANO_PAPEL_POR_DEFECTO;
+  orientacion: OrientacionPapel = ORIENTACION_POR_DEFECTO;
+  /** true cuando ancho_mm/alto_mm de la plantilla no matchean ningun preset del catalogo (p.ej. una plantilla CR80 vieja). */
+  tamanoPersonalizado = false;
+
+  anchoDiseno = dimensionesPapel(TAMANO_PAPEL_POR_DEFECTO, ORIENTACION_POR_DEFECTO).anchoPx;
+  altoDiseno = dimensionesPapel(TAMANO_PAPEL_POR_DEFECTO, ORIENTACION_POR_DEFECTO).altoPx;
 
   // ---- Estado del editor ----
   canvas!: fabric.Canvas;
-  cara: CaraCredencial = 'frente';
   objetoSeleccionado: fabric.FabricObject | null = null;
   zoom = 0.55;
 
@@ -56,13 +75,15 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   cargando = false;
   hayCambios = false;
 
-  /** JSON de la cara que no se esta editando en este momento. */
+  /**
+   * JSON del lienzo (Fabric). Las constancias de evaluaciones son a una
+   * sola cara -- a diferencia de la credencial CR80, que tenia frente y
+   * reverso -- asi que solo existe esta.
+   */
   private canvasFrente: any = null;
-  private canvasReverso: any = null;
 
   fondos: FondoDisponible[] = [];
   fondoFrente: string | null = null;
-  fondoReverso: string | null = null;
   borrandoFondo: string | null = null;
   confirmMessage = '';
 
@@ -70,10 +91,10 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     clave: '',
     nombre: '',
     descripcion: '',
-    ancho_px: CANVAS_ANCHO_PX,
-    alto_px: CANVAS_ALTO_PX,
-    ancho_mm: CREDENCIAL_ANCHO_MM,
-    alto_mm: CREDENCIAL_ALTO_MM,
+    ancho_px: this.anchoDiseno,
+    alto_px: this.altoDiseno,
+    ancho_mm: dimensionesPapel(TAMANO_PAPEL_POR_DEFECTO, ORIENTACION_POR_DEFECTO).anchoMm,
+    alto_mm: dimensionesPapel(TAMANO_PAPEL_POR_DEFECTO, ORIENTACION_POR_DEFECTO).altoMm,
     activo: true,
   };
 
@@ -145,9 +166,11 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   /**
-   * El canvas mantiene SIEMPRE la resolucion de diseno (638x1016) internamente;
-   * el zoom solo cambia el tamano CSS. Asi las coordenadas guardadas son las
-   * mismas que usara el PDF, independientemente de la pantalla.
+   * El canvas mantiene SIEMPRE la resolucion de diseno actual (anchoDiseno x
+   * altoDiseno -- variable segun el tamano de papel elegido, ver
+   * aplicarTamanoPapel()) internamente; el zoom solo cambia el tamano CSS.
+   * Asi las coordenadas guardadas son las mismas que usara el PDF,
+   * independientemente de la pantalla.
    */
   private aplicarZoom(): void {
     if (!this.canvas) return;
@@ -162,55 +185,100 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     this.aplicarZoom();
   }
 
+  // ====================================================================
+  // Tamano de papel y orientacion
+  // ====================================================================
+
+  seleccionarTamanoPapel(tamano: TamanoPapel): void {
+    this.tamanoPapel = tamano;
+    this.tamanoPersonalizado = false;
+    this.aplicarTamanoPapel();
+  }
+
+  /** Wrapper para el <select> del template, que solo puede mandar el id. */
+  seleccionarTamanoPapelPorId(id: string): void {
+    const tamano = this.tamanosPapel.find(t => t.id === id);
+    if (tamano) this.seleccionarTamanoPapel(tamano);
+  }
+
+  cambiarOrientacion(orientacion: OrientacionPapel): void {
+    if (orientacion === this.orientacion) return;
+    this.orientacion = orientacion;
+    this.aplicarTamanoPapel();
+  }
+
+  /**
+   * Aplica el tamano/orientacion elegidos al lienzo: recalcula la
+   * resolucion de diseno, la escribe en la plantilla (ancho_mm/alto_mm van
+   * en el payload que se guarda) y redimensiona el <canvas> real.
+   *
+   * A diferencia de aplicarZoom() (que SOLO cambia el tamano CSS con
+   * cssOnly:true), aqui SI cambia la resolucion interna -- por eso hay que
+   * reaplicar el zoom actual despues, o el canvas se veria a tamano
+   * completo sin importar el zoom seleccionado.
+   */
+  private aplicarTamanoPapel(): void {
+    const huboElementos = this.canvas?.getObjects().length > 0
+      || !!this.canvasFrente?.objects?.length;
+
+    const { anchoMm, altoMm, anchoPx, altoPx } = dimensionesPapel(this.tamanoPapel, this.orientacion);
+
+    this.anchoDiseno = anchoPx;
+    this.altoDiseno = altoPx;
+    this.plantilla.ancho_mm = anchoMm;
+    this.plantilla.alto_mm = altoMm;
+    this.plantilla.ancho_px = anchoPx;
+    this.plantilla.alto_px = altoPx;
+
+    if (this.canvas) {
+      this.canvas.setDimensions({ width: anchoPx, height: altoPx });
+      this.aplicarZoom();
+      // El fondo esta escalado al tamano viejo; reaplicarlo
+      // lo estira al nuevo. Los demas elementos (texto, marcadores) NO se
+      // reescalan: sus coordenadas son absolutas y pueden quedar fuera del
+      // lienzo nuevo, por eso la advertencia de abajo.
+      this.render.aplicarFondo(this.canvas, this.fondoFrente, this.anchoDiseno, this.altoDiseno);
+    }
+
+    this.hayCambios = true;
+
+    if (huboElementos) {
+      this.utils.MuestrasToast(
+        TipoToast.Warning,
+        'Cambiaste el tamano del papel: revisa que los elementos ya colocados sigan bien alineados.'
+      );
+    }
+  }
+
   private actualizarSeleccion(): void {
     this.objetoSeleccionado = this.canvas.getActiveObject() || null;
   }
 
   // ====================================================================
-  // Caras (frente / reverso)
+  // Lienzo
   // ====================================================================
 
-  async cambiarCara(nueva: CaraCredencial): Promise<void> {
-    if (nueva === this.cara) return;
-
-    // Persistir en memoria lo editado en la cara actual antes de cambiar.
-    this.guardarCaraActualEnMemoria();
-
-    this.cara = nueva;
-    await this.cargarCaraEnCanvas();
+  private guardarEnMemoria(): void {
+    this.canvasFrente = this.serializarCanvas();
   }
 
-  private guardarCaraActualEnMemoria(): void {
-    const json = this.serializarCanvas();
-    if (this.cara === 'frente') {
-      this.canvasFrente = json;
-    } else {
-      this.canvasReverso = json;
-    }
-  }
-
-  private async cargarCaraEnCanvas(): Promise<void> {
+  private async cargarEnCanvas(): Promise<void> {
     this.canvas.clear();
     this.canvas.backgroundColor = '#ffffff';
 
-    const json = this.cara === 'frente' ? this.canvasFrente : this.canvasReverso;
-    if (json) {
-      await this.canvas.loadFromJSON(json);
+    if (this.canvasFrente) {
+      await this.canvas.loadFromJSON(this.canvasFrente);
     }
 
     await this.render.aplicarFondo(
       this.canvas,
-      this.fondoActual,
+      this.fondoFrente,
       this.anchoDiseno,
       this.altoDiseno
     );
 
     this.canvas.renderAll();
     this.objetoSeleccionado = null;
-  }
-
-  get fondoActual(): string | null {
-    return this.cara === 'frente' ? this.fondoFrente : this.fondoReverso;
   }
 
   private serializarCanvas(): any {
@@ -238,12 +306,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   async seleccionarFondo(ruta: string | null): Promise<void> {
-    if (this.cara === 'frente') {
-      this.fondoFrente = ruta;
-    } else {
-      this.fondoReverso = ruta;
-    }
-
+    this.fondoFrente = ruta;
     await this.render.aplicarFondo(this.canvas, ruta, this.anchoDiseno, this.altoDiseno);
     this.hayCambios = true;
   }
@@ -302,15 +365,8 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
             this.borrandoFondo = null;
             this.utils.MuestrasToast(TipoToast.Success, 'Fondo eliminado');
 
-            // seleccionarFondo(null) solo toca la cara ACTUAL (this.cara);
-            // aqui hay que limpiar la referencia este donde este, y solo
-            // repintar el canvas si la cara que se esta viendo era la afectada.
-            const eraDeCaraActual =
-              (this.cara === 'frente' && this.fondoFrente === fondo.ruta) ||
-              (this.cara === 'reverso' && this.fondoReverso === fondo.ruta);
-            if (this.fondoFrente === fondo.ruta) this.fondoFrente = null;
-            if (this.fondoReverso === fondo.ruta) this.fondoReverso = null;
-            if (eraDeCaraActual) {
+            if (this.fondoFrente === fondo.ruta) {
+              this.fondoFrente = null;
               this.render.aplicarFondo(this.canvas, null, this.anchoDiseno, this.altoDiseno);
               this.hayCambios = true;
             }
@@ -331,7 +387,12 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   // ====================================================================
 
   agregarCampo(campo: CampoPlantilla): void {
-    if (campo.tipo === 'imagen' || campo.tipo === 'qr') {
+    if (campo.tipo === 'qr') {
+      this.abrirSelectorCamposQr(campo);
+      return;
+    }
+
+    if (campo.tipo === 'imagen') {
       this.agregarMarcadorImagen(campo);
       return;
     }
@@ -342,6 +403,47 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     this.agregarTexto(campo);
+  }
+
+  /**
+   * Antes de colocar el marcador de QR en el lienzo, pregunta que datos debe
+   * llevar (modal nativo del sistema, ver ModalManagerService). La seleccion
+   * queda en `data.camposQr` del marcador -- ver agregarMarcadorImagen() y
+   * CredencialRenderService.construirContenidoQr().
+   */
+  abrirSelectorCamposQr(campo: CampoPlantilla): void {
+    this.campoQrPendiente = campo;
+    this.camposQrSeleccion = [...CAMPOS_QR_POR_DEFECTO];
+    this.textoQrLibre = '';
+
+    this.modalManager.openModal({
+      title: 'Datos del código QR',
+      template: this.qrCamposDialog,
+      onAccept: () => {
+        const textoLibre = this.textoQrLibre.trim();
+        // Solo cae a la seleccion por omision si no quedo NADA que codificar
+        // -- si el usuario dejo destildados todos los datos pero escribio
+        // texto libre, un QR con solo ese texto es una eleccion valida.
+        let seleccion = [...this.camposQrSeleccion];
+        if (!seleccion.length && !textoLibre) {
+          seleccion = [...CAMPOS_QR_POR_DEFECTO];
+          this.utils.MuestrasToast(TipoToast.Warning, 'No se marcó ningún dato; se usó la selección por omisión.');
+        }
+        if (this.campoQrPendiente) this.agregarMarcadorImagen(this.campoQrPendiente, seleccion, textoLibre);
+        this.campoQrPendiente = null;
+      },
+      onCancel: () => { this.campoQrPendiente = null; },
+    });
+  }
+
+  campoQrMarcado(clave: string): boolean {
+    return this.camposQrSeleccion.includes(clave);
+  }
+
+  alternarCampoQr(clave: string): void {
+    this.camposQrSeleccion = this.campoQrMarcado(clave)
+      ? this.camposQrSeleccion.filter(c => c !== clave)
+      : [...this.camposQrSeleccion, clave];
   }
 
   private agregarTexto(campo: CampoPlantilla): void {
@@ -376,7 +478,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
    * recuadro punteado. Al generar la credencial, el recuadro se sustituye por la
    * imagen real ajustada exactamente a ese mismo espacio.
    */
-  private agregarMarcadorImagen(campo: CampoPlantilla): void {
+  private agregarMarcadorImagen(campo: CampoPlantilla, camposQr?: string[], textoQrLibre?: string): void {
     const ancho = campo.ancho || 200;
     const alto = campo.alto || 200;
 
@@ -398,6 +500,13 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
       campo: campo.campo,
       etiqueta: campo.label,
       ajuste: campo.binding === 'foto' ? 'cover' : 'contain',
+      // Solo aplica a campo.tipo === 'qr' -- que datos del empleado va a
+      // llevar este QR en particular, elegidos en abrirSelectorCamposQr().
+      ...(campo.tipo === 'qr' ? {
+        camposQr: camposQr?.length ? camposQr : CAMPOS_QR_POR_DEFECTO,
+        // Texto fijo adicional (igual para todos los empleados), opcional.
+        textoQrLibre: textoQrLibre || undefined,
+      } : {}),
     };
 
     this.canvas.add(marcador);
@@ -435,7 +544,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   // Elementos del lienzo
   // ====================================================================
 
-  limpiarCara(): void {
+  limpiarLienzo(): void {
     this.canvas.getObjects().forEach(obj => this.canvas.remove(obj));
     this.canvas.discardActiveObject();
     this.canvas.renderAll();
@@ -453,12 +562,24 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
       next: async (res) => {
         this.plantilla = res;
         this.canvasFrente = res.canvas_frente || null;
-        this.canvasReverso = res.canvas_reverso || null;
         this.fondoFrente = res.fondo_frente || null;
-        this.fondoReverso = res.fondo_reverso || null;
-        this.cara = 'frente';
 
-        await this.cargarCaraEnCanvas();
+        // El tamano de papel ya no es fijo (CR80): hay que leer el de ESTA
+        // plantilla y redimensionar el <canvas> real antes de poblarlo, y
+        // reflejar el preset/orientacion correctos en el selector.
+        this.anchoDiseno = Number(res.ancho_px) || this.anchoDiseno;
+        this.altoDiseno = Number(res.alto_px) || this.altoDiseno;
+        const anchoMm = Number(res.ancho_mm) || this.anchoDiseno;
+        const altoMm = Number(res.alto_mm) || this.altoDiseno;
+        const detectado = tamanoPapelDesdeMm(anchoMm, altoMm);
+        this.tamanoPapel = detectado.tamano || TAMANO_PAPEL_POR_DEFECTO;
+        this.tamanoPersonalizado = !detectado.tamano;
+        this.orientacion = detectado.orientacion;
+
+        this.canvas.setDimensions({ width: this.anchoDiseno, height: this.altoDiseno });
+        this.aplicarZoom();
+
+        await this.cargarEnCanvas();
         this.cargando = false;
         this.hayCambios = false;
       },
@@ -475,16 +596,19 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
       return;
     }
 
-    this.guardarCaraActualEnMemoria();
+    this.guardarEnMemoria();
     this.guardando = true;
 
+    // canvas_reverso/fondo_reverso NO se mandan a proposito: las
+    // constancias son a una sola cara. El PATCH deja esas columnas tal
+    // cual esten en BD (si una plantilla vieja de credencial CR80 aun
+    // tenia reverso, no se borra solo, simplemente ya no es editable
+    // desde aqui).
     const payload: PlantillaCredencial = {
       ...this.plantilla,
       clave: this.plantilla.clave.trim().toUpperCase().replace(/\s+/g, '_'),
       canvas_frente: this.canvasFrente,
-      canvas_reverso: this.canvasReverso,
       fondo_frente: this.fondoFrente,
-      fondo_reverso: this.fondoReverso,
       ancho_px: this.anchoDiseno,
       alto_px: this.altoDiseno,
     };
@@ -548,13 +672,11 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   private plantillaActualParaRender(): PlantillaCredencial {
-    this.guardarCaraActualEnMemoria();
+    this.guardarEnMemoria();
     return {
       ...this.plantilla,
       canvas_frente: this.canvasFrente,
-      canvas_reverso: this.canvasReverso,
       fondo_frente: this.fondoFrente,
-      fondo_reverso: this.fondoReverso,
       ancho_px: this.anchoDiseno,
       alto_px: this.altoDiseno,
     };
@@ -567,6 +689,10 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     try {
       await this.render.generarPdf(this.plantillaActualParaRender(), datos, {
         nombreArchivo: `Prueba_${this.plantilla.clave || 'plantilla'}.pdf`,
+        // Las constancias son a una sola cara: aunque la plantilla cargada
+        // traiga un reverso viejo (de cuando era credencial CR80), la
+        // prueba desde este editor nunca lo imprime.
+        incluirReverso: false,
       });
       this.utils.MuestrasToast(TipoToast.Success, 'PDF generado');
     } catch (err) {

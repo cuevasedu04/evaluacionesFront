@@ -1,0 +1,201 @@
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
+<div class="correo-electronico d-flex flex-column">
+
+  <header class="ce-topbar bg-white border-bottom px-3 py-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="ce-icono">
+        <i class="fas fa-envelope text-white"></i>
+      </div>
+      <div>
+        <h1 class="h6 fw-bold mb-0">Correo electrónico</h1>
+        <small class="text-muted">Plantillas con las que se envían las constancias</small>
+      </div>
+
+      <button class="btn btn-sm btn-outline-secondary ms-auto"
+              (click)="descargarAgente()"
+              [disabled]="descargandoAgente"
+              title="Programa que cada usuario debe correr en su computadora para poder enviar constancias por correo desde Outlook">
+        <i class="fas" [class.fa-download]="!descargandoAgente" [class.fa-spinner]="descargandoAgente" [class.fa-spin]="descargandoAgente"></i>
+        {{ descargandoAgente ? 'Descargando...' : 'Descargar Agente de Correo' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="ce-cuerpo flex-grow-1 d-flex overflow-hidden">
+
+    <!-- ---------- IZQUIERDA: lista de plantillas ---------- -->
+    <aside class="ce-lista border-end bg-white">
+      <button class="btn btn-sm btn-outline-primary w-100 mb-2" (click)="nuevaPlantilla()">
+        <i class="fas fa-plus"></i> Nueva plantilla
+      </button>
+
+      <div *ngIf="cargandoLista" class="text-center text-muted py-3">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+
+      <div class="ce-lista-item"
+           *ngFor="let p of plantillas"
+           [class.activa]="p.id_plantilla_correo === plantillaActual?.id_plantilla_correo"
+           (click)="seleccionarPlantilla(p)">
+        <div class="text-truncate fw-semibold" [title]="p.nombre">{{ p.nombre }}</div>
+        <small class="text-muted text-truncate d-block" [title]="p.asunto">{{ p.asunto }}</small>
+      </div>
+
+      <div class="text-muted small text-center py-3" *ngIf="!cargandoLista && !plantillas.length">
+        Aún no hay plantillas guardadas.
+      </div>
+    </aside>
+
+    <!-- ---------- DERECHA: editor ---------- -->
+    <div class="ce-editor-panel flex-grow-1 overflow-auto p-3">
+      <div class="ce-contenido mx-auto">
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span *ngIf="hayCambios" class="badge bg-warning text-dark">
+            <i class="fas fa-circle fa-xs"></i> Sin guardar
+          </span>
+
+          <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-sm btn-outline-danger"
+                    *ngIf="plantillaActual?.id_plantilla_correo"
+                    (click)="confirmarEliminar()"
+                    [disabled]="eliminando">
+              <i class="fas" [class.fa-trash]="!eliminando" [class.fa-spinner]="eliminando" [class.fa-spin]="eliminando"></i>
+              Eliminar
+            </button>
+            <button class="btn btn-sm btn-success"
+                    (click)="guardar()"
+                    [disabled]="guardando">
+              <i class="fas" [class.fa-save]="!guardando" [class.fa-spinner]="guardando" [class.fa-spin]="guardando"></i>
+              {{ guardando ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Nombre de la plantilla -->
+        <div class="ce-seccion">
+          <label class="form-label fw-semibold">Nombre de la plantilla</label>
+          <input type="text" class="form-control" style="max-width: 360px"
+                 placeholder="Ej. Curso de ciberseguridad"
+                 [(ngModel)]="nombre"
+                 (ngModelChange)="marcarCambio()">
+        </div>
+
+        <!-- Cuenta remitente -->
+        <div class="ce-seccion">
+          <label class="form-label fw-semibold">Enviar desde</label>
+          <p class="text-muted small mb-2">
+            Nombre o correo del buzón compartido, tal como aparece en Outlook. Debe ser un correo <code>&#64;anam.gob.mx</code>.
+          </p>
+          <input type="text" class="form-control" style="max-width: 360px"
+                 placeholder="buzon@anam.gob.mx"
+                 [(ngModel)]="cuentaRemitente"
+                 (ngModelChange)="marcarCambio()"
+                 [class.is-invalid]="!cuentaRemitenteValida">
+          <div class="invalid-feedback" *ngIf="!cuentaRemitenteValida">
+            Debe ser un correo &#64;anam.gob.mx.
+          </div>
+          <small class="text-muted d-block mt-1">
+            <i class="fas fa-circle-info"></i>
+            Al momento de enviar, Outlook debe estar abierto con este buzón agregado al perfil; si no lo encuentra, se avisará en el resultado del envío.
+          </small>
+        </div>
+
+        <!-- Asunto -->
+        <div class="ce-seccion">
+          <label class="form-label fw-semibold">Asunto</label>
+          <input type="text" class="form-control"
+                 [(ngModel)]="asunto"
+                 (ngModelChange)="marcarCambio()">
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="ce-seccion">
+          <label class="form-label fw-semibold">Cuerpo del correo</label>
+
+          <div class="ce-toolbar">
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-secondary" title="Negrita" (mousedown)="$event.preventDefault()" (click)="comando('bold')">
+                <i class="fas fa-bold"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" title="Cursiva" (mousedown)="$event.preventDefault()" (click)="comando('italic')">
+                <i class="fas fa-italic"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" title="Subrayado" (mousedown)="$event.preventDefault()" (click)="comando('underline')">
+                <i class="fas fa-underline"></i>
+              </button>
+            </div>
+
+            <select class="form-select form-select-sm ce-select"
+                    title="Fuente"
+                    (mousedown)="guardarSeleccion()"
+                    (change)="comando('fontName', $any($event.target).value)">
+              <option value="" disabled selected>Fuente</option>
+              <option *ngFor="let f of fuentes" [value]="f">{{ f }}</option>
+            </select>
+
+            <select class="form-select form-select-sm ce-select-chico"
+                    title="Tamaño de letra"
+                    (mousedown)="guardarSeleccion()"
+                    (change)="comando('fontSize', $any($event.target).value)">
+              <option value="" disabled selected>Tamaño</option>
+              <option *ngFor="let t of tamanosFuente" [value]="t.valor">{{ t.label }}</option>
+            </select>
+
+            <input type="color" class="ce-color" title="Color de texto"
+                   (mousedown)="guardarSeleccion()"
+                   (change)="comando('foreColor', $any($event.target).value)">
+
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-secondary" title="Alinear izquierda" (mousedown)="$event.preventDefault()" (click)="comando('justifyLeft')">
+                <i class="fas fa-align-left"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" title="Centrar" (mousedown)="$event.preventDefault()" (click)="comando('justifyCenter')">
+                <i class="fas fa-align-center"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" title="Alinear derecha" (mousedown)="$event.preventDefault()" (click)="comando('justifyRight')">
+                <i class="fas fa-align-right"></i>
+              </button>
+            </div>
+
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-secondary" title="Lista con viñetas" (mousedown)="$event.preventDefault()" (click)="comando('insertUnorderedList')">
+                <i class="fas fa-list-ul"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" title="Lista numerada" (mousedown)="$event.preventDefault()" (click)="comando('insertOrderedList')">
+                <i class="fas fa-list-ol"></i>
+              </button>
+            </div>
+
+            <button type="button" class="btn btn-sm btn-outline-primary ms-auto"
+                    title="Inserta el texto tal cual donde esté el cursor; al enviar se reemplaza por el nombre real del curso"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="insertarVariableNombreCurso()">
+              <i class="fas fa-plus"></i> Insertar nombre del curso
+            </button>
+          </div>
+
+          <div #cuerpoEditable
+               class="ce-editor"
+               contenteditable="true"
+               (input)="marcarCambio()"
+               (blur)="guardarSeleccion()"
+               (mouseup)="guardarSeleccion()"
+               (keyup)="guardarSeleccion()">
+          </div>
+
+          <small class="text-muted d-block mt-1">
+            <i class="fas fa-circle-info"></i>
+            El PDF de la constancia se adjunta automáticamente; no hace falta mencionarlo en el cuerpo.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

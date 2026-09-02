@@ -34,39 +34,34 @@ export class DashboardComponent {
    */
   readonly modulos: ModuloDashboard[] = [
     {
-      id: 'imprimir-credenciales', label: 'Imprimir credenciales',
-      descripcion: 'Busca a un empleado en el poblado de credencial y genera su credencial en PDF.',
+      id: 'imprimir-credenciales', label: 'Imprimir constancias',
+      descripcion: 'Busca a un empleado en el poblado de constancia y genera su constancia en PDF.',
       icon: 'fas fa-id-card', link: '/imprimir-credenciales', permiso: 'ver_imprimir_credenciales',
     },
     {
       id: 'plantillas', label: 'Plantillas',
-      descripcion: 'Diseña y administra los formatos de credencial (editor tipo canvas).',
+      descripcion: 'Diseña y administra los formatos de constancia (editor tipo canvas).',
       icon: 'fas fa-vector-square', link: '/plantillas', permiso: 'ver_plantillas',
     },
     {
-      id: 'enrolamiento-previo', label: 'Enrolamiento previo',
-      descripcion: 'Captura foto y firma de personal cuyo ingreso aún no se aplica en el poblado de credencial.',
-      icon: 'fas fa-user-clock', link: '/enrolamiento-previo', permiso: 'ver_enrolamiento_previo',
+      id: 'generador-masivo', label: 'Generador masivo',
+      descripcion: 'Genera constancias para muchos empleados a la vez, en un PDF o en un ZIP.',
+      icon: 'fas fa-layer-group', link: '/generador-masivo', permiso: 'ver_generador_masivo',
     },
     {
-      id: 'inventario-medios', label: 'Inventario de medios',
-      descripcion: 'Busca, reemplaza y cruza fotos/firmas guardadas en el servidor.',
-      icon: 'fas fa-photo-film', link: '/inventario-medios', permiso: 'ver_inventario_medios',
+      id: 'correo-electronico', label: 'Correo electrónico',
+      descripcion: 'Configura el asunto, cuerpo y buzón remitente con el que se envían las constancias.',
+      icon: 'fas fa-envelope', link: '/correo-electronico', permiso: 'ver_correo_electronico',
     },
     {
       id: 'catalogo-areas', label: 'Catálogo de áreas',
-      descripcion: 'Nombre corto que se imprime en la credencial para cada unidad administrativa.',
+      descripcion: 'Nombre corto que se imprime en la constancia para cada unidad administrativa.',
       icon: 'fas fa-sitemap', link: '/catalogo-areas', permiso: 'ver_catalogo_areas',
     },
     {
-      id: 'auditoria-credenciales', label: 'Auditoría de credenciales',
-      descripcion: 'Historial de impresiones, con la credencial exacta que se expidió cada vez.',
+      id: 'auditoria-credenciales', label: 'Auditoría de constancias',
+      descripcion: 'Historial de impresiones, con la constancia exacta que se expidió cada vez.',
       icon: 'fas fa-clipboard-check', link: '/auditoria-credenciales', permiso: 'ver_auditoria_credenciales',
-    },
-    {
-      id: 'acuses', label: 'Acuses',
-      descripcion: 'Carga el acuse de alta o de baja de credencial para cada empleado.',
-      icon: 'fas fa-file-signature', link: '/acuses', permiso: 'ver_acuses',
     },
     {
       id: 'administracion', label: 'Administración',

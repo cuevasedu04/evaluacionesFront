@@ -23,7 +23,7 @@
   <div class="p-2">
     <p class="small text-muted">
       Cambia el nombre con el que están guardados los archivos. Úsalo cuando el RFC
-      se capturó mal y por eso la credencial no cruza con su foto.
+      se capturó mal y por eso la constancia no cruza con su foto.
     </p>
     <label class="form-label fw-bold small">Nombre correcto (RFC)</label>
     <input type="text" class="form-control form-control-lg text-uppercase fw-bold"
@@ -61,7 +61,7 @@
 
     <div class="alert alert-warning py-2 px-3 small" *ngIf="hayMediosReemplazados">
       <i class="fas fa-triangle-exclamation"></i>
-      Alguna credencial se expidió con una foto o firma <strong>distinta de la vigente</strong>.
+      Alguna constancia se expidió con una foto o firma <strong>distinta de la vigente</strong>.
       Las de abajo salen del archivo histórico, así que siguen siendo las que se imprimieron.
     </div>
 
@@ -131,8 +131,8 @@
 
   <div class="alert alert-info py-2 px-3 small mb-2">
     <i class="fas fa-circle-info"></i>
-    Personas con <strong>más de una credencial impresa</strong>. La tarjeta muestra su foto y firma
-    vigentes; al abrirla se ven las que llevaba <em>cada</em> credencial, tomadas del archivo
+    Personas con <strong>más de una constancia impresa</strong>. La tarjeta muestra su foto y firma
+    vigentes; al abrirla se ven las que llevaba <em>cada</em> constancia, tomadas del archivo
     histórico — no cambian aunque después se les haya recapturado la foto.
   </div>
 
@@ -168,7 +168,7 @@
     <div *ngIf="!cargandoAuditoria && !auditoriaVisible.length" class="text-center text-muted py-5">
       <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>
       <div *ngIf="soloConCambio">Nadie ha cambiado de foto o firma entre impresiones.</div>
-      <div *ngIf="!soloConCambio">Todavía nadie tiene más de una credencial impresa.</div>
+      <div *ngIf="!soloConCambio">Todavía nadie tiene más de una constancia impresa.</div>
     </div>
 
     <div class="im-tarjetas" *ngIf="!cargandoAuditoria">
@@ -284,7 +284,7 @@
           <div class="im-rfc">{{ m.num_empleado }}</div>
           <div class="im-nombre text-truncate" [title]="m.nombre">{{ m.nombre || '—' }}</div>
           <div class="im-sin-cruce" *ngIf="!m.en_roster">
-            <i class="fas fa-user-slash"></i> Ya no está en el poblado de credencial
+            <i class="fas fa-user-slash"></i> Ya no está en el poblado de constancia
           </div>
         </div>
 
@@ -332,12 +332,12 @@
           </button>
           <button class="im-filtro-btn" [class.active]="filtro === 'cruzables'"
                   (click)="seleccionarFiltro('cruzables')"
-                  title="Ya aparecen en el poblado de credencial: se pueden renombrar a su número de empleado">
+                  title="Ya aparecen en el poblado de constancia: se pueden renombrar a su número de empleado">
             Listos para cruzar <span class="im-filtro-badge im-filtro-badge-success">{{ totalCruzables }}</span>
           </button>
           <button class="im-filtro-btn" [class.active]="filtro === 'sin_cruce'"
                   (click)="seleccionarFiltro('sin_cruce')"
-                  title="Todavía no aparecen en el poblado de credencial (o el nombre del archivo no es un RFC)">
+                  title="Todavía no aparecen en el poblado de constancia (o el nombre del archivo no es un RFC)">
             Sin cruce <span class="im-filtro-badge">{{ totalSinCruce }}</span>
           </button>
           <button class="im-filtro-btn" [class.active]="filtro === 'incompletos'"
@@ -386,7 +386,7 @@
 
         <div *ngIf="cargando" class="text-center text-muted py-5">
           <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-          <div>Leyendo el inventario y cruzándolo con el poblado de credencial...</div>
+          <div>Leyendo el inventario y cruzándolo con el poblado de constancia...</div>
           <small class="text-muted">La primera carga tarda unos segundos.</small>
         </div>
 
@@ -427,7 +427,7 @@
               </div>
 
               <div class="im-sin-cruce" *ngIf="!reg.cruce">
-                <i class="fas fa-hourglass-half"></i> Aún no está en el poblado de credencial
+                <i class="fas fa-hourglass-half"></i> Aún no está en el poblado de constancia
               </div>
 
               <div class="im-fecha" *ngIf="reg.fecha">
@@ -504,8 +504,8 @@
         <div class="im-nota">
           <i class="fas fa-circle-info"></i>
           <strong>Cruzar</strong> renombra los archivos de RFC a número de empleado. También
-          ocurre solo, uno por uno, cuando se imprime esa credencial en
-          <a routerLink="/imprimir-credenciales">Imprimir credenciales</a>. Si el empleado ya
+          ocurre solo, uno por uno, cuando se imprime esa constancia en
+          <a routerLink="/imprimir-credenciales">Imprimir constancias</a>. Si el empleado ya
           tiene foto propia con su número, esa se respeta y no se sobrescribe.
         </div>
 

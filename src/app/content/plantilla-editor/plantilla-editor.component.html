@@ -5,6 +5,28 @@
   </div>
 </ng-template>
 
+<ng-template #qrCamposDialog>
+  <div class="modal-body p-3">
+    <p class="text-muted small mb-3">
+      Elige qué datos del empleado va a llevar este código QR.
+    </p>
+    <div class="form-check" *ngFor="let campo of camposQrDisponibles">
+      <input type="checkbox" class="form-check-input" [id]="'qr-campo-' + campo.clave"
+             [checked]="campoQrMarcado(campo.clave)"
+             (change)="alternarCampoQr(campo.clave)">
+      <label class="form-check-label" [for]="'qr-campo-' + campo.clave">{{ campo.label }}</label>
+    </div>
+
+    <hr class="my-3">
+
+    <label for="qr-texto-libre" class="form-label small fw-semibold mb-1">Texto libre (opcional)</label>
+    <input type="text" id="qr-texto-libre" class="form-control form-control-sm"
+           placeholder="Texto adicional que quieras agregar al QR"
+           [(ngModel)]="textoQrLibre">
+    <small class="text-muted">Se agrega igual, tal cual, para todos los empleados.</small>
+  </div>
+</ng-template>
+
 <div class="editor-plantilla d-flex flex-column h-100">
 
   <!-- ===================== BARRA SUPERIOR ===================== -->
@@ -21,7 +43,7 @@
         </div>
         <div>
           <h1 class="h6 fw-bold mb-0">Editor de plantillas</h1>
-          <small class="text-muted">Disena la credencial y guarda la plantilla</small>
+          <small class="text-muted">Disena la constancia y guarda la plantilla</small>
         </div>
       </div>
 
@@ -39,6 +61,31 @@
         <span *ngIf="hayCambios" class="badge bg-warning text-dark">
           <i class="fas fa-circle fa-xs"></i> Sin guardar
         </span>
+      </div>
+
+      <div class="vr d-none d-lg-block"></div>
+
+      <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm w-auto"
+                title="Tamano de papel"
+                [ngModel]="tamanoPapel.id"
+                (ngModelChange)="seleccionarTamanoPapelPorId($event)">
+          <option *ngIf="tamanoPersonalizado" value="" disabled selected>Personalizado</option>
+          <option *ngFor="let t of tamanosPapel" [value]="t.id">{{ t.label }}</option>
+        </select>
+
+        <div class="btn-group btn-group-sm" role="group" title="Orientacion">
+          <button type="button" class="btn btn-outline-secondary"
+                  [class.active]="orientacion === 'vertical'"
+                  (click)="cambiarOrientacion('vertical')">
+            <i class="fas fa-file"></i> Vertical
+          </button>
+          <button type="button" class="btn btn-outline-secondary"
+                  [class.active]="orientacion === 'horizontal'"
+                  (click)="cambiarOrientacion('horizontal')">
+            <i class="fas fa-file fa-rotate-90"></i> Horizontal
+          </button>
+        </div>
       </div>
 
       <div class="d-flex align-items-center gap-2">
@@ -85,17 +132,17 @@
       </div>
 
       <div class="panel-seccion">
-        <h6 class="panel-titulo"><i class="fas fa-image"></i> Fondo de esta cara</h6>
+        <h6 class="panel-titulo"><i class="fas fa-image"></i> Fondo</h6>
         <div class="lista-fondos">
           <button class="fondo-item fondo-ninguno"
-                  [class.activo]="!fondoActual"
+                  [class.activo]="!fondoFrente"
                   (click)="seleccionarFondo(null)">
             <i class="fas fa-ban"></i>
             <small>Sin fondo</small>
           </button>
           <button *ngFor="let fondo of fondos"
                   class="fondo-item"
-                  [class.activo]="fondoActual === fondo.ruta"
+                  [class.activo]="fondoFrente === fondo.ruta"
                   (click)="seleccionarFondo(fondo.ruta)"
                   [title]="fondo.nombre">
             <img [src]="fondo.url" [alt]="fondo.nombre">
@@ -121,17 +168,6 @@
 
       <div class="lienzo-controles">
         <div class="btn-group btn-group-sm">
-          <button class="btn btn-outline-primary" [class.active]="cara === 'frente'"
-                  (click)="cambiarCara('frente')">
-            <i class="fas fa-id-card"></i> Frente
-          </button>
-          <button class="btn btn-outline-primary" [class.active]="cara === 'reverso'"
-                  (click)="cambiarCara('reverso')">
-            <i class="fas fa-address-card"></i> Reverso
-          </button>
-        </div>
-
-        <div class="btn-group btn-group-sm ms-2">
           <button class="btn btn-outline-secondary" (click)="cambiarZoom(-0.1)" title="Alejar">
             <i class="fas fa-search-minus"></i>
           </button>
@@ -141,9 +177,9 @@
           </button>
         </div>
 
-        <button class="btn btn-sm btn-outline-danger ms-2" (click)="limpiarCara()"
-                title="Quitar todos los elementos de esta cara">
-          <i class="fas fa-trash"></i> Limpiar cara
+        <button class="btn btn-sm btn-outline-danger ms-2" (click)="limpiarLienzo()"
+                title="Quitar todos los elementos del lienzo">
+          <i class="fas fa-trash"></i> Limpiar
         </button>
       </div>
 

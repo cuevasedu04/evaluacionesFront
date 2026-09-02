@@ -226,7 +226,7 @@ export class CatalogoUnidadesComponent implements OnInit {
   confirmarEliminar(registro: UnidadAdministrativa): void {
     this.confirmMessage =
       `¿Eliminar «${registro.nombre}» del catálogo? Los ${registro.total_empleados || 0} `
-      + 'empleados de esa área pasarían a imprimir su nombre completo en la credencial.';
+      + 'empleados de esa área pasarían a imprimir su nombre completo en la constancia.';
 
     this.modalManager.openModal({
       title: 'Eliminar del catálogo',
