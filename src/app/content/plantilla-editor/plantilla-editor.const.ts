@@ -194,6 +194,85 @@ export const ELEMENTOS_ESTATICOS: CampoPlantilla[] = [
 ];
 
 /**
+ * Formas basicas ofrecidas en el submodal "Formas" (boton en Elementos fijos).
+ *
+ * `motor` indica que clase de Fabric.js construir y que campos de esta misma
+ * fila usar. Los puntos/paths estan normalizados a un lienzo conceptual de
+ * 100x100 -- se usan tal cual para la vista previa SVG del submodal, y se
+ * escalan a `ancho`/`alto` al agregar la figura real al canvas.
+ */
+export type MotorForma = 'rect' | 'circle' | 'line' | 'polygon' | 'path';
+
+export interface FormaDisponible {
+  /** Sufijo de object.data.binding = `forma_${tipo}`. */
+  tipo: string;
+  label: string;
+  motor: MotorForma;
+  ancho?: number;
+  alto?: number;
+  /** motor 'rect': radio de esquina inicial, 0-1 proporcional al lado menor. */
+  rx?: number;
+  ry?: number;
+  /** motor 'polygon': puntos normalizados 0-1. */
+  puntos?: [number, number][];
+  /** motor 'path': 'd' de un SVG conceptual 100x100. */
+  path?: string;
+  /** motor 'line': patron de guiones (mismas unidades que strokeWidth). */
+  strokeDashArray?: number[];
+}
+
+export const CATALOGO_FORMAS: FormaDisponible[] = [
+  // ---- Rectangulos (soportan radio de esquina) ----
+  { tipo: 'rectangulo',          label: 'Rectangulo',          motor: 'rect', ancho: 180, alto: 110 },
+  { tipo: 'cuadrado',            label: 'Cuadrado',            motor: 'rect', ancho: 140, alto: 140 },
+  { tipo: 'cuadrado_redondeado', label: 'Cuadrado redondeado', motor: 'rect', ancho: 140, alto: 140, rx: 0.22, ry: 0.22 },
+
+  // ---- Circulo ----
+  { tipo: 'circulo', label: 'Circulo', motor: 'circle', ancho: 140, alto: 140 },
+
+  // ---- Lineas ----
+  { tipo: 'linea',             label: 'Linea',             motor: 'line', ancho: 200, alto: 4 },
+  { tipo: 'linea_punteada',    label: 'Linea punteada',    motor: 'line', ancho: 200, alto: 6, strokeDashArray: [1, 12] },
+  { tipo: 'linea_discontinua', label: 'Linea discontinua', motor: 'line', ancho: 200, alto: 6, strokeDashArray: [22, 12] },
+
+  // ---- Poligonos ----
+  { tipo: 'triangulo',           label: 'Triangulo',           motor: 'polygon', ancho: 140, alto: 130, puntos: [[0.5, 0], [1, 1], [0, 1]] },
+  { tipo: 'triangulo_invertido', label: 'Triangulo invertido', motor: 'polygon', ancho: 140, alto: 130, puntos: [[0, 0], [1, 0], [0.5, 1]] },
+  { tipo: 'triangulo_rectangulo', label: 'Triangulo rectangulo', motor: 'polygon', ancho: 130, alto: 130, puntos: [[0, 0], [1, 1], [0, 1]] },
+  { tipo: 'rombo', label: 'Rombo', motor: 'polygon', ancho: 150, alto: 150, puntos: [[0.5, 0], [1, 0.5], [0.5, 1], [0, 0.5]] },
+  {
+    tipo: 'cruz', label: 'Cruz', motor: 'polygon', ancho: 140, alto: 140,
+    puntos: [
+      [1 / 3, 0], [2 / 3, 0], [2 / 3, 1 / 3], [1, 1 / 3], [1, 2 / 3], [2 / 3, 2 / 3],
+      [2 / 3, 1], [1 / 3, 1], [1 / 3, 2 / 3], [0, 2 / 3], [0, 1 / 3], [1 / 3, 1 / 3],
+    ],
+  },
+  {
+    tipo: 'octagono', label: 'Octagono', motor: 'polygon', ancho: 140, alto: 140,
+    puntos: [[0.3, 0], [0.7, 0], [1, 0.3], [1, 0.7], [0.7, 1], [0.3, 1], [0, 0.7], [0, 0.3]],
+  },
+  {
+    tipo: 'pentagono', label: 'Pentagono', motor: 'polygon', ancho: 140, alto: 135,
+    puntos: [[0.5, 0], [1, 0.38], [0.82, 1], [0.18, 1], [0, 0.38]],
+  },
+  { tipo: 'trapecio', label: 'Trapecio', motor: 'polygon', ancho: 160, alto: 110, puntos: [[0.2, 0], [0.8, 0], [1, 1], [0, 1]] },
+  {
+    tipo: 'trapecio_invertido', label: 'Trapecio invertido', motor: 'polygon', ancho: 160, alto: 110,
+    puntos: [[0, 0], [1, 0], [0.8, 1], [0.2, 1]],
+  },
+
+  // ---- Con curvas (SVG path, escalado a su propio bounding box) ----
+  { tipo: 'semicirculo', label: 'Semicirculo', motor: 'path', ancho: 160, alto: 80, path: 'M5,75 A45,45 0 0 1 95,75 Z' },
+  { tipo: 'cuarto_circulo', label: 'Cuarto de circulo', motor: 'path', ancho: 130, alto: 130, path: 'M0,100 L0,0 A100,100 0 0 1 100,100 Z' },
+  { tipo: 'arco', label: 'Arco', motor: 'path', ancho: 150, alto: 150, path: 'M0,100 L0,50 A50,50 0 0 1 100,50 L100,100 Z' },
+  { tipo: 'forma_u', label: 'Forma de U', motor: 'path', ancho: 150, alto: 150, path: 'M0,0 L0,50 A50,50 0 0 0 100,50 L100,0 Z' },
+  {
+    tipo: 'esquina_redondeada', label: 'Esquina redondeada', motor: 'path', ancho: 150, alto: 150,
+    path: 'M0,0 L100,0 L100,60 A40,40 0 0 1 60,100 L0,100 Z',
+  },
+];
+
+/**
  * Fuente por omision de los campos de texto nuevos.
  *
  * Es la institucional (public/fonts/NotoSans-Black.ttf), ya declarada como

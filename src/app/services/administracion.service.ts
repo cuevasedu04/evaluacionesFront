@@ -49,10 +49,10 @@ export interface Rol {
 @Injectable({ providedIn: 'root' })
 export class AdministracionService {
 
-  private readonly apiUsuarios = '/api-sicre/usuarios/';
-  private readonly apiRoles = '/api-sicre/roles/';
-  private readonly apiPermisos = '/api-sicre/permisos/';
-  private readonly apiEnrolamiento = '/api-sicre/enrolamiento-credencial/';
+  private readonly apiUsuarios = '/api/usuarios/';
+  private readonly apiRoles = '/api/roles/';
+  private readonly apiPermisos = '/api/permisos/';
+  private readonly apiEnrolamiento = '/api/enrolamiento-credencial/';
 
   constructor(private http: HttpClient) {}
 

@@ -38,9 +38,9 @@ export interface RespuestaEnvioCorreo {
 @Injectable({ providedIn: 'root' })
 export class CorreoService {
 
-  private readonly apiPlantillas = '/api-sicre/plantillas-correo/';
-  private readonly apiEnviar = '/api-sicre/correo-constancia/enviar/';
-  private readonly apiDescargarAgente = '/api-sicre/agente-correo/descargar/';
+  private readonly apiPlantillas = '/api/plantillas-correo/';
+  private readonly apiEnviar = '/api/correo-constancia/enviar/';
+  private readonly apiDescargarAgente = '/api/agente-correo/descargar/';
 
   constructor(private http: HttpClient) { }
 

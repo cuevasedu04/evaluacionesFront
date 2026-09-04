@@ -7,11 +7,20 @@
   <!-- Texto -->
   <ng-container *ngIf="esTexto">
     <label class="form-label small mb-1">Fuente</label>
-    <select class="form-select form-select-sm mb-2"
-            [ngModel]="propiedad('fontFamily')"
-            (ngModelChange)="actualizarPropiedad('fontFamily', $event)">
-      <option *ngFor="let f of fuentes" [value]="f">{{ f }}</option>
-    </select>
+    <div class="d-flex gap-1 mb-2">
+      <select class="form-select form-select-sm"
+              [ngModel]="propiedad('fontFamily')"
+              (ngModelChange)="actualizarPropiedad('fontFamily', $event)">
+        <option *ngFor="let f of fuentes" [value]="f">{{ f }}</option>
+      </select>
+      <button *ngIf="permitirSubirFuente" type="button"
+              class="btn btn-sm btn-outline-secondary flex-shrink-0"
+              (click)="subirFuente.emit()" [disabled]="subiendoFuente"
+              title="Subir una fuente propia (.ttf, .otf, .woff, .woff2)">
+        <i class="fas" [class.fa-plus]="!subiendoFuente"
+           [class.fa-spinner]="subiendoFuente" [class.fa-spin]="subiendoFuente"></i>
+      </button>
+    </div>
 
     <div class="row g-2 mb-2">
       <div class="col-6">
@@ -82,6 +91,21 @@
     </select>
   </ng-container>
 
+  <!-- Figuras (catalogo "Formas") -->
+  <ng-container *ngIf="esFigura">
+    <label class="form-label small mb-1">{{ colorFiguraPropiedad === 'stroke' ? 'Color de línea' : 'Color de relleno' }}</label>
+    <input type="color" class="form-control form-control-color form-control-sm w-100 mb-2"
+           [ngModel]="propiedad(colorFiguraPropiedad)"
+           (ngModelChange)="actualizarPropiedad(colorFiguraPropiedad, $event)">
+
+    <ng-container *ngIf="esFiguraRectangular">
+      <label class="form-label small mb-1">Radio de esquina</label>
+      <input type="range" class="form-range mb-2" min="0" [max]="radioEsquinaMax" step="1"
+             [ngModel]="propiedad('rx')"
+             (ngModelChange)="actualizarRadioEsquina(+$event)">
+    </ng-container>
+  </ng-container>
+
   <!-- Comunes -->
   <hr class="my-2">
   <label class="form-label small mb-1">Opacidad</label>
@@ -101,11 +125,21 @@
     <button class="btn btn-outline-secondary" (click)="centrarVertical()" title="Centrar verticalmente">
       <i class="fas fa-arrows-alt-v"></i>
     </button>
+  </div>
+
+  <label class="form-label small mb-1">Capas</label>
+  <div class="btn-group btn-group-sm w-100 mb-2">
     <button class="btn btn-outline-secondary" (click)="traerAlFrente()" title="Traer al frente">
-      <i class="fas fa-layer-group"></i>
+      <i class="fas fa-angles-up"></i>
+    </button>
+    <button class="btn btn-outline-secondary" (click)="adelantarCapa()" title="Adelantar un nivel">
+      <i class="fas fa-chevron-up"></i>
+    </button>
+    <button class="btn btn-outline-secondary" (click)="atrasarCapa()" title="Atrasar un nivel">
+      <i class="fas fa-chevron-down"></i>
     </button>
     <button class="btn btn-outline-secondary" (click)="enviarAlFondo()" title="Enviar al fondo">
-      <i class="fas fa-clone"></i>
+      <i class="fas fa-angles-down"></i>
     </button>
   </div>
 

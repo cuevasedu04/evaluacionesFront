@@ -1,32 +1,26 @@
-<div class="container-fluid p-4 animate__animated animate__fadeIn">
+<div class="pl-pagina p-4">
 
-  <header class="mb-4 mt-2">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-3">
-          <div class="pl-icono">
-            <i class="fas fa-vector-square text-white"></i>
-          </div>
-          <div>
-            <h1 class="fw-bold text-dark mb-0 h3">Plantillas de constancia</h1>
-            <p class="text-muted mb-0">
-              Diseña, edita y reutiliza plantillas de constancia de forma visual
-            </p>
-          </div>
-        </div>
-
-        <button class="btn btn-sm pl-btn-nuevo" (click)="nueva()" *ngIf="permisosS.tiene('plantillas_administrar')">
-          <i class="fas fa-plus"></i> Nueva plantilla
-        </button>
+  <header class="pl-topbar">
+    <div class="d-flex align-items-center gap-3">
+      <div class="pl-icono">
+        <i class="fas fa-vector-square text-white"></i>
+      </div>
+      <div>
+        <h1 class="pl-topbar-titulo">Plantillas de constancia</h1>
+        <p class="pl-topbar-sub">Diseña, edita y reutiliza plantillas de constancia de forma visual</p>
+      </div>
     </div>
+
+    <button class="btn btn-sm pl-btn-nuevo" (click)="nueva()" *ngIf="permisosS.tiene('plantillas_administrar')">
+      <i class="fas fa-plus"></i> Nueva plantilla
+    </button>
   </header>
 
-  <div class="row mb-3">
-    <div class="col-md-5">
-      <div class="input-group">
-        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-        <input type="text" class="form-control" placeholder="Buscar por clave, nombre o descripcion"
-               [(ngModel)]="filtro">
-      </div>
+  <div class="pl-buscador-fila">
+    <div class="pl-buscador">
+      <i class="fas fa-search text-muted"></i>
+      <input type="text" class="pl-buscador-input" placeholder="Buscar por clave, nombre o descripción"
+             [(ngModel)]="filtro">
     </div>
   </div>
 
@@ -35,7 +29,7 @@
     Cargando plantillas...
   </div>
 
-  <div *ngIf="!cargando && !plantillasFiltradas.length" class="text-center py-5 text-muted">
+  <div *ngIf="!cargando && !plantillasFiltradas.length" class="pl-vacio text-muted">
     <i class="fas fa-vector-square fa-3x mb-3 d-block opacity-50"></i>
     <p class="mb-3">Aun no hay plantillas creadas.</p>
     <button class="btn btn-sm pl-btn-nuevo" (click)="nueva()" *ngIf="permisosS.tiene('plantillas_administrar')">
@@ -45,7 +39,7 @@
 
   <div class="row g-3" *ngIf="!cargando">
     <div class="col-md-4 col-lg-3" *ngFor="let plantilla of plantillasFiltradas">
-      <div class="card h-100 shadow-sm plantilla-card" [class.inactiva]="!plantilla.activo">
+      <div class="card h-100 plantilla-card" [class.inactiva]="!plantilla.activo">
 
         <div class="plantilla-miniatura" (click)="editar(plantilla)">
           <img *ngIf="plantilla.fondo_frente_url" [src]="plantilla.fondo_frente_url" [alt]="plantilla.nombre">

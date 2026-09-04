@@ -1,8 +1,8 @@
 <div class="generador-masivo d-flex flex-column">
 
   <!-- ===================== BARRA SUPERIOR ===================== -->
-  <header class="gm-topbar bg-white border-bottom px-3 py-2">
-    <div class="d-flex align-items-center gap-3 flex-wrap">
+  <header class="gm-topbar bg-white px-3 pt-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap pb-3">
 
       <div class="d-flex align-items-center gap-2">
         <div class="gm-icono">
@@ -14,34 +14,37 @@
         </div>
       </div>
 
-      <div class="vr d-none d-lg-block"></div>
+      <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+        <!-- Buscador global -->
+        <div class="gm-buscador d-flex align-items-center gap-2">
+          <i class="fas fa-search text-muted"></i>
+          <input type="text" class="gm-buscador-input"
+                 placeholder="Buscar en todas las columnas..."
+                 [(ngModel)]="busquedaGlobal"
+                 (ngModelChange)="onBusquedaGlobal()">
+          <button class="gm-buscador-limpiar" (click)="limpiarFiltros()" title="Limpiar filtros">
+            <i class="fas fa-eraser"></i>
+          </button>
+        </div>
 
-      <!-- Buscador global -->
-      <div class="input-group input-group-sm gm-buscador">
-        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-        <input type="text" class="form-control"
-               placeholder="Buscar en todas las columnas..."
-               [(ngModel)]="busquedaGlobal"
-               (ngModelChange)="onBusquedaGlobal()">
-        <button class="btn btn-outline-secondary" (click)="limpiarFiltros()" title="Limpiar filtros">
-          <i class="fas fa-eraser"></i>
-        </button>
-      </div>
-
-      <!-- Selector de plantilla (mismo patron que "Imprimir credenciales") -->
-      <div class="d-flex align-items-center gap-2 ms-auto" #selectorPlantilla>
-        <div class="gm-selector position-relative" *ngIf="!cargandoPlantilla">
+        <!-- Selector de plantilla (mismo patron que "Imprimir credenciales") -->
+        <div class="position-relative" #selectorPlantilla>
           <button type="button"
-                  class="btn btn-sm d-flex align-items-center gap-2"
-                  [class.btn-success]="plantilla"
-                  [class.btn-warning]="!plantilla"
+                  class="gm-selector-trigger"
+                  [class.gm-selector-ok]="plantilla"
+                  [class.gm-selector-vacio]="!plantilla"
+                  *ngIf="!cargandoPlantilla"
                   (click)="alternarSelector()"
                   title="Cambiar la plantilla que se usará para generar">
-            <i class="fas fa-vector-square"></i>
-            <span class="text-truncate gm-selector-nombre">
-              {{ plantilla ? plantilla.nombre : 'Sin plantilla' }}
+            <img *ngIf="plantilla?.fondo_frente_url" [src]="plantilla?.fondo_frente_url" class="gm-selector-mini" alt="">
+            <span *ngIf="!plantilla?.fondo_frente_url" class="gm-selector-mini gm-selector-mini-vacia">
+              <i class="fas fa-image"></i>
             </span>
-            <i class="fas fa-caret-down"></i>
+            <span class="gm-selector-texto">
+              <span class="d-block text-truncate gm-selector-nombre">{{ plantilla ? plantilla.nombre : 'Sin plantilla' }}</span>
+              <small *ngIf="plantilla" class="text-muted">{{ plantilla.clave }}</small>
+            </span>
+            <i class="fas fa-caret-down text-muted"></i>
           </button>
 
           <div class="gm-selector-menu shadow" *ngIf="selectorAbierto">
@@ -60,11 +63,11 @@
                 <span class="d-block text-truncate">{{ p.nombre }}</span>
                 <small class="text-muted">{{ p.clave }}</small>
               </span>
-              <i class="fas fa-star text-warning" *ngIf="p.por_defecto" title="Predeterminada"></i>
-              <i class="fas fa-check text-success" *ngIf="p.id_plantilla === plantilla?.id_plantilla"></i>
+              <i class="fas fa-star gm-estrella" *ngIf="p.por_defecto" title="Predeterminada"></i>
+              <i class="fas fa-check gm-check" *ngIf="p.id_plantilla === plantilla?.id_plantilla"></i>
             </button>
 
-            <div class="gm-selector-vacio text-muted" *ngIf="!plantillasDisponibles.length">
+            <div class="gm-selector-vacio-msg text-muted" *ngIf="!plantillasDisponibles.length">
               <small>No hay plantillas activas.</small>
             </div>
 
@@ -81,6 +84,21 @@
         </small>
       </div>
     </div>
+
+    <!-- Tabs Activos / Bajas -->
+    <div class="gm-tabs-nav d-flex gap-1">
+      <button class="gm-tab-btn" [class.gm-tab-activo]="tabActiva === 'activos'" (click)="seleccionarTab('activos')">
+        <i class="fas fa-users me-1"></i>
+        Activos
+        <span class="gm-tab-badge">{{ activosData.length }}</span>
+      </button>
+      <button class="gm-tab-btn" [class.gm-tab-activo]="tabActiva === 'bajas'" (click)="seleccionarTab('bajas')"
+              title="Personal con estado de nómina 'Baja'">
+        <i class="fas fa-user-slash me-1"></i>
+        Bajas
+        <span class="gm-tab-badge gm-tab-badge-danger">{{ bajasData.length }}</span>
+      </button>
+    </div>
   </header>
 
   <!-- ===================== CUERPO ===================== -->
@@ -93,54 +111,30 @@
         <div>Cargando poblado de constancia completo...</div>
       </div>
 
-      <div *ngIf="!cargandoRoster" class="gm-tabs">
-        <ul class="nav nav-tabs border-bottom-0 gm-tabs-nav">
-          <li class="nav-item">
-            <button class="nav-link"
-                    [class.active]="tabActiva === 'activos'"
-                    (click)="seleccionarTab('activos')">
-              <i class="fas fa-users me-1"></i>
-              Activos
-              <span class="badge bg-secondary ms-1">{{ activosData.length }}</span>
-            </button>
-          </li>
-          <li class="nav-item">
-            <button class="nav-link"
-                    [class.active]="tabActiva === 'bajas'"
-                    (click)="seleccionarTab('bajas')"
-                    title="Personal con estado de nómina 'Baja'">
-              <i class="fas fa-user-slash me-1"></i>
-              Bajas
-              <span class="badge bg-danger ms-1">{{ bajasData.length }}</span>
-            </button>
-          </li>
-        </ul>
+      <div class="gm-grid-card" *ngIf="!cargandoRoster">
+        <ag-grid-angular
+            class="ag-theme-alpine gm-grid"
+            [rowData]="rowDataActivo"
+            [columnDefs]="columnDefs"
+            [defaultColDef]="defaultColDef"
+            [animateRows]="false"
+            [enableBrowserTooltips]="true"
+            [suppressCellFocus]="true"
+            (gridReady)="onGridReady($event)"
+            (cellClicked)="onCellClicked($event)"
+            (filterChanged)="onFiltroCambiado()">
+        </ag-grid-angular>
       </div>
-
-      <ag-grid-angular
-          *ngIf="!cargandoRoster"
-          class="ag-theme-alpine gm-grid"
-          [rowData]="rowDataActivo"
-          [columnDefs]="columnDefs"
-          [defaultColDef]="defaultColDef"
-          [animateRows]="false"
-          [enableBrowserTooltips]="true"
-          [suppressCellFocus]="true"
-          (gridReady)="onGridReady($event)"
-          (cellClicked)="onCellClicked($event)"
-          (filterChanged)="onFiltroCambiado()">
-      </ag-grid-angular>
     </section>
 
-    <!-- ---------- DERECHA: lista a generar ---------- -->
-    <aside class="gm-lista border-start bg-white">
-
-      <div class="gm-lista-encabezado border-bottom d-flex align-items-center justify-content-between">
+    <!-- ---------- CENTRO: lista a generar, a todo lo alto ---------- -->
+    <section class="gm-col-lista gm-card">
+      <div class="gm-lista-encabezado d-flex align-items-center justify-content-between">
         <div>
           <div class="fw-bold">Lista para generar</div>
           <small class="text-muted">{{ lista.length }} empleado(s)</small>
         </div>
-        <button class="btn btn-sm btn-outline-secondary" *ngIf="lista.length" (click)="vaciarLista()" title="Vaciar lista">
+        <button class="gm-icon-btn" *ngIf="lista.length" (click)="vaciarLista()" title="Vaciar lista">
           <i class="fas fa-trash"></i>
         </button>
       </div>
@@ -150,22 +144,40 @@
         <p class="mb-0 small">Da clic en el "+" de una fila de la tabla para agregarla aquí.</p>
       </div>
 
-      <div class="gm-lista-cuerpo" *ngIf="lista.length">
+      <div class="gm-lista-cuerpo gm-scroll" *ngIf="lista.length">
         <div class="gm-lista-item" *ngFor="let e of lista">
+          <div class="gm-avatar">{{ (e.datos.nombre?.charAt(0) || '') + (e.datos.apellidos?.charAt(0) || '') }}</div>
           <div class="flex-grow-1 text-truncate">
             <div class="text-truncate fw-semibold" [title]="e.datos.nombre + ' ' + e.datos.apellidos">
               {{ e.datos.nombre }} {{ e.datos.apellidos }}
             </div>
             <small class="text-muted">No. {{ e.datos.num_empleado || '—' }}</small>
           </div>
-          <button class="btn btn-sm btn-link text-danger" (click)="quitarDeLista(e.id)" title="Quitar de la lista">
+          <button class="gm-item-quitar" (click)="quitarDeLista(e.id)" title="Quitar de la lista">
             <i class="fas fa-xmark"></i>
           </button>
         </div>
       </div>
+    </section>
 
-      <div class="gm-lista-acciones border-top">
-        <div class="gm-progreso" *ngIf="generando">
+    <!-- ---------- DERECHA: acciones (arriba) + resumen (abajo) ---------- -->
+    <aside class="gm-col-acciones d-flex flex-column">
+
+      <!-- ===== Fila superior: elegir y ejecutar la accion ===== -->
+      <div class="gm-fila-acciones d-flex flex-column">
+        <div class="gm-switch-acciones">
+          <button class="gm-switch-btn" [class.gm-switch-activo]="tabAcciones === 'descargar'"
+                  (click)="seleccionarTabAcciones('descargar')">
+            Descargar
+          </button>
+          <button class="gm-switch-btn" [class.gm-switch-activo]="tabAcciones === 'correo'"
+                  (click)="seleccionarTabAcciones('correo')">
+            Enviar por correo
+          </button>
+        </div>
+
+        <!-- Progreso (compartido por ambos paneles) -->
+        <div class="gm-progreso gm-card" *ngIf="generando">
           <div class="d-flex justify-content-between small text-muted mb-1">
             <span>
               {{ modoGeneracion === 'zip' ? 'Generando ZIP...' : (modoGeneracion === 'correo' ? 'Enviando correos...' : 'Generando PDF...') }}
@@ -179,40 +191,44 @@
           </div>
         </div>
 
-        <button class="btn btn-success w-100 mb-2"
-                (click)="generarUnSoloPdf()"
-                [disabled]="!puedeGenerar">
-          <i class="fas" [class.fa-file-pdf]="!(generando && modoGeneracion === 'pdf')"
-             [class.fa-spinner]="generando && modoGeneracion === 'pdf'"
-             [class.fa-spin]="generando && modoGeneracion === 'pdf'"></i>
-          Generar un solo PDF
-        </button>
+        <!-- Panel: Descargar -->
+        <div class="gm-card gm-card-acciones gm-scroll" *ngIf="tabAcciones === 'descargar'">
+          <button class="gm-btn gm-btn-solido"
+                  (click)="generarUnSoloPdf()"
+                  [disabled]="!puedeGenerar">
+            <i class="fas" [class.fa-file-pdf]="!(generando && modoGeneracion === 'pdf')"
+               [class.fa-spinner]="generando && modoGeneracion === 'pdf'"
+               [class.fa-spin]="generando && modoGeneracion === 'pdf'"></i>
+            Generar un solo PDF
+          </button>
 
-        <button class="btn btn-outline-success w-100 mb-3"
-                (click)="generarZip()"
-                [disabled]="!puedeGenerar">
-          <i class="fas" [class.fa-file-zipper]="!(generando && modoGeneracion === 'zip')"
-             [class.fa-spinner]="generando && modoGeneracion === 'zip'"
-             [class.fa-spin]="generando && modoGeneracion === 'zip'"></i>
-          Generar ZIP (un PDF por constancia)
-        </button>
+          <button class="gm-btn gm-btn-outline"
+                  (click)="generarZip()"
+                  [disabled]="!puedeGenerar">
+            <i class="fas" [class.fa-file-zipper]="!(generando && modoGeneracion === 'zip')"
+               [class.fa-spinner]="generando && modoGeneracion === 'zip'"
+               [class.fa-spin]="generando && modoGeneracion === 'zip'"></i>
+            Generar ZIP (un PDF por constancia)
+          </button>
 
-        <small class="text-muted d-block text-center mb-2" *ngIf="!plantilla">
-          <i class="fas fa-triangle-exclamation text-warning"></i> Elige una plantilla para poder generar.
-        </small>
+          <small class="text-muted d-block text-center" *ngIf="!plantilla">
+            <i class="fas fa-triangle-exclamation text-warning"></i> Elige una plantilla para poder generar.
+          </small>
+          <small class="text-muted d-block text-center" *ngIf="plantilla && lista.length">
+            {{ lista.length }} constancia(s) lista(s) para generar
+          </small>
+        </div>
 
-        <!-- Envio por correo -->
-        <div class="gm-envio-correo border-top pt-3">
+        <!-- Panel: Enviar por correo -->
+        <div class="gm-card gm-card-acciones gm-scroll" *ngIf="tabAcciones === 'correo'">
 
           <!-- Estado del Agente de Correo local (ver AgenteCorreoService) -->
-          <div class="gm-agente-estado d-flex align-items-center gap-2 mb-2"
+          <div class="gm-agente-estado d-flex align-items-center gap-2"
                [class.gm-agente-ok]="agenteDisponible === true"
                [class.gm-agente-mal]="agenteDisponible === false">
             <i class="fas" [class.fa-circle-check]="agenteDisponible === true"
                [class.fa-circle-exclamation]="agenteDisponible === false"
-               [class.fa-spinner]="verificandoAgente" [class.fa-spin]="verificandoAgente"
-               [class.text-success]="agenteDisponible === true"
-               [class.text-danger]="agenteDisponible === false"></i>
+               [class.fa-spinner]="verificandoAgente" [class.fa-spin]="verificandoAgente"></i>
             <small class="flex-grow-1">
               <ng-container [ngSwitch]="agenteDisponible">
                 <span *ngSwitchCase="true">Agente de Correo conectado</span>
@@ -220,22 +236,22 @@
                 <span *ngSwitchDefault>Verificando el Agente de Correo...</span>
               </ng-container>
             </small>
-            <button class="btn btn-sm btn-link p-0" title="Verificar de nuevo" (click)="verificarAgente()">
+            <button class="gm-icon-btn" title="Verificar de nuevo" (click)="verificarAgente()">
               <i class="fas fa-rotate"></i>
             </button>
           </div>
 
-          <label class="form-label small fw-semibold mb-1">Plantilla de correo</label>
-          <div class="gm-selector-correo position-relative mb-2" #selectorPlantillaCorreo>
+          <label class="gm-label">Plantilla de correo</label>
+          <div class="position-relative" #selectorPlantillaCorreo>
             <button type="button"
-                    class="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center gap-2"
+                    class="gm-selector-correo-trigger"
                     (click)="alternarSelectorCorreo()"
                     [disabled]="cargandoPlantillasCorreo">
-              <i class="fas fa-envelope-open-text"></i>
+              <i class="fas fa-envelope-open-text text-muted"></i>
               <span class="text-truncate flex-grow-1 text-start">
                 {{ plantillaCorreo ? plantillaCorreo.nombre : 'Sin plantilla de correo' }}
               </span>
-              <i class="fas fa-caret-down"></i>
+              <i class="fas fa-caret-down text-muted"></i>
             </button>
 
             <div class="gm-selector-menu shadow" *ngIf="selectorCorreoAbierto">
@@ -245,20 +261,20 @@
                       [class.activa]="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"
                       (click)="usarPlantillaCorreo(p)">
                 <span class="flex-grow-1 text-start text-truncate">{{ p.nombre }}</span>
-                <i class="fas fa-check text-success" *ngIf="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"></i>
+                <i class="fas fa-check gm-check" *ngIf="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"></i>
               </button>
-              <div class="gm-selector-vacio text-muted" *ngIf="!plantillasCorreoDisponibles.length">
+              <div class="gm-selector-vacio-msg text-muted" *ngIf="!plantillasCorreoDisponibles.length">
                 <small>No hay plantillas de correo. Créalas en "Correo electrónico".</small>
               </div>
             </div>
           </div>
 
-          <label class="form-label small fw-semibold mb-1">Nombre del curso</label>
-          <input type="text" class="form-control form-control-sm mb-2"
+          <label class="gm-label">Nombre del curso</label>
+          <input type="text" class="gm-input"
                  placeholder="Ej. Ciberseguridad básica 2026"
                  [(ngModel)]="nombreCurso">
 
-          <button class="btn btn-outline-primary w-100"
+          <button class="gm-btn gm-btn-outline-primario"
                   (click)="enviarPorCorreo()"
                   [disabled]="!puedeGenerar">
             <i class="fas" [class.fa-envelope]="!(generando && modoGeneracion === 'correo')"
@@ -266,23 +282,50 @@
                [class.fa-spin]="generando && modoGeneracion === 'correo'"></i>
             Enviar por correo
           </button>
-          <small class="text-muted d-block mt-1">
+          <small class="text-muted d-block">
             <i class="fas fa-circle-info"></i>
             Usa la plantilla configurada en
             <a routerLink="/correo-electronico">Correo electrónico</a>. Outlook debe estar abierto durante el envío.
           </small>
         </div>
+      </div>
 
-        <!-- Resultados del ultimo envio -->
-        <div class="gm-resultados-envio border-top pt-2 mt-2" *ngIf="resultadosEnvio.length">
-          <div class="fw-semibold small mb-1">Resultado del envío</div>
+      <!-- ===== Fila inferior: resumen general ===== -->
+      <div class="gm-card gm-card-resumen gm-scroll">
+        <div class="gm-resumen-titulo">Resumen</div>
+
+        <div class="gm-resumen-metricas">
+          <div class="gm-metrica">
+            <div class="gm-metrica-valor">{{ lista.length }}</div>
+            <div class="gm-metrica-label">Seleccionados</div>
+          </div>
+          <div class="gm-metrica gm-metrica-ok">
+            <div class="gm-metrica-valor">{{ enviadosCount }}</div>
+            <div class="gm-metrica-label">Enviados</div>
+          </div>
+          <div class="gm-metrica gm-metrica-warn">
+            <div class="gm-metrica-valor">{{ conProblemaCount }}</div>
+            <div class="gm-metrica-label">Con problema</div>
+          </div>
+        </div>
+
+        <div class="gm-resumen-vacio text-muted" *ngIf="!resultadosEnvio.length">
+          <i class="fas fa-inbox mb-1 d-block"></i>
+          <small>Aún no se ha generado ningún envío en esta sesión.</small>
+        </div>
+
+        <div class="gm-resultados-envio" *ngIf="resultadosEnvio.length">
           <div class="gm-resultado-item" *ngFor="let r of resultadosEnvio">
             <i class="fas" [class.fa-circle-check]="r.estado === 'enviado'"
-               [class.text-success]="r.estado === 'enviado'"
+               [class.gm-resultado-ok]="r.estado === 'enviado'"
                [class.fa-circle-exclamation]="r.estado !== 'enviado'"
-               [class.text-warning]="r.estado !== 'enviado'"></i>
-            <span class="text-truncate flex-grow-1" [title]="r.nombre">{{ r.nombre }}</span>
-            <small class="text-muted" [title]="r.mensaje">{{ etiquetaEstadoEnvio(r.estado) }}</small>
+               [class.gm-resultado-warn]="r.estado !== 'enviado'"></i>
+            <div class="flex-grow-1 min-w-0">
+              <div class="text-truncate" [title]="r.nombre">{{ r.nombre }}</div>
+              <small class="text-muted d-block text-truncate" *ngIf="r.mensaje">{{ r.mensaje }}</small>
+            </div>
+            <small class="gm-resultado-estado" [class.gm-resultado-ok]="r.estado === 'enviado'"
+                   [class.gm-resultado-warn]="r.estado !== 'enviado'">{{ etiquetaEstadoEnvio(r.estado) }}</small>
           </div>
         </div>
       </div>

@@ -43,6 +43,13 @@ export interface FondoDisponible {
   url: string;
 }
 
+export interface FuenteDisponible {
+  /** Sin extension -- es tambien el valor de `fontFamily` que se guarda en el JSON del lienzo. */
+  nombre: string;
+  ruta: string;
+  url: string;
+}
+
 /**
  * Empleado con mas de una credencial impresa, para la auditoria de medios.
  *
@@ -128,9 +135,9 @@ export interface EmpleadoSig {
 @Injectable({ providedIn: 'root' })
 export class PlantillaCredencialService {
 
-  private readonly apiPlantillas = '/api-sicre/plantillas-credencial/';
-  private readonly apiEnrolamiento = '/api-sicre/enrolamiento-credencial/';
-  private readonly apiUnidades = '/api-sicre/unidades-administrativas/';
+  private readonly apiPlantillas = '/api/plantillas-credencial/';
+  private readonly apiEnrolamiento = '/api/enrolamiento-credencial/';
+  private readonly apiUnidades = '/api/unidades-administrativas/';
 
   constructor(private http: HttpClient) { }
 
@@ -182,7 +189,7 @@ export class PlantillaCredencialService {
    */
   empleadosSigTodos(): Observable<{ status: string; total: number; registros: EmpleadoSig[] }> {
     return this.http.get<{ status: string; total: number; registros: EmpleadoSig[] }>(
-      '/api-sicre/empleados-sig/todos/', SIN_LOADER_GLOBAL
+      '/api/empleados-sig/todos/', SIN_LOADER_GLOBAL
     );
   }
 
@@ -195,7 +202,7 @@ export class PlantillaCredencialService {
    */
   correosLote(nosEmpleado: string[]): Observable<{ status: string; correos: Record<string, string> }> {
     return this.http.post<{ status: string; correos: Record<string, string> }>(
-      '/api-sicre/empleados-sig/correos-lote/', { nos_empleado: nosEmpleado }, SIN_LOADER_GLOBAL
+      '/api/empleados-sig/correos-lote/', { nos_empleado: nosEmpleado }, SIN_LOADER_GLOBAL
     );
   }
 
@@ -206,7 +213,7 @@ export class PlantillaCredencialService {
    */
   empleadosSigUltimaActualizacion(): Observable<{ status: string; fecha_actualizacion: string | null }> {
     return this.http.get<{ status: string; fecha_actualizacion: string | null }>(
-      '/api-sicre/empleados-sig/ultima-actualizacion/', SIN_LOADER_GLOBAL
+      '/api/empleados-sig/ultima-actualizacion/', SIN_LOADER_GLOBAL
     );
   }
 
@@ -251,6 +258,22 @@ export class PlantillaCredencialService {
 
   borrarFondo(ruta: string): Observable<any> {
     return this.http.post(`${this.apiPlantillas}borrar-fondo/`, { ruta });
+  }
+
+  // ---- Fuentes personalizadas --------------------------------------------
+
+  fuentesDisponibles(): Observable<{ status: string; fuentes: FuenteDisponible[] }> {
+    return this.http.get<{ status: string; fuentes: FuenteDisponible[] }>(
+      `${this.apiPlantillas}fuentes-disponibles/`
+    );
+  }
+
+  subirFuente(fuenteBase64: string, nombre: string): Observable<any> {
+    return this.http.post(`${this.apiPlantillas}subir-fuente/`, { fuente: fuenteBase64, nombre });
+  }
+
+  borrarFuente(ruta: string): Observable<any> {
+    return this.http.post(`${this.apiPlantillas}borrar-fuente/`, { ruta });
   }
 
   // ---- Enrolamiento (datos para poblar la credencial) -------------------

@@ -50,49 +50,56 @@
   }
 }
 
-.db-hero {
+// Mismo patron que gm-topbar (Generador masivo): icono guinda chico + titulo
+// Patria + subtitulo, tarjeta blanca -- reemplaza el banner solido ancho
+// anterior para que el dashboard comparta el mismo lenguaje visual que el
+// resto del sistema ya rediseñado.
+.db-topbar {
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-  padding: var(--space-lg) var(--space-xl);
+  padding: 16px 20px;
   margin-bottom: var(--space-xl);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: #fff;
+  border: 1px solid #eee2da;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-low);
 }
 
-.db-hero-icono {
+.db-topbar-icono {
   flex: 0 0 auto;
-  width: 56px;
-  height: 56px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--color-primary);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
+  font-size: 1rem;
 }
 
-.db-hero-texto {
+.db-topbar-texto {
   min-width: 0;
 }
 
-.db-hero-titulo {
-  font-size: 1.4rem;
+// padding:0 explicito: neutraliza el padding-left/padding-bottom que el
+// selector global `h1` (ver src/assets/styles.scss) le pone a CUALQUIER
+// <h1>, ya que este titulo es un <h1> por semantica -- sin esto el titulo
+// queda corrido 10px y con un hueco debajo, descuadrado junto al icono.
+.db-topbar-titulo {
+  font-family: var(--font-family-titles);
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #fff;
-  margin: 0 0 0.2rem;
+  color: var(--text-title-h1);
+  margin: 0 0 2px;
+  padding: 0;
+  line-height: 1.2;
 }
 
-.db-hero-sub {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.85);
+.db-topbar-sub {
+  font-size: 0.82rem;
+  color: #8a8a8a;
   margin: 0;
 }
 
@@ -119,7 +126,7 @@
   gap: var(--space-sm);
   padding: var(--space-lg);
   background: #fff;
-  border: 1px solid #e9ecef;
+  border: 1px solid #eee2da;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-low);
   cursor: pointer;
@@ -130,7 +137,7 @@
   &:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-light);
+    border-color: rgba(105, 28, 50, 0.25);
   }
 }
 

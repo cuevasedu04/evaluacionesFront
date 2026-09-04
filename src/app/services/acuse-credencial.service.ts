@@ -53,7 +53,7 @@ export interface AcuseAuditoria {
  */
 @Injectable({ providedIn: 'root' })
 export class AcuseCredencialService {
-  private readonly api = '/api-sicre/acuses/';
+  private readonly api = '/api/acuses/';
 
   constructor(private http: HttpClient) {}
 

@@ -43,7 +43,7 @@ export class BusquedaAvanzadaComponent implements OnInit, OnDestroy {
   
   fotoFirmaLoading: boolean = false;
 
-  private readonly apiFotoFirmaUrl = '/api-sicre/foto-firma/';
+  private readonly apiFotoFirmaUrl = '/api/foto-firma/';
   
   // Variables para impresiÃ³n
   empleadoImprimir: any = null;

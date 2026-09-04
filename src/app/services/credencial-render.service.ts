@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as fabric from 'fabric';
 import jsPDF from 'jspdf';
 import * as QRCode from 'qrcode';
+import { firstValueFrom } from 'rxjs';
 
 import {
   CANVAS_ALTO_PX,
@@ -13,7 +14,7 @@ import {
   FUENTES_PERSONALIZADAS,
   CAMPOS_QR_POR_DEFECTO,
 } from '../content/plantilla-editor/plantilla-editor.const';
-import { PlantillaCredencial } from './plantilla-credencial.service';
+import { FuenteDisponible, PlantillaCredencial, PlantillaCredencialService } from './plantilla-credencial.service';
 
 /**
  * Renderiza una plantilla + los datos de un empleado y genera el PDF.
@@ -33,8 +34,33 @@ export class CredencialRenderService {
    */
   static readonly PROPS_EXTRA: string[] = ['data', 'selectable', 'evented'];
 
+  constructor(private plantillaApi: PlantillaCredencialService) {}
+
   /** Una sola carga de fuentes por sesion; se reutiliza la misma promesa. */
   private fuentesListas: Promise<void> | null = null;
+  /** Una sola consulta al servidor por sesion; se reutiliza la misma promesa. */
+  private fuentesPersonalizadasCache: Promise<FuenteDisponible[]> | null = null;
+
+  /**
+   * Fuentes subidas por el usuario desde el editor de plantillas (ver
+   * PlantillaEditorComponent.onFuenteSeleccionada) -- cacheadas hasta
+   * invalidarCacheFuentes(). Nunca lanza: sin respuesta del servidor, se
+   * asume que no hay ninguna en vez de tumbar todo el editor.
+   */
+  fuentesPersonalizadas(): Promise<FuenteDisponible[]> {
+    if (!this.fuentesPersonalizadasCache) {
+      this.fuentesPersonalizadasCache = firstValueFrom(this.plantillaApi.fuentesDisponibles())
+        .then(res => res?.fuentes || [])
+        .catch(() => []);
+    }
+    return this.fuentesPersonalizadasCache;
+  }
+
+  /** Limpia los caches de fuentes (lista + @font-face ya registradas) -- llamar tras subir o borrar una. */
+  invalidarCacheFuentes(): void {
+    this.fuentesPersonalizadasCache = null;
+    this.fuentesListas = null;
+  }
 
   /**
    * Garantiza que las fuentes personalizadas esten cargadas ANTES de dibujar.
@@ -45,6 +71,14 @@ export class CredencialRenderService {
    * la credencial se imprime en Arial aunque la plantilla diga NotoSans-Black.
    * Peor aun, seria intermitente: funcionaria en cuanto algo mas del sistema
    * hubiera usado la fuente antes.
+   *
+   * Cubre dos origenes distintos de fuente:
+   *  - Las del build (FUENTES_PERSONALIZADAS, public/fonts) ya tienen su
+   *    @font-face declarado de forma estatica en assets/styles.scss -- solo
+   *    hay que forzar la descarga con document.fonts.load().
+   *  - Las subidas por el usuario NO tienen ningun @font-face en el CSS del
+   *    build (no existian al compilar) -- su @font-face se crea en caliente
+   *    con la CSS Font Loading API (ver registrarFontFace()).
    */
   async asegurarFuentes(): Promise<void> {
     if (this.fuentesListas) return this.fuentesListas;
@@ -53,13 +87,26 @@ export class CredencialRenderService {
       const fuentes = (document as any).fonts;
       if (!fuentes?.load) return;   // navegador sin CSS Font Loading API
 
-      await Promise.all(
-        FUENTES_PERSONALIZADAS.map(f => fuentes.load(`16px "${f}"`).catch(() => null))
-      );
+      const personalizadas = await this.fuentesPersonalizadas();
+
+      await Promise.all([
+        ...FUENTES_PERSONALIZADAS.map(f => fuentes.load(`16px "${f}"`).catch(() => null)),
+        ...personalizadas.map(f => this.registrarFontFace(f).catch(() => null)),
+      ]);
       await fuentes.ready;
     })();
 
     return this.fuentesListas;
+  }
+
+  /** Declara (en caliente) el @font-face de una fuente subida por el usuario y espera a que descargue. */
+  private async registrarFontFace(fuente: FuenteDisponible): Promise<void> {
+    const FontFaceCtor = (window as any).FontFace;
+    if (!FontFaceCtor || !fuente.url) return;
+
+    const cara = new FontFaceCtor(fuente.nombre, `url(${fuente.url})`);
+    const cargada = await cara.load();
+    (document as any).fonts.add(cargada);
   }
 
   // ====================================================================

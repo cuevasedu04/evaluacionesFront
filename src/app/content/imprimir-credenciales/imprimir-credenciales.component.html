@@ -76,6 +76,7 @@
         <app-credencial-panel-propiedades
             [canvas]="canvasActivo"
             [objeto]="objetoSeleccionado"
+            [fuentes]="fuentesTexto"
             (seleccionCambiada)="objetoSeleccionado = $event">
         </app-credencial-panel-propiedades>
       </aside>
@@ -289,9 +290,6 @@
             <span class="badge bg-danger" *ngIf="esBaja">
               <i class="fas fa-user-slash"></i> Baja
             </span>
-            <span class="badge bg-warning text-dark" *ngIf="sinFoto">
-              <i class="fas fa-camera"></i> Sin foto
-            </span>
           </div>
         </div>
 
@@ -407,18 +405,107 @@
 
         <!-- Acciones -->
         <div class="ic-acciones border-top">
-          <button class="btn btn-success w-100"
-                  (click)="imprimir()"
-                  [disabled]="!plantilla || generandoPdf || generandoPreview">
-            <i class="fas" [class.fa-print]="!generandoPdf"
-               [class.fa-spinner]="generandoPdf" [class.fa-spin]="generandoPdf"></i>
-            {{ generandoPdf ? 'Generando...' : 'Imprimir constancia' }}
-          </button>
-          <small class="text-muted d-block text-center mt-2">
-            {{ modoEdicion
-                ? 'El PDF incluirá los ajustes que hiciste aquí.'
-                : 'El PDF se genera con la misma plantilla que ves arriba.' }}
-          </small>
+          <div class="ic-switch-acciones">
+            <button type="button" class="ic-switch-btn" [class.ic-switch-activo]="modoAccion === 'pdf'"
+                    (click)="modoAccion = 'pdf'">
+              <i class="fas fa-file-pdf"></i> Descargar PDF
+            </button>
+            <button type="button" class="ic-switch-btn" [class.ic-switch-activo]="modoAccion === 'correo'"
+                    (click)="modoAccion = 'correo'">
+              <i class="fas fa-envelope"></i> Enviar por correo
+            </button>
+          </div>
+
+          <ng-container *ngIf="modoAccion === 'pdf'">
+            <button class="btn btn-success w-100"
+                    (click)="imprimir()"
+                    [disabled]="!plantilla || generandoPdf || generandoPreview">
+              <i class="fas" [class.fa-print]="!generandoPdf"
+                 [class.fa-spinner]="generandoPdf" [class.fa-spin]="generandoPdf"></i>
+              {{ generandoPdf ? 'Generando...' : 'Imprimir constancia' }}
+            </button>
+            <small class="text-muted d-block text-center mt-2">
+              {{ modoEdicion
+                  ? 'El PDF incluirá los ajustes que hiciste aquí.'
+                  : 'El PDF se genera con la misma plantilla que ves arriba.' }}
+            </small>
+          </ng-container>
+
+          <ng-container *ngIf="modoAccion === 'correo'">
+            <div class="ic-agente-estado d-flex align-items-center gap-2"
+                 [class.ic-agente-ok]="agenteDisponible === true"
+                 [class.ic-agente-mal]="agenteDisponible === false">
+              <i class="fas" [class.fa-circle-check]="agenteDisponible === true"
+                 [class.fa-circle-exclamation]="agenteDisponible === false"
+                 [class.fa-spinner]="verificandoAgente" [class.fa-spin]="verificandoAgente"></i>
+              <small class="flex-grow-1">
+                <ng-container [ngSwitch]="agenteDisponible">
+                  <span *ngSwitchCase="true">Agente de Correo conectado</span>
+                  <span *ngSwitchCase="false">Agente de Correo no detectado</span>
+                  <span *ngSwitchDefault>Verificando el Agente de Correo...</span>
+                </ng-container>
+              </small>
+              <button type="button" class="ic-icon-btn" title="Verificar de nuevo" (click)="verificarAgente()">
+                <i class="fas fa-rotate"></i>
+              </button>
+            </div>
+
+            <label class="ic-label mt-2">Plantilla de correo</label>
+            <div class="position-relative" #selectorPlantillaCorreo>
+              <button type="button" class="ic-selector-correo-trigger"
+                      (click)="alternarSelectorCorreo()" [disabled]="cargandoPlantillasCorreo">
+                <i class="fas fa-envelope-open-text text-muted"></i>
+                <span class="text-truncate flex-grow-1 text-start">
+                  {{ plantillaCorreo ? plantillaCorreo.nombre : 'Sin plantilla de correo' }}
+                </span>
+                <i class="fas fa-caret-down text-muted"></i>
+              </button>
+
+              <div class="ic-selector-menu ic-selector-menu-ancho shadow" *ngIf="selectorCorreoAbierto">
+                <button type="button"
+                        class="ic-selector-item"
+                        *ngFor="let p of plantillasCorreoDisponibles"
+                        [class.activa]="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"
+                        (click)="usarPlantillaCorreo(p)">
+                  <span class="flex-grow-1 text-start text-truncate">{{ p.nombre }}</span>
+                  <i class="fas fa-check text-success" *ngIf="p.id_plantilla_correo === plantillaCorreo?.id_plantilla_correo"></i>
+                </button>
+                <div class="ic-selector-vacio text-muted" *ngIf="!plantillasCorreoDisponibles.length">
+                  <small>No hay plantillas de correo. Créalas en "Correo electrónico".</small>
+                </div>
+              </div>
+            </div>
+
+            <label class="ic-label mt-2">Nombre del curso</label>
+            <input type="text" class="ic-input"
+                   placeholder="Ej. Ciberseguridad básica 2026"
+                   [(ngModel)]="nombreCurso">
+
+            <button class="btn btn-outline-success w-100 mt-2"
+                    (click)="enviarCorreoActual()"
+                    [disabled]="!plantilla || !empleadoSeleccionado || enviandoCorreo">
+              <i class="fas" [class.fa-envelope]="!enviandoCorreo"
+                 [class.fa-spinner]="enviandoCorreo" [class.fa-spin]="enviandoCorreo"></i>
+              {{ enviandoCorreo ? 'Enviando...' : 'Enviar por correo' }}
+            </button>
+
+            <div class="ic-envio-resultado mt-2" *ngIf="ultimoEnvio"
+                 [class.ic-envio-ok]="ultimoEnvio.estado === 'enviado'"
+                 [class.ic-envio-mal]="ultimoEnvio.estado !== 'enviado'">
+              <i class="fas mt-1" [class.fa-circle-check]="ultimoEnvio.estado === 'enviado'"
+                 [class.fa-circle-exclamation]="ultimoEnvio.estado !== 'enviado'"></i>
+              <span>
+                {{ etiquetaEstadoEnvio(ultimoEnvio.estado) }}
+                <ng-container *ngIf="ultimoEnvio.mensaje">— {{ ultimoEnvio.mensaje }}</ng-container>
+              </span>
+            </div>
+
+            <small class="text-muted d-block mt-2">
+              <i class="fas fa-circle-info"></i>
+              Usa la plantilla configurada en <a routerLink="/correo-electronico">Correo electrónico</a>.
+              Outlook debe estar abierto durante el envío.
+            </small>
+          </ng-container>
         </div>
       </ng-container>
     </aside>

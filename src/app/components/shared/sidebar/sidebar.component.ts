@@ -208,6 +208,11 @@ selectItem(item: any, event: Event): void {
   this.sidebarService.autoCloseOnMobile();
 }
 
+  /** Resalta el item del bloque actualmente abierto en el contenido. */
+  isActive(item: any): boolean {
+    return this.router.url.startsWith(item.link);
+  }
+
   /**
    * Cierra el sidebar cuando se hace click en el overlay
    */

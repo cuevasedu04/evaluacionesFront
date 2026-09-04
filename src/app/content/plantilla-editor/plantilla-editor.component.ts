@@ -10,15 +10,16 @@ import { CredencialRenderService } from '../../services/credencial-render.servic
 import { ModalManagerService } from '../../components/shared/modal-manager.service';
 import { PermisosService } from '../../services/permisos.service';
 import {
-  FondoDisponible, PlantillaCredencial, PlantillaCredencialService
+  FondoDisponible, FuenteDisponible, PlantillaCredencial, PlantillaCredencialService
 } from '../../services/plantilla-credencial.service';
 import {
   CAMPOS_DISPONIBLES, CampoPlantilla,
-  ELEMENTOS_ESTATICOS, FUENTE_POR_DEFECTO,
+  ELEMENTOS_ESTATICOS, FUENTE_POR_DEFECTO, FUENTES_DISPONIBLES,
   TamanoPapel, TAMANOS_PAPEL, OrientacionPapel,
   TAMANO_PAPEL_POR_DEFECTO, ORIENTACION_POR_DEFECTO,
   dimensionesPapel, tamanoPapelDesdeMm,
   CAMPOS_QR_DISPONIBLES, CAMPOS_QR_POR_DEFECTO, CampoQr,
+  CATALOGO_FORMAS, FormaDisponible,
 } from './plantilla-editor.const';
 
 /**
@@ -40,12 +41,16 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   @ViewChild('canvasEl', { static: false }) canvasEl!: ElementRef<HTMLCanvasElement>;
   @ViewChild('inputFondo') inputFondo!: ElementRef<HTMLInputElement>;
   @ViewChild('inputImagen') inputImagen!: ElementRef<HTMLInputElement>;
+  @ViewChild('inputFuente') inputFuente!: ElementRef<HTMLInputElement>;
   @ViewChild('confirmDialog') confirmDialog!: TemplateRef<any>;
   @ViewChild('qrCamposDialog') qrCamposDialog!: TemplateRef<any>;
+  @ViewChild('formasDialog') formasDialog!: TemplateRef<any>;
+  @ViewChild('instruccionesFuenteDialog') instruccionesFuenteDialog!: TemplateRef<any>;
 
   // ---- Catalogos para la plantilla lateral ----
   readonly campos = CAMPOS_DISPONIBLES;
   readonly estaticos = ELEMENTOS_ESTATICOS;
+  readonly catalogoFormas = CATALOGO_FORMAS;
 
   // ---- Seleccion de datos del QR (modal previo a colocarlo en el lienzo) ----
   readonly camposQrDisponibles: CampoQr[] = CAMPOS_QR_DISPONIBLES;
@@ -85,6 +90,12 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   fondos: FondoDisponible[] = [];
   fondoFrente: string | null = null;
   borrandoFondo: string | null = null;
+
+  fuentes: FuenteDisponible[] = [];
+  /** Fuentes del sistema/build + las personalizadas ya subidas -- lo que se pasa al selector de <app-credencial-panel-propiedades>. */
+  fuentesTexto: string[] = FUENTES_DISPONIBLES;
+  borrandoFuente: string | null = null;
+  subiendoFuente = false;
   confirmMessage = '';
 
   plantilla: PlantillaCredencial = {
@@ -119,6 +130,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     this.cargarFondos();
+    this.cargarFuentes();
   }
 
   ngAfterViewInit(): void {
@@ -383,6 +395,90 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   // ====================================================================
+  // Fuentes personalizadas
+  // ====================================================================
+
+  cargarFuentes(): void {
+    this.render.fuentesPersonalizadas().then(lista => {
+      this.fuentes = lista;
+      this.fuentesTexto = [...FUENTES_DISPONIBLES, ...lista.map(f => f.nombre)];
+    });
+  }
+
+  /** Antes de abrir el explorador de archivos, explica que formatos se aceptan. */
+  abrirSubirFuente(): void {
+    this.modalManager.openModal({
+      title: 'Subir fuente',
+      template: this.instruccionesFuenteDialog,
+      onAccept: () => this.inputFuente?.nativeElement.click(),
+    });
+  }
+
+  onFuenteSeleccionada(evento: any): void {
+    const archivo = evento.target?.files?.[0];
+    evento.target.value = '';
+    if (!archivo) return;
+
+    const extension = archivo.name.split('.').pop()?.toLowerCase();
+    if (!['ttf', 'otf', 'woff', 'woff2'].includes(extension || '')) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'La fuente debe ser un archivo .ttf, .otf, .woff o .woff2.');
+      return;
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'La fuente es muy pesada. Máximo 5MB.');
+      return;
+    }
+
+    const lector = new FileReader();
+    lector.onload = () => {
+      const base64 = lector.result as string;
+      const nombre = archivo.name.replace(/\.[^.]+$/, '');
+
+      this.subiendoFuente = true;
+      this.plantillaApi.subirFuente(base64, `${nombre}_${Date.now()}`).subscribe({
+        next: () => {
+          this.subiendoFuente = false;
+          this.utils.MuestrasToast(TipoToast.Success, 'Fuente subida correctamente');
+          this.render.invalidarCacheFuentes();
+          this.cargarFuentes();
+        },
+        error: (err) => {
+          this.subiendoFuente = false;
+          this.utils.MuestraErrorInterno(err);
+        },
+      });
+    };
+
+    lector.readAsDataURL(archivo);
+  }
+
+  /** Borra una fuente subida. Se niega si alguna plantilla la sigue usando (ver borrar-fuente en el backend). */
+  confirmarBorrarFuente(fuente: FuenteDisponible, evento: MouseEvent): void {
+    evento.stopPropagation();
+    this.confirmMessage = `¿Eliminar la fuente «${fuente.nombre}»? Esta acción no se puede deshacer.`;
+
+    this.modalManager.openModal({
+      title: 'Eliminar fuente',
+      template: this.confirmDialog,
+      onAccept: () => {
+        this.borrandoFuente = fuente.ruta;
+        this.plantillaApi.borrarFuente(fuente.ruta).subscribe({
+          next: () => {
+            this.borrandoFuente = null;
+            this.utils.MuestrasToast(TipoToast.Success, 'Fuente eliminada');
+            this.render.invalidarCacheFuentes();
+            this.cargarFuentes();
+          },
+          error: (err) => {
+            this.borrandoFuente = null;
+            this.utils.MuestraErrorInterno(err);
+          },
+        });
+      },
+    });
+  }
+
+  // ====================================================================
   // Agregar elementos
   // ====================================================================
 
@@ -513,6 +609,77 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     this.canvas.setActiveObject(marcador);
     this.canvas.renderAll();
     this.actualizarSeleccion();
+  }
+
+  // ====================================================================
+  // Formas basicas (submodal desde el boton "Formas")
+  // ====================================================================
+
+  abrirModalFormas(): void {
+    this.modalManager.openModal({
+      title: 'Formas basicas',
+      template: this.formasDialog,
+      showFooter: false,
+      width: '620px',
+    });
+  }
+
+  /** Convierte puntos normalizados 0-1 en el atributo `points` de un <polygon> 0-100. */
+  puntosSvg(puntos?: [number, number][]): string {
+    return (puntos || []).map(([x, y]) => `${x * 100},${y * 100}`).join(' ');
+  }
+
+  seleccionarFormaCatalogo(f: FormaDisponible): void {
+    const forma = this.crearFormaDesdeCatalogo(f);
+    (forma as any).data = { binding: `forma_${f.tipo}`, tipo: 'estatico', etiqueta: f.label };
+
+    this.canvas.add(forma);
+    this.canvas.setActiveObject(forma);
+    this.canvas.renderAll();
+    this.actualizarSeleccion();
+    this.modalManager.closeModal();
+  }
+
+  private crearFormaDesdeCatalogo(f: FormaDisponible): fabric.FabricObject {
+    const COLOR_FORMA = '#691C32';
+    const left = this.anchoDiseno * 0.1;
+    const top = this.altoDiseno * 0.1;
+    const ancho = f.ancho || 140;
+    const alto = f.alto || 140;
+
+    switch (f.motor) {
+      case 'circle':
+        return new fabric.Circle({ left, top, radius: ancho / 2, fill: COLOR_FORMA });
+
+      case 'line':
+        return new fabric.Line([0, 0, ancho, 0], {
+          left, top, stroke: COLOR_FORMA, strokeWidth: alto, strokeLineCap: 'round',
+          strokeDashArray: f.strokeDashArray,
+        });
+
+      case 'polygon': {
+        const puntos = (f.puntos || []).map(([x, y]) => ({ x: x * ancho, y: y * alto }));
+        return new fabric.Polygon(puntos, { left, top, fill: COLOR_FORMA });
+      }
+
+      case 'path': {
+        const ruta = new fabric.Path(f.path || '', { left, top, fill: COLOR_FORMA });
+        // El bounding box real de cada path varia (un semicirculo no mide lo
+        // mismo de alto que un arco completo); se escala DESPUES de crearlo
+        // contra su propio tamano natural, no contra un 100x100 asumido.
+        const anchoNatural = ruta.width || ancho;
+        const altoNatural = ruta.height || alto;
+        ruta.set({ scaleX: ancho / anchoNatural, scaleY: alto / altoNatural });
+        return ruta;
+      }
+
+      default: // rect
+        return new fabric.Rect({
+          left, top, width: ancho, height: alto, fill: COLOR_FORMA,
+          rx: (f.rx || 0) * Math.min(ancho, alto),
+          ry: (f.ry || 0) * Math.min(ancho, alto),
+        });
+    }
   }
 
   onImagenFijaSeleccionada(evento: any): void {

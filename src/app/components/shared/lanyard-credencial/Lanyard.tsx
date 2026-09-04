@@ -1,23 +1,21 @@
 /* eslint-disable react/no-unknown-property */
-// Componente "Lanyard" de React Bits (reactbits.dev/components/lanyard),
-// copiado tal cual del codigo fuente oficial -- solo se cambiaron los
-// imports de card.glb/lanyard.png (rutas de modulo, que el bundler de Vite
-// del sitio original resuelve via `assetsInclude`) por URLs publicas fijas,
-// ya que Angular sirve src/assets/ tal cual bajo /assets/ y no hace falta
-// (ni el builder de Angular soporta) importar un .glb como modulo JS.
+// Basado en el componente "Lanyard" de React Bits (reactbits.dev/components/lanyard),
+// pero SIN cordon: en vez de colgar de una cuerda simulada con joints, la
+// constancia flota en su lugar con gravedad baja -- una fuerza tipo resorte
+// la jala de vuelta hacia un punto de reposo que se mece con dos senoidales
+// (X/Y desfasadas), simulando el vaiven de un objeto en gravedad reducida en
+// vez de dejarla caer o alejarse. Sigue usando Rapier (no una animacion CSS)
+// para conservar la fisica real: si la arrastras con el mouse y la sueltas,
+// vuelve flotando con inercia, no de un salto.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
-import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
-import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
+import { CuboidCollider, Physics, RigidBody } from '@react-three/rapier';
 
 import * as THREE from 'three';
 import './Lanyard.css';
 
-extend({ MeshLineGeometry, MeshLineMaterial });
-
 const CARD_GLB_URL = '/assets/lanyard/card.glb';
-const LANYARD_PNG_URL = '/assets/lanyard/lanyard.png';
 
 // 1x1 transparent pixel — lets useTexture be called unconditionally when a
 // front/back image isn't supplied.
@@ -28,33 +26,25 @@ const BLANK_PIXEL =
 // atlas and the back face to the RIGHT half (measured from card.glb). Each
 // custom image is composited into its own half so the two faces render
 // independently, aspect-preserving (no stretching).
-//
-// h:1 en vez de los 0.755/0.757 originales de React Bits: esos valores
-// dejaban sin cubrir el 24% inferior de cada mitad, que en SU textura de
-// fabrica esta en blanco pero en la nuestra dejaba asomar el logo del atomo
-// (mitad izquierda) o el texto "reactbits.dev" (mitad derecha) por debajo
-// del diseño real de la credencial. Cubrir la mitad completa los tapa del
-// todo -- confirmado extrayendo la textura del .glb y viendola directo.
 const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 1 };
 const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 1 };
 
-// Donde cuelga la credencial a lo ancho del lienzo: 0 = orilla izquierda,
-// 0.5 = centro (lo que hace la demo de React Bits), 1 = orilla derecha.
-// Aqui el lienzo cubre TODO el dashboard y el contenido vive en una columna
-// que ocupa el 62% izquierdo (ver dashboard.component.scss), asi que la
-// tarjeta se manda al centro de la franja libre que queda a la derecha.
-const ANCLA_FRACCION_X = 0.79;
+// Donde flota la constancia a lo ancho del lienzo: 0 = orilla izquierda,
+// 0.5 = centro, 1 = orilla derecha. El lienzo cubre TODO el dashboard y el
+// contenido vive en una columna que ocupa el 62% izquierdo (ver
+// dashboard.component.scss), asi que la tarjeta se manda al centro exacto
+// de la franja libre que queda a la derecha: (0.62 + 1) / 2 = 0.81.
+const ANCLA_FRACCION_X = 0.81;
 
 export default function Lanyard({
   position = [0, 0, 30],
-  gravity = [0, -40, 0],
+  gravity = [0, -1.5, 0],
   fov = 20,
   transparent = true,
   frontImage = null,
   backImage = null,
   imageFit = 'cover',
-  lanyardImage = null,
-  lanyardWidth = 1
+  aspect
 }: {
   position?: [number, number, number];
   gravity?: [number, number, number];
@@ -63,8 +53,8 @@ export default function Lanyard({
   frontImage?: string | null;
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
-  lanyardImage?: string | null;
-  lanyardWidth?: number;
+  /** ancho_mm / alto_mm de la plantilla activa -- ver ConstanciaFlotante, reforma la silueta de la tarjeta (vertical u horizontal) sin cambiar el modelo 3D. undefined = silueta nativa del .glb (vertical). */
+  aspect?: number;
 }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
@@ -84,13 +74,12 @@ export default function Lanyard({
       >
         <ambientLight intensity={Math.PI} />
         <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-          <Band
+          <ConstanciaFlotante
             isMobile={isMobile}
             frontImage={frontImage}
             backImage={backImage}
             imageFit={imageFit}
-            lanyardImage={lanyardImage}
-            lanyardWidth={lanyardWidth}
+            aspect={aspect}
           />
         </Physics>
         <Environment blur={0.75}>
@@ -127,53 +116,71 @@ export default function Lanyard({
     </div>
   );
 }
-function Band({
-  maxSpeed = 50,
-  minSpeed = 0,
+
+// Punto de reposo alrededor del cual flota la tarjeta (mundo, no pantalla).
+// y=0 centra verticalmente el vaiven en el lienzo (antes, colgada de la
+// cuerda, el ancla vivia en y=4 y la tarjeta quedaba mas abajo por el largo
+// de la cuerda -- sin cuerda, el reposo es directo donde se ve la tarjeta).
+const REPOSO_Y = 0;
+
+// Media (medio-ancho, medio-alto) del modelo .glb tal como viene autorado --
+// medida del CuboidCollider original de React Bits, vertical tipo CR80.
+const NATIVE_HALF_W = 0.8;
+const NATIVE_HALF_H = 1.125;
+const NATIVE_RATIO = NATIVE_HALF_W / NATIVE_HALF_H;
+
+// Escala visual de la tarjeta (aplicada al group, no al collider -- ver
+// ConstanciaFlotante). Era 2.25 (tamaño del demo original de React Bits,
+// pensado para una tarjeta chica colgando de un cordon); se sube para que
+// la constancia, ahora sin cordon y protagonista del dashboard, se lea bien
+// a distancia.
+const ESCALA_VISUAL = 3.1;
+
+/**
+ * Factor de escala X/Y para que la SILUETA 3D (no la textura -- esa ya se
+ * compone aparte con el aspecto real de cada imagen, ver cardMap) pase
+ * de vertical a horizontal cuando la plantilla activa lo es (ancho_mm >
+ * alto_mm). No hay un segundo modelo .glb horizontal: en vez de eso se
+ * estira/encoge el mismo mesh de forma no uniforme hacia el aspecto real de
+ * la plantilla, conservando el area (sqrt(target/nativo) en un eje, el
+ * inverso en el otro) para que no se vea ni gigante ni diminuta al rotar.
+ */
+function factoresAspecto(aspect?: number): { x: number; y: number } {
+  if (!aspect || !Number.isFinite(aspect) || aspect <= 0) return { x: 1, y: 1 };
+  const x = Math.sqrt(aspect / NATIVE_RATIO);
+  const y = Math.sqrt(NATIVE_RATIO / aspect);
+  return { x, y };
+}
+
+function ConstanciaFlotante({
   isMobile = false,
   frontImage = null,
   backImage = null,
   imageFit = 'cover',
-  lanyardImage = null,
-  lanyardWidth = 1
+  aspect
 }: {
-  maxSpeed?: number;
-  minSpeed?: number;
   isMobile?: boolean;
   frontImage?: string | null;
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
-  lanyardImage?: string | null;
-  lanyardWidth?: number;
+  aspect?: number;
 }) {
-  const band = useRef<any>(null),
-    fixed = useRef<any>(null),
-    j1 = useRef<any>(null),
-    j2 = useRef<any>(null),
-    j3 = useRef<any>(null),
-    card = useRef<any>(null);
+  const card = useRef<any>(null);
+  const { x: escalaX, y: escalaY } = useMemo(() => factoresAspecto(aspect), [aspect]);
   const vec = new THREE.Vector3(),
-    ang = new THREE.Vector3(),
-    rot = new THREE.Vector3(),
-    dir = new THREE.Vector3();
-  const segmentProps: any = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
-  // Ancho visible en unidades de mundo al plano z=0. Se convierte la fraccion
-  // de pantalla deseada a coordenadas de mundo: un numero fijo (antes 3.2) no
-  // sirve porque cuanto se ve a lo ancho depende del aspecto del lienzo y de
-  // la distancia de camara -- con otra ventana la tarjeta se salia de cuadro
-  // o se metia debajo del contenido.
-  //
-  // Se congela con useState en el PRIMER render a proposito: los RigidBody de
-  // rapier toman su transform del mundo al crearse, mover el <group> despues
-  // no los movería, asi que recalcularlo en cada resize no tendria efecto y
-  // solo desincronizaria lo que se ve de lo que simula la fisica.
+    dir = new THREE.Vector3(),
+    objetivo = new THREE.Vector3(),
+    fuerza = new THREE.Vector3();
+
+  // Ancho visible en unidades de mundo al plano z=0, igual tecnica que la
+  // version con cuerda: se congela con useState en el primer render porque
+  // el RigidBody toma su transform del mundo al crearse.
   const anchoVisible = useThree(estado => estado.viewport.width);
   const [anclaX] = useState(() =>
     Number.isFinite(anchoVisible) && anchoVisible > 0 ? (ANCLA_FRACCION_X - 0.5) * anchoVisible : 3.2
   );
 
   const { nodes, materials } = useGLTF(CARD_GLB_URL) as any;
-  const texture = useTexture(lanyardImage || LANYARD_PNG_URL);
   // useTexture must be called unconditionally; use a blank pixel when an image
   // isn't supplied for a given face, then skip compositing it below.
   const frontTex = useTexture(frontImage || BLANK_PIXEL);
@@ -192,12 +199,8 @@ function Band({
     const ctx = canvas.getContext('2d');
     if (!ctx) return baseMap;
     // NO se conserva el atlas horneado del modelo (baseImg) como fondo: trae
-    // el logo/marca de React Bits impresa en ambas mitades (atomo + texto
-    // "reactbits.dev"). Rellenar en blanco garantiza que no quede NINGUN
-    // rastro de esa marca aunque el rectangulo UV de una cara no cubra el
-    // 100% del area realmente muestreada por la geometria -- antes, con
-    // drawImage(baseImg) como fondo, cualquier margen de cobertura dejaba
-    // asomar el arte de fabrica por debajo de la imagen compuesta.
+    // el logo/marca de React Bits impresa en ambas mitades. Rellenar en
+    // blanco garantiza que no quede ningun rastro de esa marca.
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, W, H);
 
@@ -222,7 +225,7 @@ function Band({
 
     // Si falta una de las dos caras, se usa la otra para ambas -- mejor
     // repetir el mismo diseño real que dejar a la vista el arte de fabrica
-    // del modelo (logo/marca de React Bits) en una credencial de la ANAM.
+    // del modelo (logo/marca de React Bits) en una constancia de la ANAM.
     const imgFrente = (frontImage && frontTex.image) || (backImage && backTex.image);
     const imgReverso = (backImage && backTex.image) || (frontImage && frontTex.image);
     if (imgFrente) drawFitted(imgFrente, FRONT_UV_RECT);
@@ -235,24 +238,9 @@ function Band({
     composite.needsUpdate = true;
     return composite;
   }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base.map]);
-  const [curve] = useState(
-    () =>
-      new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
-  );
+
   const [dragged, drag] = useState<any>(false);
   const [hovered, hover] = useState(false);
-
-  // Valores de la cuerda IDENTICOS al original de React Bits (longitud 1 por
-  // segmento, offset 1.45 en la junta esferica) -- alargarlos (se probo 1.7)
-  // solo empujaba la tarjeta fuera del encuadre de la camara sin hacerla
-  // verse mas grande, que era el efecto buscado.
-  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
-  useSphericalJoint(j3, card, [
-    [0, 0, 0],
-    [0, 1.45, 0]
-  ]);
 
   useEffect(() => {
     if (hovered) {
@@ -263,98 +251,72 @@ function Band({
   }, [hovered, dragged]);
 
   useFrame((state, delta) => {
+    if (!card.current) return;
+
     if (dragged) {
       vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
       dir.copy(vec).sub(state.camera.position).normalize();
       vec.add(dir.multiplyScalar(state.camera.position.length()));
-      [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
-      card.current?.setNextKinematicTranslation({ x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z });
+      card.current.wakeUp();
+      card.current.setNextKinematicTranslation({ x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z });
+      return;
     }
-    if (fixed.current) {
-      [j1, j2].forEach(ref => {
-        if (!ref.current.lerped) ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
-        const clampedDistance = Math.max(0.1, Math.min(1, ref.current.lerped.distanceTo(ref.current.translation())));
-        ref.current.lerped.lerp(
-          ref.current.translation(),
-          delta * (minSpeed + clampedDistance * (maxSpeed - minSpeed))
-        );
-      });
-      curve.points[0].copy(j3.current.translation());
-      curve.points[1].copy(j2.current.lerped);
-      curve.points[2].copy(j1.current.lerped);
-      curve.points[3].copy(fixed.current.translation());
-      band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
-      ang.copy(card.current.angvel());
-      rot.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z });
-    }
+
+    // Vaiven organico: dos senoidales de periodo distinto por eje, para que
+    // no se sienta como un loop mecanico. Amplitud pequena a proposito -- es
+    // "flotando en su lugar", no rebotando.
+    const t = state.clock.elapsedTime;
+    objetivo.set(
+      anclaX + Math.sin(t * 0.55) * 0.18,
+      REPOSO_Y + Math.sin(t * 0.4 + 1.3) * 0.22,
+      Math.sin(t * 0.35 + 0.6) * 0.12
+    );
+
+    // Resorte suave hacia el objetivo que se mece: el amortiguamiento del
+    // propio RigidBody (linearDamping) evita que oscile sin control, asi
+    // que basta con una fuerza proporcional al desplazamiento -- gravedad
+    // baja (ver prop `gravity`) sigue tirando hacia abajo, el resorte la
+    // compensa sin dejarla caer.
+    const pos = card.current.translation();
+    fuerza.set(objetivo.x - pos.x, objetivo.y - pos.y, objetivo.z - pos.z).multiplyScalar(2.2);
+    card.current.applyImpulse({ x: fuerza.x * delta, y: fuerza.y * delta, z: fuerza.z * delta }, true);
+
+    // Giro lento y constante, como un objeto a la deriva en gravedad
+    // reducida -- no una fisica de colision real, solo un barrido de angvel.
+    card.current.setAngvel({ x: 0, y: 0.12, z: 0 }, true);
   });
 
-  curve.curveType = 'chordal';
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-
   return (
-    <>
-      {/* anclaX: calculado arriba desde el ancho real del lienzo para que la
-          tarjeta cuelgue en la franja derecha, la que queda libre de
-          contenido (ver dashboard.component.scss). y=4 es EL VALOR ORIGINAL
-          de React Bits (no tocar): junto con segmentos de cuerda de longitud
-          1 y camara fov:20 a distancia 24 (ver
-          lanyard-credencial.component.ts), es lo que reproduce el mismo
-          encuadre y tamaño de tarjeta que la demo oficial. */}
-      <group position={[anclaX, 4, 0]}>
-        <RigidBody ref={fixed} {...segmentProps} type="fixed" />
-        <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps}>
-          <BallCollider args={[0.1]} />
-        </RigidBody>
-        <RigidBody position={[1, 0, 0]} ref={j2} {...segmentProps}>
-          <BallCollider args={[0.1]} />
-        </RigidBody>
-        <RigidBody position={[1.5, 0, 0]} ref={j3} {...segmentProps}>
-          <BallCollider args={[0.1]} />
-        </RigidBody>
-        <RigidBody position={[2, 0, 0]} ref={card} {...segmentProps} type={dragged ? 'kinematicPosition' : 'dynamic'}>
-          <CuboidCollider args={[0.8, 1.125, 0.01]} />
-          <group
-            scale={2.25}
-            position={[0, -1.2, -0.05]}
-            onPointerOver={() => hover(true)}
-            onPointerOut={() => hover(false)}
-            onPointerUp={(e: any) => (e.target.releasePointerCapture(e.pointerId), drag(false))}
-            onPointerDown={(e: any) => (
-              e.target.setPointerCapture(e.pointerId),
-              drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())))
-            )}
-          >
-            <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial
-                map={cardMap}
-                map-anisotropy={16}
-                clearcoat={isMobile ? 0 : 1}
-                clearcoatRoughness={0.15}
-                roughness={0.9}
-                metalness={0.8}
-              />
-            </mesh>
-            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
-            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
-          </group>
-        </RigidBody>
+    <RigidBody
+      ref={card}
+      position={[anclaX, REPOSO_Y, 0]}
+      type={dragged ? 'kinematicPosition' : 'dynamic'}
+      canSleep={false}
+      angularDamping={4}
+      linearDamping={2.2}
+    >
+      <CuboidCollider args={[NATIVE_HALF_W * escalaX, NATIVE_HALF_H * escalaY, 0.01]} />
+      <group
+        scale={[ESCALA_VISUAL * escalaX, ESCALA_VISUAL * escalaY, ESCALA_VISUAL]}
+        onPointerOver={() => hover(true)}
+        onPointerOut={() => hover(false)}
+        onPointerUp={(e: any) => (e.target.releasePointerCapture(e.pointerId), drag(false))}
+        onPointerDown={(e: any) => (
+          e.target.setPointerCapture(e.pointerId),
+          drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())))
+        )}
+      >
+        <mesh geometry={nodes.card.geometry}>
+          <meshPhysicalMaterial
+            map={cardMap}
+            map-anisotropy={16}
+            clearcoat={isMobile ? 0 : 1}
+            clearcoatRoughness={0.15}
+            roughness={0.9}
+            metalness={0.8}
+          />
+        </mesh>
       </group>
-      <mesh ref={band}>
-        {/* @ts-expect-error meshline no trae tipos propios; ver lanyard-env.d.ts */}
-        <meshLineGeometry />
-        {/* @ts-expect-error meshline no trae tipos propios; ver lanyard-env.d.ts */}
-        <meshLineMaterial
-          color="white"
-          depthTest={false}
-          resolution={isMobile ? [1000, 2000] : [1000, 1000]}
-          useMap
-          map={texture}
-          repeat={[-4, 1]}
-          lineWidth={lanyardWidth}
-        />
-      </mesh>
-    </>
+    </RigidBody>
   );
 }

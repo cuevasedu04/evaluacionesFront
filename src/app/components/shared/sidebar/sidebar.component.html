@@ -10,7 +10,7 @@
 				<!-- Menú de navegación -->
 				<ul class="sidebar-menu">
 					<li class="menu-item" *ngFor="let item of menuUsuario">
-						<a href="#" class="menu-link hover-line-left" (click)="selectItem(item, $event)">
+						<a href="#" class="menu-link" [class.active]="isActive(item)" (click)="selectItem(item, $event)">
 							<span class="{{item.icon}}" [innerHTML]=""></span>
 							<span class="menu-text" *ngIf="sidebarService.isExpanded()">{{ item.label }}</span>
 						</a>

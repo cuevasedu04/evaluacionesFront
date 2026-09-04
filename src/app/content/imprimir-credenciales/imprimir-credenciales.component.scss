@@ -54,6 +54,30 @@
   min-height: 0; // necesario en un flex-column para que ag-grid calcule el alto correctamente
   // ag-Grid virtualiza las filas: aunque haya 16k registros solo renderiza
   // las visibles, por eso el scroll y el filtrado siguen siendo fluidos.
+
+  // Reskin del tema ag-theme-alpine con los tokens institucionales -- mismo
+  // criterio que .gm-grid en generador-masivo, para que ambos roster luzcan
+  // igual.
+  --ag-font-family: var(--font-family-text);
+  --ag-font-size: 13px;
+  --ag-header-height: 42px;
+  --ag-header-background-color: #fbf9f7;
+  --ag-header-foreground-color: #8a8a8a;
+  --ag-border-color: #eee2da;
+  --ag-row-border-color: #f3efea;
+  --ag-odd-row-background-color: #fbfaf9;
+  --ag-row-hover-color: #faf7f4;
+  --ag-selected-row-background-color: var(--color-primary-light);
+  --ag-borders: solid 1px;
+  --ag-cell-horizontal-padding: 12px;
+
+  ::ng-deep .ag-header-cell-text {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
   ::ng-deep .ag-row {
     cursor: pointer;
   }
@@ -219,6 +243,128 @@
 .ic-acciones {
   flex: 0 0 auto;
   padding: 0.85rem;
+}
+
+// ---------- Selector Descargar PDF / Enviar por correo ----------
+// Mismo patron que .gm-switch-acciones en generador-masivo.
+.ic-switch-acciones {
+  display: flex;
+  background: #e9e4de;
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 0.6rem;
+}
+
+.ic-switch-btn {
+  flex: 1 1 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  color: #7a746d;
+  transition: background var(--duration-micro) var(--ease-standard), color var(--duration-micro) var(--ease-standard);
+
+  &:hover:not(.ic-switch-activo) { color: var(--color-primary); }
+
+  &.ic-switch-activo {
+    background: #fff;
+    color: var(--color-primary);
+    box-shadow: var(--shadow-low);
+  }
+}
+
+// ---------- Envio por correo (panel dentro de .ic-acciones) ----------
+.ic-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5b5650;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.ic-input {
+  width: 100%;
+  border: 1px solid #e3ddd6;
+  border-radius: var(--radius-md);
+  padding: 8px 11px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--duration-micro) var(--ease-standard);
+
+  &:focus { border-color: var(--color-primary); }
+  &::placeholder { color: #a39d97; }
+}
+
+.ic-selector-correo-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid #e3ddd6;
+  border-radius: var(--radius-md);
+  padding: 8px 11px;
+  background: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+// La plantilla de correo se elige desde un panel angosto (la barra de
+// acciones bajo la vista previa), no desde el header ancho como el
+// selector de plantilla de constancia -- por eso el menu se estira al 100%
+// del contenedor en vez del ancho fijo de .ic-selector-menu.
+.ic-selector-menu.ic-selector-menu-ancho {
+  position: static;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.ic-agente-estado {
+  font-size: 0.78rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: #f6f3f0;
+  color: #5b5650;
+
+  &.ic-agente-ok { background: var(--color-success-light); color: #0d5c46; }
+  &.ic-agente-mal { background: rgba(159, 13, 61, 0.08); color: var(--color-error); }
+}
+
+.ic-icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-light-gray);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+
+  &:hover { background: rgba(0, 0, 0, 0.06); color: var(--color-primary); }
+}
+
+.ic-envio-resultado {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: #f6f3f0;
+  color: #5b5650;
+
+  &.ic-envio-ok { background: var(--color-success-light); color: #0d5c46; }
+  &.ic-envio-mal { background: rgba(159, 13, 61, 0.08); color: var(--color-error); }
 }
 
 // Cursor tipo mira para el canvas de captura de firma (mouse/touch/Wacom).

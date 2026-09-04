@@ -19,9 +19,11 @@ import { AjusteImagenComponent } from '../../components/shared/ajuste-imagen/aju
 import {
   EmpleadoSig, PlantillaCredencial, PlantillaCredencialService,
 } from '../../services/plantilla-credencial.service';
-import { CANVAS_ALTO_PX, CANVAS_ANCHO_PX, CaraCredencial } from '../plantilla-editor/plantilla-editor.const';
+import { CANVAS_ALTO_PX, CANVAS_ANCHO_PX, CaraCredencial, FUENTES_DISPONIBLES } from '../plantilla-editor/plantilla-editor.const';
 import { COLUMNAS_SIG, sigAEmpleadoCredencial } from './imprimir-credenciales.const';
 import { RosterSyncService } from '../../services/roster-sync.service';
+import { CorreoService, EstadoEnvioCorreo, PlantillaCorreo } from '../../services/correo.service';
+import { AgenteCorreoService } from '../../services/agente-correo.service';
 
 /** Pestañas del roster en esta pantalla. */
 export type TabRoster = 'activos' | 'bajas';
@@ -252,6 +254,32 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   /** Resumen de la ultima impresion del empleado seleccionado, si la hubo. */
   ultimaImpresion: any = null;
 
+  // ====================================================================
+  // Envio por correo del empleado seleccionado (mismo mecanismo que
+  // "Generador masivo", pero para UNO solo -- ver enviarCorreoActual()).
+  // ====================================================================
+
+  /** Que bloque de acciones se muestra bajo la vista previa. */
+  modoAccion: 'pdf' | 'correo' = 'pdf';
+
+  /** Sustituye a {{nombre_curso}} en el asunto/cuerpo de la plantilla de correo elegida. */
+  nombreCurso = '';
+  enviandoCorreo = false;
+  /** Resultado del ultimo intento de envio para ESTE empleado -- se limpia al cambiar de empleado o de plantilla de correo. */
+  ultimoEnvio: { estado: EstadoEnvioCorreo; mensaje?: string } | null = null;
+
+  /** Plantilla de CORREO elegida (distinta a `plantilla`, que es la de CONSTANCIA) -- mismo patron de selector en memoria. */
+  plantillaCorreo: PlantillaCorreo | null = null;
+  plantillasCorreoDisponibles: PlantillaCorreo[] = [];
+  cargandoPlantillasCorreo = false;
+  selectorCorreoAbierto = false;
+
+  @ViewChild('selectorPlantillaCorreo') selectorPlantillaCorreoRef!: ElementRef<HTMLElement>;
+
+  /** Si el Agente de Correo ANAM esta corriendo en esta computadora -- ver AgenteCorreoService. */
+  agenteDisponible: boolean | null = null;
+  verificandoAgente = false;
+
   /**
    * Plantilla efectiva con la que se dibuja: la seleccionada, o una copia con
    * el lienzo guardado en la ultima impresion si en aquella se hicieron
@@ -298,6 +326,8 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     public permisosS: PermisosService,
     private pdfService: PdfAImagenService,
     private rosterSync: RosterSyncService,
+    private correoApi: CorreoService,
+    private agenteApi: AgenteCorreoService,
   ) {
     this.columnDefs = COLUMNAS_SIG.map(col => ({
       field: col.campo,
@@ -313,8 +343,29 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.cargarPlantillaPorDefecto();
     this.cargarPlantillasDisponibles();
+    this.cargarPlantillasCorreoDisponibles();
     this.cargarRoster();
     this.cargarFolio();
+    this.verificarAgente();
+    // Solo para que el selector "Fuente" del panel de propiedades (edicion
+    // rapida) muestre bien el nombre de una fuente personalizada ya usada en
+    // la plantilla -- esta pantalla no administra fuentes (sin boton "+").
+    this.render.fuentesPersonalizadas().then(lista => {
+      this.fuentesTexto = [...FUENTES_DISPONIBLES, ...lista.map(f => f.nombre)];
+    });
+  }
+
+  /** Fuentes disponibles para el selector del panel de propiedades -- ver comentario en ngOnInit(). */
+  fuentesTexto: string[] = FUENTES_DISPONIBLES;
+
+  /** Consulta si el Agente de Correo local esta corriendo -- ver AgenteCorreoService. Nunca falla: sin respuesta = no disponible. */
+  verificarAgente(): void {
+    this.verificandoAgente = true;
+    this.agenteApi.disponible().subscribe(disponible => {
+      this.agenteDisponible = disponible;
+      this.verificandoAgente = false;
+      this.cdr.detectChanges();
+    });
   }
 
   // ====================================================================
@@ -470,10 +521,17 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
   /** Cierra el selector si el clic ocurrio fuera de el. */
   @HostListener('document:click', ['$event'])
   onClicDocumento(evento: MouseEvent): void {
-    if (!this.selectorAbierto) return;
-    const contenedor = this.selectorPlantillaRef?.nativeElement;
-    if (contenedor && !contenedor.contains(evento.target as Node)) {
-      this.selectorAbierto = false;
+    if (this.selectorAbierto) {
+      const contenedor = this.selectorPlantillaRef?.nativeElement;
+      if (contenedor && !contenedor.contains(evento.target as Node)) {
+        this.selectorAbierto = false;
+      }
+    }
+    if (this.selectorCorreoAbierto) {
+      const contenedor = this.selectorPlantillaCorreoRef?.nativeElement;
+      if (contenedor && !contenedor.contains(evento.target as Node)) {
+        this.selectorCorreoAbierto = false;
+      }
     }
   }
 
@@ -667,6 +725,7 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
 
     this.ultimaImpresion = null;
     this.ajustesDescartados = false;
+    this.ultimoEnvio = null;
     this.filaSeleccionada = fila;
     this.empleadoSeleccionado = sigAEmpleadoCredencial(fila);
     this.aplicarFolioAlEmpleado();
@@ -801,21 +860,8 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     return hum === 'inactivo' || nom === 'baja';
   }
 
-  /**
-   * True mientras se consulta al servidor si el empleado tiene foto/firma.
-   *
-   * Sin esto, `sinFoto` valia true en el instante entre elegir la fila y que
-   * respondiera `medios/`, asi que el badge "Sin foto" parpadeaba en TODOS
-   * los empleados -- incluidos los que si tienen. Es un falso negativo, no un
-   * problema de velocidad: no se arregla con un retardo, sino no opinando
-   * hasta tener el dato.
-   */
+  /** True mientras se consulta al servidor si el empleado tiene foto/firma. */
   resolviendoMedios = false;
-
-  get sinFoto(): boolean {
-    if (!this.empleadoSeleccionado || this.resolviendoMedios) return false;
-    return !this.empleadoSeleccionado.foto;
-  }
 
   /** Rectangulo (en % del contenedor) del marcador de foto -- ver rectDelCampo(). */
   get campoFotoRect(): { leftPct: number; topPct: number; widthPct: number; heightPct: number } | null {
@@ -1722,5 +1768,181 @@ export class ImprimirCredencialesComponent implements OnInit, OnDestroy {
     this.modalFirmaInstancia?.close();
     this.utils.MuestrasToast(TipoToast.Success, 'Firma lista. Se guardará al imprimir la constancia.');
     this.generarPreview();
+  }
+
+  // ====================================================================
+  // Envio por correo del empleado seleccionado (ver bloque de estado mas
+  // arriba). Mismo mecanismo que generador-masivo.enviarPorCorreo(), pero
+  // para un solo destinatario y sin bitacora de progreso.
+  // ====================================================================
+
+  private cargarPlantillasCorreoDisponibles(): void {
+    this.cargandoPlantillasCorreo = true;
+    this.correoApi.listarPlantillas(true).subscribe({
+      next: (res) => {
+        this.plantillasCorreoDisponibles = Array.isArray(res) ? res : (res?.results || []);
+        this.cargandoPlantillasCorreo = false;
+        if (!this.plantillaCorreo && this.plantillasCorreoDisponibles.length) {
+          this.plantillaCorreo = this.plantillasCorreoDisponibles[0];
+        }
+      },
+      error: () => {
+        this.cargandoPlantillasCorreo = false;
+        this.plantillasCorreoDisponibles = [];
+      },
+    });
+  }
+
+  alternarSelectorCorreo(): void {
+    this.selectorCorreoAbierto = !this.selectorCorreoAbierto;
+  }
+
+  usarPlantillaCorreo(nueva: PlantillaCorreo): void {
+    this.selectorCorreoAbierto = false;
+    this.plantillaCorreo = nueva;
+  }
+
+  /** Reemplaza {{nombre_curso}} por lo que se haya escrito en el campo de esta pantalla. */
+  private sustituirVariables(texto: string): string {
+    return (texto || '').split('{{nombre_curso}}').join(this.nombreCurso.trim());
+  }
+
+  /** Etiqueta legible del estado del ultimo envio, para el aviso bajo el boton. */
+  etiquetaEstadoEnvio(estado: EstadoEnvioCorreo): string {
+    switch (estado) {
+      case 'enviado': return 'Constancia enviada por correo';
+      case 'sin_correo': return 'Sin correo institucional registrado';
+      case 'error_pdf': return 'Error al generar el PDF';
+      default: return 'Error al contactar el Agente de Correo';
+    }
+  }
+
+  /**
+   * Envia por correo la constancia del empleado actualmente seleccionado. El
+   * envio REAL lo hace el Agente de Correo ANAM (ver AgenteCorreoService) --
+   * este metodo solo genera el PDF con la misma plantilla/ajustes que ya se
+   * ve en la vista previa y se lo manda al agente por 127.0.0.1; el backend
+   * central (CorreoService.registrarEnvio) nunca ve el PDF, solo se entera
+   * del resultado para la bitacora. Mismo flujo que
+   * generador-masivo.enviarPorCorreo(), aqui para UN solo empleado.
+   */
+  async enviarCorreoActual(): Promise<void> {
+    if (!this.plantilla || !this.empleadoSeleccionado) return;
+    if (!this.nombreCurso.trim()) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'Escribe el nombre del curso antes de enviar.');
+      return;
+    }
+    if (!this.plantillaCorreo) {
+      this.utils.MuestrasToast(
+        TipoToast.Warning,
+        'Elige una plantilla de correo. Si no hay ninguna, créala primero en "Correo electrónico".'
+      );
+      return;
+    }
+    const config = this.plantillaCorreo;
+    if (!config.cuenta_remitente?.trim()) {
+      this.utils.MuestrasToast(
+        TipoToast.Warning,
+        'Esa plantilla de correo no tiene cuenta remitente. Ve a "Correo electrónico" y complétala primero.'
+      );
+      return;
+    }
+
+    // Se revisa AHORA, no solo al entrar a la pantalla: pudo haberse
+    // cerrado desde entonces.
+    this.agenteDisponible = await firstValueFrom(this.agenteApi.disponible());
+    if (!this.agenteDisponible) {
+      this.utils.MuestrasToast(
+        TipoToast.Error,
+        'No se encontró el Agente de Correo ANAM en esta computadora. Ábrelo (con Outlook también abierto) e inténtalo de nuevo.'
+      );
+      return;
+    }
+
+    const empleado = this.empleadoSeleccionado;
+    let email = '';
+    try {
+      const res = await firstValueFrom(this.plantillaApi.correosLote([empleado.num_empleado]));
+      email = res?.correos?.[empleado.num_empleado] || '';
+    } catch (err) {
+      this.utils.MuestraErrorInterno(err);
+      return;
+    }
+
+    const asunto = this.sustituirVariables(config.asunto);
+    const cuerpoHtml = this.sustituirVariables(config.cuerpo_html);
+    const nombreCompleto = `${empleado.nombre || ''} ${empleado.apellidos || ''}`.trim();
+
+    const datosBase = {
+      num_empleado: empleado.num_empleado || '',
+      nombre_empleado: nombreCompleto,
+      email_destino: email,
+      asunto,
+      cuenta_remitente: config.cuenta_remitente,
+      nombre_curso: this.nombreCurso.trim(),
+      plantilla_clave: this.plantilla.clave,
+      plantilla_correo_nombre: config.nombre,
+    };
+
+    this.enviandoCorreo = true;
+    this.ultimoEnvio = null;
+    this.cdr.detectChanges();
+    await new Promise<void>(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
+    let estado: EstadoEnvioCorreo;
+    let mensaje: string | undefined;
+
+    if (!email) {
+      estado = 'sin_correo';
+      mensaje = 'Sin correo institucional registrado.';
+    } else {
+      let pdfBlob: Blob | null = null;
+      try {
+        const pdf = await this.render.generarPdf(this.plantillaEfectiva!, empleado, {
+          guardar: false, incluirReverso: this.tieneReverso,
+        });
+        pdfBlob = pdf.output('blob');
+      } catch {
+        pdfBlob = null;
+      }
+
+      if (!pdfBlob) {
+        estado = 'error_pdf';
+        mensaje = 'No se pudo generar el PDF de la constancia.';
+      } else {
+        try {
+          const respuesta = await firstValueFrom(this.agenteApi.enviar({
+            destinatario: email,
+            asunto,
+            cuerpo_html: cuerpoHtml,
+            cuenta_remitente: config.cuenta_remitente,
+            pdf: pdfBlob,
+            nombreArchivo: `Constancia_${empleado.num_empleado || 'sin_numero'}.pdf`,
+          }));
+          estado = respuesta.status === 'success' ? 'enviado' : 'error_outlook';
+          mensaje = respuesta.mensaje;
+        } catch (err: any) {
+          estado = 'error_outlook';
+          mensaje = err?.error?.mensaje || 'No se pudo contactar al Agente de Correo.';
+        }
+      }
+    }
+
+    this.ultimoEnvio = { estado, mensaje };
+
+    // Se registra en la bitacora AUNQUE falle -- best-effort, igual que en generador-masivo.
+    this.correoApi.registrarEnvio({ ...datosBase, estado, error_detalle: mensaje || '' }).subscribe({
+      error: () => {},
+    });
+
+    this.enviandoCorreo = false;
+    this.cdr.detectChanges();
+
+    this.utils.MuestrasToast(
+      estado === 'enviado' ? TipoToast.Success : TipoToast.Warning,
+      estado === 'enviado' ? 'Constancia enviada por correo.' : (mensaje || this.etiquetaEstadoEnvio(estado))
+    );
   }
 }

@@ -1,18 +1,55 @@
-// Pantalla "Plantillas". Usa los tokens de src/assets/styles.scss -- el
-// encabezado usaba `bg-primary`/`text-primary` de Bootstrap (azul), que no
-// tiene nada que ver con la marca institucional que sí usan las otras 6
-// pantallas nuevas; ver CLAUDE.md.
+// Pantalla "Plantillas". Mismo lenguaje visual que Generador masivo /
+// Imprimir constancias / Dashboard (ver CLAUDE.md): tarjeta blanca de
+// topbar con icono guinda, buscador tipo pastilla y tarjetas con borde
+// #eee2da -- reemplaza el header suelto sobre el fondo y el
+// `shadow-sm`/`bg-primary` de Bootstrap que traía antes.
+
+.pl-pagina {
+  min-height: calc(100vh - 120px);
+  background: #eef1f5;
+}
+
+.pl-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding: 16px 20px;
+  margin-bottom: var(--space-lg);
+  background: #fff;
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-low);
+}
 
 .pl-icono {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  box-shadow: var(--shadow-md);
+  font-size: 1rem;
+}
+
+.pl-topbar-titulo {
+  font-family: var(--font-family-titles);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-title-h1);
+  margin: 0 0 2px;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.pl-topbar-sub {
+  font-size: 0.82rem;
+  color: #8a8a8a;
+  margin: 0;
 }
 
 .pl-btn-nuevo {
@@ -23,17 +60,65 @@
   &:hover { background: var(--color-primary-hover); color: #fff; }
 }
 
+// ---------- Buscador ----------
+.pl-buscador-fila {
+  margin-bottom: var(--space-lg);
+}
+
+.pl-buscador {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #fff;
+  border: 1px solid #e3ddd6;
+  border-radius: var(--radius-md);
+  padding: 0 0.85rem;
+  height: 40px;
+  max-width: 380px;
+}
+
+.pl-buscador-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+
+  &::placeholder { color: #a39d97; }
+}
+
+.pl-vacio {
+  padding: var(--space-xl);
+  text-align: center;
+  background: #fff;
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg);
+}
+
 .plantilla-card {
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-low);
+  overflow: hidden;
   transition: transform var(--duration-normal) var(--ease-standard),
-              box-shadow var(--duration-normal) var(--ease-standard);
+              box-shadow var(--duration-normal) var(--ease-standard),
+              border-color var(--duration-normal) var(--ease-standard);
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: var(--shadow-md) !important;
+    box-shadow: var(--shadow-md);
+    border-color: rgba(105, 28, 50, 0.25);
   }
 
   &.inactiva {
     opacity: 0.6;
+  }
+
+  .card-footer {
+    background: #fff;
+    border-top: 1px solid #eee2da !important;
   }
 }
 
@@ -43,7 +128,9 @@
   max-height: 220px;
   overflow: hidden;
   background: #f1f3f5;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  // Sin radio propio: la tarjeta (.plantilla-card) ya recorta con
+  // overflow:hidden usando var(--radius-lg) -- duplicarlo aqui con un radio
+  // mas chico (--radius-sm) dejaba una esquina "doble" desalineada.
   cursor: pointer;
 
   img {

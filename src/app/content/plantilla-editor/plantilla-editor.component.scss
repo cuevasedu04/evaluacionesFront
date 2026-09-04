@@ -16,6 +16,88 @@
   min-height: 0; // permite que los hijos hagan scroll dentro del flex
 }
 
+// ---------- Submodal "Formas" (boton en Elementos fijos) ----------
+.formas-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.forma-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.3rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+}
+
+.forma-preview {
+  width: 42px;
+  height: 42px;
+}
+
+.forma-label {
+  font-size: 0.68rem;
+  color: #495057;
+  text-align: center;
+  line-height: 1.1;
+}
+
+// ---------- Fuentes personalizadas (panel izquierdo) ----------
+.lista-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fuente-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+}
+
+.fuente-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.fuente-borrar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #adb5bd;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    color: #fff;
+    background-color: var(--color-error);
+  }
+}
+
 // ---------- Paneles laterales ----------
 .editor-panel {
   width: 260px;

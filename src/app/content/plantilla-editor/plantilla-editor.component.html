@@ -5,6 +5,42 @@
   </div>
 </ng-template>
 
+<ng-template #formasDialog>
+  <div class="formas-grid modal-body p-3">
+    <button *ngFor="let f of catalogoFormas" type="button" class="forma-item" (click)="seleccionarFormaCatalogo(f)" [title]="f.label">
+      <svg viewBox="0 0 100 100" class="forma-preview">
+        <rect *ngIf="f.motor === 'rect'" x="4" y="4" width="92" height="92"
+              [attr.rx]="(f.rx || 0) * 92" [attr.ry]="(f.ry || 0) * 92" fill="#691C32"></rect>
+        <circle *ngIf="f.motor === 'circle'" cx="50" cy="50" r="46" fill="#691C32"></circle>
+        <line *ngIf="f.motor === 'line'" x1="4" y1="50" x2="96" y2="50"
+              [attr.stroke-dasharray]="f.strokeDashArray?.join(',') || null"
+              stroke="#691C32" stroke-width="10" stroke-linecap="round"></line>
+        <polygon *ngIf="f.motor === 'polygon'" [attr.points]="puntosSvg(f.puntos)" fill="#691C32"></polygon>
+        <path *ngIf="f.motor === 'path'" [attr.d]="f.path" fill="#691C32"></path>
+      </svg>
+      <span class="forma-label">{{ f.label }}</span>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #instruccionesFuenteDialog>
+  <div class="modal-body p-4">
+    <div class="text-center mb-3">
+      <i class="fas fa-font text-primary" style="font-size: 2.5rem;"></i>
+    </div>
+    <h6>¿Qué archivo debo subir?</h6>
+    <ul class="mb-3 ps-3">
+      <li>Formatos aceptados: <strong>.ttf</strong>, <strong>.otf</strong>, <strong>.woff</strong> o <strong>.woff2</strong> (archivos de fuente tipográfica, no imágenes).</li>
+      <li>Tamaño máximo: <strong>5&nbsp;MB</strong>.</li>
+      <li>El nombre del archivo (sin la extensión) es el que va a aparecer en la lista de fuentes del editor.</li>
+    </ul>
+    <p class="mb-0 small text-muted">
+      Si no tienes el archivo a la mano, la mayoría de las fuentes se pueden descargar en formato .ttf u .otf
+      desde su sitio oficial o desde un catálogo como Google Fonts.
+    </p>
+  </div>
+</ng-template>
+
 <ng-template #qrCamposDialog>
   <div class="modal-body p-3">
     <p class="text-muted small mb-3">
@@ -128,6 +164,10 @@
             <i class="fas" [ngClass]="el.icono"></i>
             <span>{{ el.label }}</span>
           </button>
+          <button class="btn-campo" (click)="abrirModalFormas()">
+            <i class="fas fa-draw-polygon"></i>
+            <span>Formas</span>
+          </button>
         </div>
       </div>
 
@@ -161,6 +201,30 @@
         <input type="file" #inputFondo hidden accept="image/*" (change)="onFondoSeleccionado($event)">
         <input type="file" #inputImagen hidden accept="image/*" (change)="onImagenFijaSeleccionada($event)">
       </div>
+
+      <!--
+        Sin boton "Subir fuente" aqui: el atajo para agregar una fuente vive
+        en el panel derecho, junto al selector "Fuente" de la propiedad
+        seleccionada (mas a la mano que este panel, que hay que scrollear
+        para ver). Esta seccion queda solo para administrar (borrar) el
+        catalogo ya subido.
+      -->
+      <div class="panel-seccion" *ngIf="fuentes.length">
+        <h6 class="panel-titulo"><i class="fas fa-font"></i> Fuentes personalizadas</h6>
+        <div class="lista-fuentes">
+          <div *ngFor="let fuente of fuentes" class="fuente-item">
+            <span class="fuente-nombre" [style.fontFamily]="fuente.nombre" [title]="fuente.nombre">{{ fuente.nombre }}</span>
+            <span class="fuente-borrar"
+                  *ngIf="permisosS.tiene('plantillas_administrar')"
+                  (click)="confirmarBorrarFuente(fuente, $event)"
+                  title="Eliminar esta fuente">
+              <i class="fas" [class.fa-trash]="borrandoFuente !== fuente.ruta"
+                 [class.fa-spinner]="borrandoFuente === fuente.ruta" [class.fa-spin]="borrandoFuente === fuente.ruta"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+      <input type="file" #inputFuente hidden accept=".ttf,.otf,.woff,.woff2" (change)="onFuenteSeleccionada($event)">
     </aside>
 
     <!-- ---------- CENTRO: lienzo ---------- -->
@@ -203,8 +267,12 @@
       <app-credencial-panel-propiedades
           [canvas]="canvas"
           [objeto]="objetoSeleccionado"
+          [fuentes]="fuentesTexto"
+          [permitirSubirFuente]="permisosS.tiene('plantillas_administrar')"
+          [subiendoFuente]="subiendoFuente"
           (seleccionCambiada)="objetoSeleccionado = $event"
-          (cambio)="hayCambios = true">
+          (cambio)="hayCambios = true"
+          (subirFuente)="abrirSubirFuente()">
       </app-credencial-panel-propiedades>
 
       <!-- Previsualizacion con datos reales -->

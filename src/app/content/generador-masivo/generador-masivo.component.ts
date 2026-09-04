@@ -125,6 +125,9 @@ export class GeneradorMasivoComponent implements OnInit {
   progresoActual = 0;
   progresoTotal = 0;
 
+  /** Que bloque de acciones se muestra en el panel derecho -- ver seleccionarTabAcciones(). */
+  tabAcciones: 'descargar' | 'correo' = 'descargar';
+
   // ---- Envio por correo ----
   /** Sustituye a {{nombre_curso}} en el asunto/cuerpo de la plantilla de correo elegida -- ver CorreoElectronicoComponent. */
   nombreCurso = '';
@@ -270,10 +273,10 @@ export class GeneradorMasivoComponent implements OnInit {
     const yaAgregado = this.idsEnLista.has(id);
     return yaAgregado
       ? `<button type="button" class="gm-btn-agregar gm-btn-agregado" data-action="quitar" data-id="${id}" title="Ya está en la lista, quitar">
-           <i class="fas fa-circle-minus"></i>
+           <i class="fas fa-check"></i>
          </button>`
       : `<button type="button" class="gm-btn-agregar" data-action="agregar" data-id="${id}" title="Agregar a la lista">
-           <i class="fas fa-circle-plus"></i>
+           <i class="fas fa-plus"></i>
          </button>`;
   }
 
@@ -398,6 +401,20 @@ export class GeneradorMasivoComponent implements OnInit {
 
   get puedeGenerar(): boolean {
     return !!this.plantilla && this.lista.length > 0 && !this.generando;
+  }
+
+  seleccionarTabAcciones(tab: 'descargar' | 'correo'): void {
+    this.tabAcciones = tab;
+  }
+
+  // ---- Resumen (panel inferior derecho) ----
+
+  get enviadosCount(): number {
+    return this.resultadosEnvio.filter(r => r.estado === 'enviado').length;
+  }
+
+  get conProblemaCount(): number {
+    return this.resultadosEnvio.length - this.enviadosCount;
   }
 
   /** Un solo PDF, una pagina por empleado -- reutiliza CredencialRenderService.generarPdfLote(). */

@@ -27,18 +27,59 @@ export class CredencialPanelPropiedadesComponent {
 
   @Input() canvas: fabric.Canvas | null = null;
   @Input() objeto: fabric.FabricObject | null = null;
+  /** Nombres de fuente para el selector -- por omision solo las del sistema/build; quien la use puede sumarle las personalizadas ya subidas (ver PlantillaEditorComponent.fuentesTexto). */
+  @Input() fuentes: string[] = FUENTES_DISPONIBLES;
+  /** Si se muestra el boton "+" para subir una fuente propia junto al selector. Falso en consumidores que no administran plantillas (p.ej. la edicion rapida de "Imprimir constancias"). */
+  @Input() permitirSubirFuente = false;
+  @Input() subiendoFuente = false;
 
   /** Se emite cuando la seleccion activa cambia (duplicar, eliminar). */
   @Output() seleccionCambiada = new EventEmitter<fabric.FabricObject | null>();
   /** Se emite en cualquier mutacion, para que el padre marque "hay cambios". */
   @Output() cambio = new EventEmitter<void>();
+  /** El usuario dio clic en "+" junto al selector de fuente -- el padre es quien sabe abrir el modal/input de archivo. */
+  @Output() subirFuente = new EventEmitter<void>();
 
-  readonly fuentes = FUENTES_DISPONIBLES;
   readonly alineaciones = ALINEACIONES;
 
   get esTexto(): boolean {
     const tipo = this.objeto?.type;
     return tipo === 'textbox' || tipo === 'text' || tipo === 'i-text';
+  }
+
+  /** Figuras del catalogo "Formas" (ver plantilla-editor.const.ts, CATALOGO_FORMAS) -- object.data.binding = 'forma_<tipo>'. */
+  get esFigura(): boolean {
+    return !!this.datosSeleccion?.binding?.startsWith('forma_');
+  }
+
+  /** Una linea se pinta con `stroke` (no tiene relleno); el resto de las figuras usan `fill`. */
+  get colorFiguraPropiedad(): 'fill' | 'stroke' {
+    return this.objeto?.type === 'line' ? 'stroke' : 'fill';
+  }
+
+  /** Solo un fabric.Rect tiene esquinas que redondear (rx/ry). */
+  get esFiguraRectangular(): boolean {
+    return this.esFigura && this.objeto?.type === 'rect';
+  }
+
+  /**
+   * Tope del radio de esquina: mas alla de la mitad del lado mas chico ya no
+   * hay esquina que redondear (el rectangulo se vuelve una pastilla/circulo
+   * completo) -- limitar el slider ahi evita un radio "de sobra" que no
+   * cambia nada visualmente.
+   */
+  get radioEsquinaMax(): number {
+    const obj = this.objeto as any;
+    if (!obj) return 0;
+    return Math.max(0, Math.min(obj.width || 0, obj.height || 0) / 2);
+  }
+
+  /** rx y ry siempre iguales -- un solo control ("Radio de esquina") en vez de dos, ver credencial-panel-propiedades.component.html. */
+  actualizarRadioEsquina(valor: number): void {
+    if (!this.objeto || !this.canvas) return;
+    this.objeto.set({ rx: valor, ry: valor } as any);
+    this.canvas.renderAll();
+    this.cambio.emit();
   }
 
   get datosSeleccion(): any {
@@ -80,6 +121,22 @@ export class CredencialPanelPropiedadesComponent {
   traerAlFrente(): void {
     if (!this.objeto || !this.canvas) return;
     this.canvas.bringObjectToFront(this.objeto);
+    this.canvas.renderAll();
+    this.cambio.emit();
+  }
+
+  /** Sube UN nivel (al contrario de traerAlFrente, que lo manda hasta arriba de todo). */
+  adelantarCapa(): void {
+    if (!this.objeto || !this.canvas) return;
+    this.canvas.bringObjectForward(this.objeto);
+    this.canvas.renderAll();
+    this.cambio.emit();
+  }
+
+  /** Baja UN nivel (al contrario de enviarAlFondo, que lo manda hasta el fondo de todo). */
+  atrasarCapa(): void {
+    if (!this.objeto || !this.canvas) return;
+    this.canvas.sendObjectBackwards(this.objeto);
     this.canvas.renderAll();
     this.cambio.emit();
   }

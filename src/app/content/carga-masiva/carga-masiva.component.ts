@@ -59,7 +59,7 @@ export class CargaMasivaComponent implements OnInit {
   @ViewChild('modalConfirmacion') modalConfirmacion!: TemplateRef<any>;
   @ViewChild('modalResumen') modalResumen!: TemplateRef<any>;
 
-  private apiUrl = '/api-sicre/carga-masiva/';
+  private apiUrl = '/api/carga-masiva/';
 
   constructor(
     private http: HttpClient,
