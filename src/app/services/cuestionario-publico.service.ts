@@ -22,7 +22,7 @@ import { EstadoCuestionario } from '../content/responder/responder.const';
 @Injectable({ providedIn: 'root' })
 export class CuestionarioPublicoService {
 
-  private readonly api = '/api-sicre/publico/cuestionario/';
+  private readonly api = '/api/publico/cuestionario/';
 
   constructor(private http: HttpClient) { }
 

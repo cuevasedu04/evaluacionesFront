@@ -26,7 +26,7 @@ export interface RespuestaSubirImagen {
 @Injectable({ providedIn: 'root' })
 export class FormularioService {
 
-  private readonly api = '/api-sicre/formularios/';
+  private readonly api = '/api/formularios/';
 
   constructor(private http: HttpClient) { }
 

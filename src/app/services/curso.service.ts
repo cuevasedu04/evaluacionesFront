@@ -19,7 +19,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class CursoService {
 
-  private readonly api = '/api-sicre/cursos/';
+  private readonly api = '/api/cursos/';
 
   constructor(private http: HttpClient) { }
 
