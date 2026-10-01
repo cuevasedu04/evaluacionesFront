@@ -1,0 +1,705 @@
+/**
+ * Pantalla pública para responder un cuestionario.
+ *
+ * Se pinta con el color del tema elegido en el editor del formulario, que
+ * llega como variables en línea desde el componente (`--rc-color` /
+ * `--rc-fondo`). Todo lo demás usa los tokens del sistema, para que la
+ * página se sienta parte del mismo producto aunque quien la abra no tenga
+ * sesión.
+ *
+ * Es la única pantalla que ve gente ajena al sistema, y muchas veces desde
+ * el teléfono: el diseño es de una sola columna y todo lo tocable pasa de
+ * 40px de alto.
+ */
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.rc-pagina {
+  --rc-color: #691C32;
+  --rc-fondo: #f4eef1;
+
+  min-height: 100vh;
+  background: var(--rc-fondo);
+  color: #2b2b2b;
+  font-family: inherit;
+  padding-bottom: 3rem;
+}
+
+// ======================================================================
+// Contenedores
+// ======================================================================
+
+.rc-centro {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.rc-tarjeta {
+  background: #fff;
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-low, 0 1px 3px rgba(0, 0, 0, 0.06));
+  padding: 1.75rem;
+  width: 100%;
+  text-align: left;
+}
+
+.rc-tarjeta-angosta {
+  max-width: 460px;
+}
+
+.rc-cuerpo {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+// La franja superior del color del tema: firma visual de que la constancia
+// y el cuestionario son del mismo curso.
+.rc-tarjeta {
+  position: relative;
+  overflow: hidden;
+}
+
+.rc-tarjeta-angosta::before,
+.rc-pregunta::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: var(--rc-color);
+}
+
+.rc-pregunta::before { opacity: 0; transition: opacity var(--duration-micro, 150ms) var(--ease-standard, ease); }
+.rc-pregunta:focus-within::before { opacity: 1; }
+
+// ======================================================================
+// Encabezados
+// ======================================================================
+
+.rc-marca {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--rc-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.rc-marca-sm {
+  width: 34px;
+  height: 34px;
+  font-size: 0.85rem;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.rc-titulo {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  color: #1f1f1f;
+}
+
+.rc-titulo-estado {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.rc-sub {
+  color: #6b6b6b;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.rc-icono-estado {
+  font-size: 2.6rem;
+  color: #b9a99f;
+}
+
+.rc-icono-ok { color: var(--color-success, #007B5D); }
+
+.rc-nota {
+  font-size: 0.78rem;
+  color: #8a8a8a;
+  text-align: center;
+  margin: 0.5rem 0 0;
+}
+
+// ======================================================================
+// Identidad y datos de la portada
+// ======================================================================
+
+.rc-identidad {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem;
+  background: #f8f5f2;
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 1rem;
+}
+
+.rc-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--rc-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.rc-datos {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.4rem 0;
+    font-size: 0.87rem;
+    color: #4a4a4a;
+  }
+
+  i {
+    color: var(--rc-color);
+    width: 18px;
+    text-align: center;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+  }
+}
+
+// ======================================================================
+// Barra superior mientras se responde
+// ======================================================================
+
+.rc-barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;
+  border-bottom: 1px solid #eee2da;
+  box-shadow: var(--shadow-low, 0 1px 3px rgba(0, 0, 0, 0.06));
+}
+
+.rc-barra-interior {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rc-guardado {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-pill, 999px);
+  background: #f2efec;
+  color: #6b6b6b;
+}
+
+.rc-guardado-guardado {
+  background: var(--color-success-light, rgba(0, 123, 93, 0.12));
+  color: var(--color-success, #007B5D);
+}
+
+.rc-guardado-sin_conexion {
+  background: rgba(159, 13, 61, 0.1);
+  color: var(--color-error, #9F0D3D);
+}
+
+.rc-reloj {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-pill, 999px);
+  background: #f2efec;
+  color: #3d3d3d;
+}
+
+// Los últimos dos minutos se marcan: es información que cambia lo que la
+// persona hace a continuación, no decoración.
+.rc-reloj-urgente {
+  background: rgba(159, 13, 61, 0.12);
+  color: var(--color-error, #9F0D3D);
+  animation: rc-latido 1s ease-in-out infinite;
+}
+
+@keyframes rc-latido {
+  50% { opacity: 0.55; }
+}
+
+.rc-progreso {
+  height: 4px;
+  background: #ece6e1;
+}
+
+.rc-progreso-relleno {
+  height: 100%;
+  background: var(--rc-color);
+  transition: width var(--duration-micro, 150ms) var(--ease-standard, ease);
+}
+
+// ======================================================================
+// Preguntas
+// ======================================================================
+
+.rc-pregunta {
+  padding: 1.15rem 1.25rem;
+}
+
+.rc-pregunta-faltante {
+  border-color: var(--color-error, #9F0D3D);
+}
+
+.rc-pregunta-encabezado {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 0.75rem;
+}
+
+.rc-numero {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f2efec;
+  color: #6b6b6b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.rc-pregunta-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.rc-obligatoria {
+  color: var(--color-error, #9F0D3D);
+  margin-left: 0.15rem;
+}
+
+.rc-pregunta-desc {
+  font-size: 0.83rem;
+  color: #767676;
+  margin: 0.25rem 0 0;
+}
+
+.rc-puntos {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(201, 169, 119, 0.18);
+  color: #8a6a1f;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rc-imagen {
+  max-width: 100%;
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.rc-respuesta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rc-faltante {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--color-error, #9F0D3D);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+// ---- Bloques que no se responden ----
+
+.rc-seccion {
+  border-left: 4px solid var(--rc-color);
+  padding-left: 0.85rem;
+
+  h2 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+  p { font-size: 0.85rem; color: #6b6b6b; margin: 0.25rem 0 0; }
+}
+
+.rc-bloque-titulo {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.rc-bloque-texto {
+  font-size: 0.88rem;
+  color: #5b5b5b;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.rc-video {
+  position: relative;
+  padding-top: 56.25%;
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+
+  iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// ======================================================================
+// Controles
+// ======================================================================
+
+.rc-input {
+  width: 100%;
+  border: 1px solid #ddd2c8;
+  border-radius: var(--radius-md, 8px);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.92rem;
+  background: #fff;
+  color: #2b2b2b;
+  transition: border-color var(--duration-micro, 150ms) var(--ease-standard, ease);
+
+  &:focus {
+    outline: none;
+    border-color: var(--rc-color);
+    box-shadow: 0 0 0 3px rgba(105, 28, 50, 0.08);
+  }
+}
+
+.rc-textarea { resize: vertical; min-height: 92px; }
+.rc-input-corto { max-width: 220px; }
+
+.rc-input-linea {
+  border: none;
+  border-bottom: 1px solid #ddd2c8;
+  border-radius: 0;
+  padding: 0.4rem 0.2rem;
+
+  &:focus { box-shadow: none; border-bottom-color: var(--rc-color); }
+}
+
+.rc-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b6b6b;
+  margin-bottom: 0.3rem;
+}
+
+// ---- Opciones (radio / casilla) ----
+// Se dibujan sobre un <button>, no sobre un <input type="radio"> con
+// <label for>: en un control nativo, un clic con el mínimo arrastre lo
+// interpreta el navegador como selección de texto y NUNCA dispara el
+// evento. Con toda la fila como botón, cualquier toque cuenta -- y en un
+// teléfono el área tocable es la fila completa, no el círculo.
+
+.rc-opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #e7ddd4;
+  border-radius: var(--radius-md, 8px);
+  background: #fff;
+  text-align: left;
+  font-size: 0.92rem;
+  color: #2b2b2b;
+  cursor: pointer;
+  transition: border-color var(--duration-micro, 150ms) var(--ease-standard, ease),
+              background var(--duration-micro, 150ms) var(--ease-standard, ease);
+
+  &:hover { background: #faf7f4; }
+}
+
+.rc-opcion-activa {
+  border-color: var(--rc-color);
+  background: rgba(105, 28, 50, 0.05);
+  font-weight: 600;
+}
+
+.rc-radio,
+.rc-check {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #b9a99f;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  color: transparent;
+  transition: all var(--duration-micro, 150ms) var(--ease-standard, ease);
+}
+
+.rc-radio { border-radius: 50%; }
+.rc-check { border-radius: 4px; }
+
+.rc-opcion-activa .rc-radio {
+  border-color: var(--rc-color);
+  box-shadow: inset 0 0 0 4px var(--rc-color);
+}
+
+.rc-opcion-activa .rc-check {
+  border-color: var(--rc-color);
+  background: var(--rc-color);
+  color: #fff;
+}
+
+.rc-opcion-otro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+// ---- Escala lineal ----
+
+.rc-escala {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.rc-escala-etiqueta {
+  font-size: 0.82rem;
+  color: #6b6b6b;
+  max-width: 130px;
+}
+
+.rc-escala-puntos {
+  display: flex;
+  gap: 0.35rem;
+  flex-grow: 1;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.rc-escala-punto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 44px;
+  padding: 0.35rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.rc-escala-num { font-size: 0.8rem; color: #6b6b6b; }
+
+.rc-escala-activa {
+  .rc-escala-num { color: var(--rc-color); font-weight: 700; }
+  .rc-radio { border-color: var(--rc-color); box-shadow: inset 0 0 0 4px var(--rc-color); }
+}
+
+// ---- Calificación ----
+
+.rc-estrellas { display: flex; gap: 0.3rem; }
+
+.rc-estrella {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: #d8ccc2;
+  font-size: 1.35rem;
+  cursor: pointer;
+  transition: color var(--duration-micro, 150ms) var(--ease-standard, ease);
+}
+
+.rc-estrella-activa { color: var(--color-gold, #C9A977); }
+
+// ---- Cuadrículas ----
+
+.rc-cuadricula-wrap {
+  // El desbordamiento se resuelve DENTRO de la tarjeta: una cuadrícula ancha
+  // no debe empujar el ancho de toda la página en un teléfono.
+  overflow-x: auto;
+}
+
+.rc-cuadricula {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th, td {
+    padding: 0.5rem;
+    text-align: center;
+    border-bottom: 1px solid #f0eae4;
+  }
+
+  thead th {
+    font-weight: 600;
+    color: #6b6b6b;
+    font-size: 0.78rem;
+  }
+
+  tbody th {
+    text-align: left;
+    font-weight: 500;
+    min-width: 130px;
+  }
+}
+
+.rc-celda {
+  border: none;
+  background: none;
+  padding: 0.35rem;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-marcada {
+  &.rc-radio { border-color: var(--rc-color); box-shadow: inset 0 0 0 4px var(--rc-color); }
+  &.rc-check { border-color: var(--rc-color); background: var(--rc-color); color: #fff; }
+}
+
+// ======================================================================
+// Avisos, pie y botones
+// ======================================================================
+
+.rc-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  background: #f6f3f0;
+  font-size: 0.82rem;
+  color: #5b5b5b;
+
+  i { margin-top: 0.15rem; flex-shrink: 0; }
+}
+
+.rc-aviso-warn {
+  background: rgba(201, 169, 119, 0.16);
+  color: #7a5f1c;
+}
+
+.rc-aviso-offline {
+  background: rgba(159, 13, 61, 0.1);
+  color: var(--color-error, #9F0D3D);
+}
+
+.rc-error {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-error, #9F0D3D);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rc-pie {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-low, 0 1px 3px rgba(0, 0, 0, 0.06));
+  padding: 1rem 1.25rem;
+}
+
+.rc-pie-info {
+  font-size: 0.87rem;
+  color: #5b5b5b;
+  flex-grow: 1;
+}
+
+.rc-pie-faltan { color: var(--color-error, #9F0D3D); }
+
+.rc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-micro, 150ms) var(--ease-standard, ease);
+}
+
+.rc-btn-primario {
+  background: var(--rc-color);
+  color: #fff;
+
+  &:hover:not(:disabled) { filter: brightness(0.92); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+// ======================================================================
+// Teléfono
+// ======================================================================
+
+@media (max-width: 576px) {
+  .rc-tarjeta { padding: 1.1rem; }
+  .rc-cuerpo { padding: 0.9rem 0.65rem 0; }
+  .rc-barra-interior { padding: 0.5rem 0.65rem; gap: 0.5rem; }
+  .rc-guardado span { display: none; }
+  .rc-escala-etiqueta { max-width: 100%; width: 100%; text-align: center; }
+  .rc-pie { flex-direction: column; align-items: stretch; }
+  .rc-btn { width: 100%; }
+}

@@ -1,0 +1,149 @@
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
+<ng-template #nuevoDialog>
+  <div class="modal-body p-4">
+    <label class="cu-label">Nombre del curso</label>
+    <input type="text" class="cu-input" [(ngModel)]="nombreNuevo"
+           placeholder="Ej. Curso de ciberseguridad 2026" autofocus>
+    <small class="text-muted d-block mt-2">
+      Después le asignas la constancia, la plantilla de correo y el cuestionario.
+    </small>
+  </div>
+</ng-template>
+
+<div class="cursos-lista d-flex flex-column">
+
+  <!-- ===================== BARRA SUPERIOR ===================== -->
+  <header class="cu-topbar bg-white px-3 pt-3 pb-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="cu-icono">
+          <i class="fas fa-graduation-cap text-white"></i>
+        </div>
+        <div>
+          <h1 class="h6 fw-bold mb-0">Cursos</h1>
+          <small class="text-muted">Aplica un cuestionario a un grupo y emite sus constancias</small>
+        </div>
+      </div>
+
+      <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+        <div class="cu-buscador d-flex align-items-center gap-2">
+          <i class="fas fa-search text-muted"></i>
+          <input type="text" class="cu-buscador-input"
+                 placeholder="Buscar curso..."
+                 [(ngModel)]="busqueda">
+          <button class="cu-buscador-limpiar" (click)="busqueda = ''" title="Limpiar búsqueda">
+            <i class="fas fa-eraser"></i>
+          </button>
+        </div>
+
+        <button class="cu-icon-btn" (click)="cargar()" [disabled]="cargando" title="Actualizar lista">
+          <i class="fas fa-rotate-right" [class.fa-spin]="cargando"></i>
+        </button>
+
+        <button class="cu-btn cu-btn-solido px-3" (click)="abrirNuevo()" [disabled]="creando">
+          <i class="fas" [class.fa-plus]="!creando" [class.fa-spinner]="creando" [class.fa-spin]="creando"></i>
+          Nuevo curso
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== CUERPO ===================== -->
+  <div class="cu-cuerpo flex-grow-1 overflow-auto cu-scroll p-3">
+
+    <!-- Métricas -->
+    <div class="cu-metricas" *ngIf="!cargando && cursos.length">
+      <div class="cu-metrica">
+        <div class="cu-metrica-valor">{{ cursos.length }}</div>
+        <div class="cu-metrica-label">Cursos</div>
+      </div>
+      <div class="cu-metrica cu-metrica-ok">
+        <div class="cu-metrica-valor">{{ totalAbiertos }}</div>
+        <div class="cu-metrica-label">Abiertos</div>
+      </div>
+      <div class="cu-metrica cu-metrica-warn">
+        <div class="cu-metrica-valor">{{ totalBorradores }}</div>
+        <div class="cu-metrica-label">En preparación</div>
+      </div>
+      <div class="cu-metrica">
+        <div class="cu-metrica-valor">{{ totalCerrados }}</div>
+        <div class="cu-metrica-label">Cerrados</div>
+      </div>
+    </div>
+
+    <div *ngIf="cargando" class="cu-cargando">
+      <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+      <div>Cargando cursos...</div>
+    </div>
+
+    <!-- Vacío: se distingue "no hay nada creado" de "la búsqueda no encontró
+         nada", porque la salida es distinta (crear uno vs. limpiar el filtro). -->
+    <div *ngIf="!cargando && !cursos.length" class="cu-vacio">
+      <i class="fas fa-graduation-cap mb-3"></i>
+      <h5 class="fw-semibold">Aún no hay cursos</h5>
+      <p class="text-muted mb-3">
+        Crea uno y asígnale la constancia, la plantilla de correo y el cuestionario que ya tengas hechos.
+      </p>
+      <button class="cu-btn cu-btn-solido px-3 mx-auto" (click)="abrirNuevo()" [disabled]="creando">
+        <i class="fas fa-plus"></i> Nuevo curso
+      </button>
+    </div>
+
+    <div *ngIf="!cargando && cursos.length && !cursosFiltrados.length" class="cu-cargando">
+      <i class="fas fa-search fa-2x mb-2 d-block"></i>
+      <div>Ningún curso coincide con «{{ busqueda }}».</div>
+    </div>
+
+    <!-- Tarjetas -->
+    <div class="cu-grid" *ngIf="!cargando && cursosFiltrados.length">
+      <article class="cu-card" *ngFor="let c of cursosFiltrados" (click)="abrir(c)">
+
+        <div class="cu-card-cabecera">
+          <div class="cu-card-icono">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-bold text-truncate" [title]="c.nombre">{{ c.nombre }}</div>
+            <small class="text-muted">{{ c.total_participantes || 0 }} participante(s)</small>
+          </div>
+          <span class="cu-estado" [ngClass]="clase(c)">{{ etiqueta(c) }}</span>
+        </div>
+
+        <p class="cu-card-desc">{{ c.descripcion || 'Sin descripción' }}</p>
+
+        <!-- Qué le falta armar: se ve de un vistazo sin entrar al curso -->
+        <div class="cu-card-piezas">
+          <span class="cu-pieza" [class.cu-pieza-ok]="c.id_plantilla" title="Constancia">
+            <i class="fas" [class.fa-check]="c.id_plantilla" [class.fa-xmark]="!c.id_plantilla"></i>
+            Constancia
+          </span>
+          <span class="cu-pieza" [class.cu-pieza-ok]="c.id_plantilla_correo" title="Plantilla de correo">
+            <i class="fas" [class.fa-check]="c.id_plantilla_correo" [class.fa-xmark]="!c.id_plantilla_correo"></i>
+            Correo
+          </span>
+          <span class="cu-pieza" [class.cu-pieza-ok]="c.id_formulario" title="Cuestionario">
+            <i class="fas" [class.fa-check]="c.id_formulario" [class.fa-xmark]="!c.id_formulario"></i>
+            Cuestionario
+          </span>
+        </div>
+
+        <div class="cu-card-pie">
+          <small class="text-muted">
+            <i class="fas fa-clock"></i>
+            {{ c.fecha_modificacion | date:'dd/MM/yyyy HH:mm' }}
+          </small>
+          <button class="cu-item-quitar ms-auto" title="Eliminar curso" (click)="confirmarEliminar(c, $event)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>

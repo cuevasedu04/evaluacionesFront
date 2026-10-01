@@ -12,6 +12,14 @@ import { catchError, switchMap, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { SessionService } from '../../../services/session.service';
 
+/**
+ * Peticiones del cuestionario publico (ver views_publico.py). No llevan
+ * sesion y NUNCA deben provocar un cierre de sesion: quien las hace es un
+ * empleado respondiendo una evaluacion, no un usuario del sistema, y
+ * mandarlo a /login lo sacaria de la pagina a media captura.
+ */
+const RUTA_PUBLICA = '/publico/';
+
 @Injectable()
 export class TokenInterceptor implements HttpInterceptor {
 
@@ -151,7 +159,8 @@ export class TokenInterceptor implements HttpInterceptor {
       catchError((err: any) => {
         // Manejo de errores de autenticación
         if (err instanceof HttpErrorResponse) {
-          if (err.status === 401 || err.status === 403) {
+          const esPublica = (req.url || '').includes(RUTA_PUBLICA);
+          if (!esPublica && (err.status === 401 || err.status === 403)) {
             try {
               this.sessionS.logout();
             } catch (e) {

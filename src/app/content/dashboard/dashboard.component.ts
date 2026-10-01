@@ -54,6 +54,21 @@ export class DashboardComponent {
       icon: 'fas fa-envelope', link: '/correo-electronico', permiso: 'ver_correo_electronico',
     },
     {
+      id: 'formularios', label: 'Formularios',
+      descripcion: 'Crea encuestas y cuestionarios, y compártelos por enlace para recibir respuestas.',
+      icon: 'fas fa-clipboard-list', link: '/formularios', permiso: 'ver_formularios',
+    },
+    {
+      id: 'formularios', label: 'Formularios',
+      descripcion: 'Crea encuestas y cuestionarios, y compártelos por enlace para recibir respuestas.',
+      icon: 'fas fa-clipboard-list', link: '/formularios', permiso: 'ver_formularios',
+    },
+    {
+      id: 'cursos', label: 'Cursos',
+      descripcion: 'Aplica un cuestionario a un grupo, califícalo y emite las constancias de quienes aprueben.',
+      icon: 'fas fa-graduation-cap', link: '/cursos', permiso: 'ver_cursos',
+    },
+    {
       id: 'catalogo-areas', label: 'Catálogo de áreas',
       descripcion: 'Nombre corto que se imprime en la constancia para cada unidad administrativa.',
       icon: 'fas fa-sitemap', link: '/catalogo-areas', permiso: 'ver_catalogo_areas',

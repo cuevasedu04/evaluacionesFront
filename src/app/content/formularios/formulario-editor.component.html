@@ -1,0 +1,928 @@
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
+<div class="formulario-editor d-flex flex-column" (click)="menuAbiertoId = null; selectorTemaAbierto = false">
+
+  <!-- ================= BARRA SUPERIOR ================= -->
+  <header class="fe-topbar bg-white border-bottom px-3 py-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+
+      <button class="btn btn-sm btn-link text-secondary px-1" (click)="volverALista()" title="Volver a la lista">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+
+      <div class="fe-icono" [style.background]="tema.color">
+        <i class="fas fa-clipboard-list text-white"></i>
+      </div>
+
+      <div class="fe-titulo-topbar">
+        <input type="text" class="form-control form-control-sm fw-semibold"
+               *ngIf="formulario"
+               [(ngModel)]="formulario.titulo"
+               (ngModelChange)="marcarCambio()"
+               placeholder="Formulario sin título">
+        <small class="text-muted fe-estado">
+          <ng-container *ngIf="guardando">
+            <i class="fas fa-spinner fa-spin"></i> Guardando...
+          </ng-container>
+          <ng-container *ngIf="!guardando && hayCambiosSinGuardar">
+            <i class="fas fa-circle fa-xs text-warning"></i> Cambios sin guardar
+          </ng-container>
+          <ng-container *ngIf="!guardando && !hayCambiosSinGuardar">
+            <i class="fas fa-cloud text-success"></i> Todos los cambios guardados
+          </ng-container>
+        </small>
+      </div>
+
+      <div class="ms-auto d-flex align-items-center gap-1">
+
+        <button class="btn btn-sm btn-link text-secondary" (click)="deshacer()"
+                [disabled]="!puedeDeshacer" title="Deshacer">
+          <i class="fas fa-rotate-left"></i>
+        </button>
+        <button class="btn btn-sm btn-link text-secondary" (click)="rehacer()"
+                [disabled]="!puedeRehacer" title="Rehacer">
+          <i class="fas fa-rotate-right"></i>
+        </button>
+
+        <!-- Tema de color -->
+        <div class="fe-tema-wrap" (click)="$event.stopPropagation()">
+          <button class="btn btn-sm btn-link text-secondary" title="Color del formulario"
+                  (click)="selectorTemaAbierto = !selectorTemaAbierto">
+            <i class="fas fa-palette"></i>
+          </button>
+          <div class="fe-tema-menu" *ngIf="selectorTemaAbierto">
+            <div class="small fw-semibold text-muted mb-2">Color del formulario</div>
+            <div class="fe-tema-colores">
+              <button *ngFor="let t of temas"
+                      class="fe-tema-color"
+                      [style.background]="t.color"
+                      [class.activo]="formulario?.configuracion?.tema === t.clave"
+                      [title]="t.nombre"
+                      (click)="elegirTema(t.clave)"></button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-sm btn-link text-secondary" (click)="abrirVistaPrevia()" title="Vista previa">
+          <i class="fas fa-eye"></i>
+        </button>
+
+        <button class="btn btn-sm btn-link text-secondary" (click)="copiarEnlace()"
+                [disabled]="!formulario?.publicado"
+                [title]="formulario?.publicado ? 'Copiar enlace para responder' : 'Publica el formulario para obtener su enlace'">
+          <i class="fas fa-link"></i>
+        </button>
+
+        <button class="btn btn-sm"
+                [class.btn-outline-secondary]="formulario?.publicado"
+                [class.btn-primary]="!formulario?.publicado"
+                (click)="alternarPublicado()">
+          <i class="fas" [class.fa-paper-plane]="!formulario?.publicado" [class.fa-lock]="formulario?.publicado"></i>
+          {{ formulario?.publicado ? 'Despublicar' : 'Publicar' }}
+        </button>
+
+        <button class="btn btn-sm btn-success" (click)="guardar(false)" [disabled]="guardando">
+          <i class="fas" [class.fa-save]="!guardando" [class.fa-spinner]="guardando" [class.fa-spin]="guardando"></i>
+          Guardar
+        </button>
+      </div>
+    </div>
+
+    <!-- Pestañas -->
+    <div class="fe-tabs mt-2">
+      <button class="fe-tab" [class.activa]="pestana === 'preguntas'" (click)="pestana = 'preguntas'">
+        Preguntas
+      </button>
+      <button class="fe-tab" [class.activa]="pestana === 'configuracion'" (click)="pestana = 'configuracion'">
+        Configuración
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= CUERPO ================= -->
+  <div class="fe-cuerpo flex-grow-1 overflow-auto" [style.background]="tema.fondo">
+
+    <div *ngIf="cargando" class="text-center text-muted py-5">
+      <i class="fas fa-spinner fa-spin fa-2x"></i>
+      <p class="mt-2 mb-0">Cargando formulario...</p>
+    </div>
+
+    <div *ngIf="!cargando && errorCarga" class="text-center text-muted py-5">
+      <i class="fas fa-triangle-exclamation fa-2x mb-2"></i>
+      <p class="mb-2">{{ errorCarga }}</p>
+      <button class="btn btn-sm btn-outline-secondary" (click)="volverALista()">Volver a la lista</button>
+    </div>
+
+    <!-- ---------- PESTAÑA: PREGUNTAS ---------- -->
+    <div class="fe-lienzo" *ngIf="!cargando && formulario && pestana === 'preguntas'">
+
+      <!-- Encabezado del formulario -->
+      <div class="fe-card fe-card-encabezado" [style.border-top-color]="tema.color">
+        <input type="text" class="fe-input-titulo"
+               [(ngModel)]="formulario.titulo"
+               (ngModelChange)="marcarCambio()"
+               placeholder="Título del formulario">
+        <textarea class="fe-input-desc" rows="1"
+                  [(ngModel)]="formulario.descripcion"
+                  (ngModelChange)="marcarCambio()"
+                  placeholder="Descripción del formulario"></textarea>
+      </div>
+
+      <!-- Lista de preguntas (arrastrable) -->
+      <div cdkDropList (cdkDropListDropped)="moverPregunta($event)" class="fe-lista-preguntas">
+
+        <div *ngFor="let pregunta of formulario.preguntas; trackBy: trackPorId"
+             cdkDrag
+             class="fe-card fe-card-pregunta"
+             [class.seleccionada]="esSeleccionada(pregunta)"
+             [style.border-left-color]="esSeleccionada(pregunta) ? tema.color : 'transparent'"
+             (click)="seleccionar(pregunta); $event.stopPropagation()">
+
+          <!-- Asa de arrastre: solo visible en la tarjeta activa, para que la
+               lista no se vea llena de puntitos. -->
+          <div class="fe-asa" cdkDragHandle title="Arrastra para reordenar">
+            <i class="fas fa-grip-lines"></i>
+          </div>
+
+          <!-- ===== BLOQUES QUE NO SON PREGUNTA ===== -->
+          <ng-container *ngIf="esBloque(pregunta)">
+
+            <div class="fe-bloque-etiqueta">
+              <i [class]="iconoTipo(pregunta.tipo)"></i> {{ labelTipo(pregunta.tipo) }}
+            </div>
+
+            <input type="text" class="fe-input-titulo"
+                   [(ngModel)]="pregunta.titulo"
+                   (ngModelChange)="marcarCambio()"
+                   [placeholder]="pregunta.tipo === 'seccion' ? 'Título de la sección' : 'Título (opcional)'">
+
+            <textarea class="fe-input-desc" rows="1"
+                      [(ngModel)]="pregunta.descripcion"
+                      (ngModelChange)="marcarCambio()"
+                      placeholder="Descripción (opcional)"></textarea>
+
+            <!-- Bloque de imagen -->
+            <div *ngIf="pregunta.tipo === 'imagen_bloque'" class="mt-2">
+              <div *ngIf="pregunta.imagenUrl" class="fe-imagen-wrap">
+                <img [src]="pregunta.imagenUrl" alt="Imagen del formulario">
+                <button class="btn btn-sm btn-light fe-imagen-quitar" (click)="quitarImagen(pregunta)" title="Quitar imagen">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+              <label class="btn btn-sm btn-outline-secondary" *ngIf="!pregunta.imagenUrl">
+                <i class="fas fa-image"></i> Subir imagen
+                <input type="file" accept="image/*" hidden (change)="seleccionarImagen(pregunta, $event)">
+              </label>
+            </div>
+
+            <!-- Bloque de video -->
+            <div *ngIf="pregunta.tipo === 'video'" class="mt-2">
+              <label class="form-label small fw-semibold mb-1">Enlace del video</label>
+              <input type="url" class="form-control form-control-sm"
+                     [(ngModel)]="pregunta.config.url"
+                     (ngModelChange)="marcarCambio()"
+                     placeholder="https://...">
+              <small class="text-muted">Se mostrará como enlace en el formulario publicado.</small>
+            </div>
+
+            <!-- Pie de la tarjeta: los bloques no tienen puntaje/obligatoria/clave,
+                 pero sí necesitan poder duplicarse o eliminarse igual que una pregunta. -->
+            <div class="fe-pie" *ngIf="esSeleccionada(pregunta)">
+              <button class="btn btn-sm btn-link text-secondary" (click)="duplicarPregunta(pregunta)" title="Duplicar">
+                <i class="fas fa-copy"></i>
+              </button>
+              <button class="btn btn-sm btn-link text-danger" (click)="confirmarEliminarPregunta(pregunta)" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </ng-container>
+
+          <!-- ===== PREGUNTAS REALES ===== -->
+          <ng-container *ngIf="!esBloque(pregunta)">
+
+            <div class="fe-fila-titulo">
+              <span class="fe-numero" *ngIf="!esSeleccionada(pregunta)">{{ numeroDePregunta(pregunta) }}.</span>
+
+              <textarea class="fe-input-titulo flex-grow-1" rows="1"
+                        [(ngModel)]="pregunta.titulo"
+                        (ngModelChange)="marcarCambio()"
+                        placeholder="Pregunta sin título"></textarea>
+
+              <!-- Puntos: visible aunque la tarjeta no esté abierta, como en Google Forms -->
+              <span class="fe-badge-puntos" *ngIf="esCuestionario && esCalificable(pregunta)">
+                {{ pregunta.config.puntaje }} {{ pregunta.config.puntaje === 1 ? 'punto' : 'puntos' }}
+              </span>
+
+              <!-- Selector de tipo: solo en la tarjeta activa (como Google Forms) -->
+              <div class="fe-selector-tipo" *ngIf="esSeleccionada(pregunta)">
+                <select class="form-select form-select-sm"
+                        [ngModel]="pregunta.tipo"
+                        (ngModelChange)="cambiarTipo(pregunta, $event)">
+                  <option *ngFor="let t of tiposEnSelector" [value]="t.tipo">{{ t.label }}</option>
+                </select>
+              </div>
+            </div>
+
+            <textarea class="fe-input-desc" rows="1"
+                      *ngIf="pregunta.mostrarDescripcion"
+                      [(ngModel)]="pregunta.descripcion"
+                      (ngModelChange)="marcarCambio()"
+                      placeholder="Descripción de la pregunta"></textarea>
+
+            <!-- Imagen dentro del cuerpo de la pregunta -->
+            <div *ngIf="pregunta.imagenUrl" class="fe-imagen-wrap">
+              <img [src]="pregunta.imagenUrl" alt="Imagen de la pregunta">
+              <button class="btn btn-sm btn-light fe-imagen-quitar" (click)="quitarImagen(pregunta)" title="Quitar imagen">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- ---- Vista de cada tipo ---- -->
+
+            <!-- Texto libre -->
+            <div *ngIf="pregunta.tipo === 'respuesta_corta'" class="fe-preview-texto">
+              Texto de respuesta corta
+            </div>
+            <div *ngIf="pregunta.tipo === 'parrafo'" class="fe-preview-texto fe-preview-parrafo">
+              Texto de respuesta larga
+            </div>
+
+            <!-- Opciones (múltiple / casillas / desplegable) -->
+            <div *ngIf="tieneOpciones(pregunta)"
+                 cdkDropList (cdkDropListDropped)="moverOpcion(pregunta, $event)">
+
+              <div class="fe-opcion" *ngFor="let opcion of pregunta.opciones; let i = index; trackBy: trackPorId" cdkDrag>
+                <i class="fas fa-grip-vertical fe-opcion-asa" cdkDragHandle *ngIf="esSeleccionada(pregunta)"></i>
+
+                <i class="fe-opcion-marca"
+                   [class.fa-regular]="pregunta.tipo !== 'desplegable'"
+                   [class.fa-circle]="pregunta.tipo === 'opcion_multiple'"
+                   [class.fa-square]="pregunta.tipo === 'casillas'"></i>
+                <span class="fe-opcion-num" *ngIf="pregunta.tipo === 'desplegable'">{{ i + 1 }}.</span>
+
+                <input type="text" class="fe-opcion-input"
+                       [(ngModel)]="opcion.texto"
+                       (ngModelChange)="marcarCambio()"
+                       [placeholder]="'Opción ' + (i + 1)">
+
+                <button class="btn btn-sm btn-link text-secondary fe-opcion-quitar"
+                        *ngIf="esSeleccionada(pregunta)"
+                        (click)="quitarOpcion(pregunta, opcion)" title="Quitar opción">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+
+              <!-- Opción "Otro" -->
+              <div class="fe-opcion" *ngIf="pregunta.config.incluirOtro">
+                <i class="fe-opcion-marca fa-regular"
+                   [class.fa-circle]="pregunta.tipo === 'opcion_multiple'"
+                   [class.fa-square]="pregunta.tipo === 'casillas'"></i>
+                <span class="fe-opcion-otro">Otro...</span>
+                <button class="btn btn-sm btn-link text-secondary fe-opcion-quitar"
+                        *ngIf="esSeleccionada(pregunta)"
+                        (click)="alternarOtro(pregunta)" title="Quitar la opción Otro">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+
+              <div class="fe-agregar-opcion" *ngIf="esSeleccionada(pregunta)">
+                <button class="btn btn-sm btn-link" (click)="agregarOpcion(pregunta)">
+                  <i class="fas fa-plus"></i> Agregar opción
+                </button>
+                <span class="text-muted small" *ngIf="admiteOtro(pregunta) && !pregunta.config.incluirOtro">o</span>
+                <button class="btn btn-sm btn-link"
+                        *ngIf="admiteOtro(pregunta) && !pregunta.config.incluirOtro"
+                        (click)="alternarOtro(pregunta)">
+                  agregar «Otro»
+                </button>
+              </div>
+
+              <!-- Cuántas casillas debe marcar quien responde -->
+              <div class="fe-config-linea" *ngIf="esSeleccionada(pregunta) && pregunta.tipo === 'casillas'">
+                <span class="small text-muted">Selecciones permitidas:</span>
+                <input type="number" class="form-control form-control-sm fe-num" min="0"
+                       [(ngModel)]="pregunta.config.minSelecciones" (ngModelChange)="marcarCambio()"
+                       title="Mínimo (0 = sin mínimo)">
+                <span class="small text-muted">a</span>
+                <input type="number" class="form-control form-control-sm fe-num" min="0"
+                       [(ngModel)]="pregunta.config.maxSelecciones" (ngModelChange)="marcarCambio()"
+                       title="Máximo (0 = sin máximo)">
+                <small class="text-muted">0 = sin límite</small>
+              </div>
+            </div>
+
+            <!-- Escala lineal -->
+            <div *ngIf="pregunta.tipo === 'escala_lineal'" class="fe-escala">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <select class="form-select form-select-sm fe-num-select"
+                        [(ngModel)]="pregunta.config.escalaMin" (ngModelChange)="marcarCambio()">
+                  <option [ngValue]="0">0</option>
+                  <option [ngValue]="1">1</option>
+                </select>
+                <span class="text-muted">a</span>
+                <select class="form-select form-select-sm fe-num-select"
+                        [(ngModel)]="pregunta.config.escalaMax" (ngModelChange)="marcarCambio()">
+                  <option *ngFor="let n of [2,3,4,5,6,7,8,9,10]" [ngValue]="n">{{ n }}</option>
+                </select>
+              </div>
+
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="fe-escala-etiqueta">{{ pregunta.config.escalaMin }}</span>
+                <input type="text" class="form-control form-control-sm"
+                       [(ngModel)]="pregunta.config.etiquetaMin" (ngModelChange)="marcarCambio()"
+                       placeholder="Etiqueta (opcional)">
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="fe-escala-etiqueta">{{ pregunta.config.escalaMax }}</span>
+                <input type="text" class="form-control form-control-sm"
+                       [(ngModel)]="pregunta.config.etiquetaMax" (ngModelChange)="marcarCambio()"
+                       placeholder="Etiqueta (opcional)">
+              </div>
+            </div>
+
+            <!-- Calificación -->
+            <div *ngIf="pregunta.tipo === 'calificacion'" class="fe-config-linea">
+              <span class="small text-muted">Nivel máximo:</span>
+              <select class="form-select form-select-sm fe-num-select"
+                      [(ngModel)]="pregunta.config.maxEstrellas" (ngModelChange)="marcarCambio()">
+                <option *ngFor="let n of [3,4,5,6,7,8,9,10]" [ngValue]="n">{{ n }}</option>
+              </select>
+              <span class="small text-muted">Icono:</span>
+              <select class="form-select form-select-sm fe-select-chico"
+                      [(ngModel)]="pregunta.config.iconoCalificacion" (ngModelChange)="marcarCambio()">
+                <option value="estrella">Estrella</option>
+                <option value="corazon">Corazón</option>
+                <option value="pulgar">Pulgar arriba</option>
+              </select>
+              <span class="fe-estrellas">
+                <i class="fas" *ngFor="let n of rangoEstrellas(pregunta)"
+                   [class.fa-star]="pregunta.config.iconoCalificacion === 'estrella'"
+                   [class.fa-heart]="pregunta.config.iconoCalificacion === 'corazon'"
+                   [class.fa-thumbs-up]="pregunta.config.iconoCalificacion === 'pulgar'"></i>
+              </span>
+            </div>
+
+            <!-- Cuadrículas: filas y columnas -->
+            <div *ngIf="esCuadricula(pregunta)" class="fe-cuadricula">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="small fw-semibold text-muted mb-1">Filas</div>
+                  <div cdkDropList (cdkDropListDropped)="moverFila(pregunta, $event)">
+                    <div class="fe-opcion" *ngFor="let fila of pregunta.config.filas; let i = index; trackBy: trackPorId" cdkDrag>
+                      <i class="fas fa-grip-vertical fe-opcion-asa" cdkDragHandle *ngIf="esSeleccionada(pregunta)"></i>
+                      <span class="fe-opcion-num">{{ i + 1 }}.</span>
+                      <input type="text" class="fe-opcion-input"
+                             [(ngModel)]="fila.texto" (ngModelChange)="marcarCambio()"
+                             [placeholder]="'Fila ' + (i + 1)">
+                      <button class="btn btn-sm btn-link text-secondary fe-opcion-quitar"
+                              *ngIf="esSeleccionada(pregunta)"
+                              (click)="quitarFila(pregunta, fila)" title="Quitar fila">
+                        <i class="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button class="btn btn-sm btn-link" *ngIf="esSeleccionada(pregunta)" (click)="agregarFila(pregunta)">
+                    <i class="fas fa-plus"></i> Agregar fila
+                  </button>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="small fw-semibold text-muted mb-1">Columnas</div>
+                  <div cdkDropList (cdkDropListDropped)="moverOpcion(pregunta, $event)">
+                    <div class="fe-opcion" *ngFor="let col of pregunta.opciones; let i = index; trackBy: trackPorId" cdkDrag>
+                      <i class="fas fa-grip-vertical fe-opcion-asa" cdkDragHandle *ngIf="esSeleccionada(pregunta)"></i>
+                      <i class="fe-opcion-marca fa-regular"
+                         [class.fa-circle]="pregunta.tipo === 'cuadricula_opcion'"
+                         [class.fa-square]="pregunta.tipo === 'cuadricula_casillas'"></i>
+                      <input type="text" class="fe-opcion-input"
+                             [(ngModel)]="col.texto" (ngModelChange)="marcarCambio()"
+                             [placeholder]="'Columna ' + (i + 1)">
+                      <button class="btn btn-sm btn-link text-secondary fe-opcion-quitar"
+                              *ngIf="esSeleccionada(pregunta)"
+                              (click)="quitarOpcion(pregunta, col)" title="Quitar columna">
+                        <i class="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button class="btn btn-sm btn-link" *ngIf="esSeleccionada(pregunta)" (click)="agregarOpcion(pregunta)">
+                    <i class="fas fa-plus"></i> Agregar columna
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-check mt-2" *ngIf="esSeleccionada(pregunta)">
+                <input class="form-check-input" type="checkbox" [id]="'filaCompleta_' + pregunta.id"
+                       [(ngModel)]="pregunta.config.requerirFilaCompleta" (ngModelChange)="marcarCambio()">
+                <label class="form-check-label small" [for]="'filaCompleta_' + pregunta.id">
+                  Exigir una respuesta en cada fila
+                </label>
+              </div>
+            </div>
+
+            <!-- Subida de archivos -->
+            <div *ngIf="pregunta.tipo === 'archivo'" class="fe-archivo">
+              <div class="small fw-semibold text-muted mb-1">Tipos de archivo permitidos</div>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <button *ngFor="let t of tiposArchivoPermitidos"
+                        class="btn btn-sm"
+                        [class.btn-primary]="pregunta.config.tiposArchivo.includes(t.valor)"
+                        [class.btn-outline-secondary]="!pregunta.config.tiposArchivo.includes(t.valor)"
+                        (click)="alternarTipoArchivo(pregunta, t.valor)">
+                  {{ t.label }}
+                </button>
+              </div>
+              <small class="text-muted d-block mb-2">Sin ninguno marcado, se acepta cualquier tipo de archivo.</small>
+
+              <div class="fe-config-linea">
+                <span class="small text-muted">Máximo de archivos:</span>
+                <input type="number" class="form-control form-control-sm fe-num" min="1"
+                       [(ngModel)]="pregunta.config.maxArchivos" (ngModelChange)="marcarCambio()">
+                <span class="small text-muted">Tamaño máx. (MB):</span>
+                <input type="number" class="form-control form-control-sm fe-num" min="1"
+                       [(ngModel)]="pregunta.config.maxTamanoMb" (ngModelChange)="marcarCambio()">
+              </div>
+            </div>
+
+            <!-- Fecha / hora -->
+            <div *ngIf="pregunta.tipo === 'fecha'" class="fe-config-linea">
+              <input type="date" class="form-control form-control-sm fe-fecha" disabled>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'anio_' + pregunta.id"
+                       [(ngModel)]="pregunta.config.incluirAnio" (ngModelChange)="marcarCambio()">
+                <label class="form-check-label small" [for]="'anio_' + pregunta.id">Incluir año</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'hora_' + pregunta.id"
+                       [(ngModel)]="pregunta.config.incluirHora" (ngModelChange)="marcarCambio()">
+                <label class="form-check-label small" [for]="'hora_' + pregunta.id">Incluir hora</label>
+              </div>
+            </div>
+
+            <div *ngIf="pregunta.tipo === 'hora'" class="fe-config-linea">
+              <input type="time" class="form-control form-control-sm fe-fecha" disabled>
+              <select class="form-select form-select-sm fe-select-chico"
+                      [(ngModel)]="pregunta.config.formatoHora" (ngModelChange)="marcarCambio()">
+                <option value="hora">Hora del día</option>
+                <option value="duracion">Duración</option>
+              </select>
+            </div>
+
+            <!-- Validación de respuesta (solo texto libre) -->
+            <div *ngIf="esSeleccionada(pregunta) && esTextoLibre(pregunta) && validacionActiva(pregunta)"
+                 class="fe-validacion">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <select class="form-select form-select-sm fe-select-chico"
+                        [(ngModel)]="pregunta.config.validacion.tipo" (ngModelChange)="marcarCambio()">
+                  <option value="numero">Número</option>
+                  <option value="longitud">Longitud</option>
+                  <option value="expresion">Expresión regular</option>
+                </select>
+
+                <select class="form-select form-select-sm fe-select-medio"
+                        [(ngModel)]="pregunta.config.validacion.regla" (ngModelChange)="marcarCambio()">
+                  <ng-container *ngIf="pregunta.config.validacion.tipo === 'numero'">
+                    <option value="mayor_que">Mayor que</option>
+                    <option value="menor_que">Menor que</option>
+                    <option value="igual_a">Igual a</option>
+                    <option value="entre">Entre</option>
+                  </ng-container>
+                  <ng-container *ngIf="pregunta.config.validacion.tipo === 'longitud'">
+                    <option value="minimo">Mínimo de caracteres</option>
+                    <option value="maximo">Máximo de caracteres</option>
+                  </ng-container>
+                  <ng-container *ngIf="pregunta.config.validacion.tipo === 'expresion'">
+                    <option value="coincide">Coincide con</option>
+                    <option value="no_coincide">No coincide con</option>
+                    <option value="contiene">Contiene</option>
+                    <option value="no_contiene">No contiene</option>
+                  </ng-container>
+                </select>
+
+                <input type="text" class="form-control form-control-sm fe-select-medio"
+                       [(ngModel)]="pregunta.config.validacion.valor" (ngModelChange)="marcarCambio()"
+                       placeholder="Valor">
+                <input type="text" class="form-control form-control-sm fe-select-medio"
+                       *ngIf="pregunta.config.validacion.regla === 'entre'"
+                       [(ngModel)]="pregunta.config.validacion.valor2" (ngModelChange)="marcarCambio()"
+                       placeholder="Y">
+                <input type="text" class="form-control form-control-sm flex-grow-1"
+                       [(ngModel)]="pregunta.config.validacion.mensaje" (ngModelChange)="marcarCambio()"
+                       placeholder="Mensaje de error personalizado">
+
+                <button class="btn btn-sm btn-link text-secondary" (click)="alternarValidacion(pregunta)" title="Quitar validación">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Clave de respuestas (modo cuestionario) -->
+            <div class="fe-clave" *ngIf="esSeleccionada(pregunta) && esCuestionario && esCalificable(pregunta) && claveAbiertaId === pregunta.id">
+              <div class="fe-clave-titulo">
+                <i class="fas fa-circle-check"></i> Clave de respuestas
+              </div>
+
+              <!-- Opción múltiple / desplegable / casillas: clic en la opción para marcarla correcta -->
+              <ng-container *ngIf="tieneOpciones(pregunta)">
+                <p class="text-muted small mb-2">
+                  {{ pregunta.tipo === 'casillas' ? 'Marca todas las opciones correctas.' : 'Marca la opción correcta.' }}
+                </p>
+                <div class="fe-clave-opcion"
+                     *ngFor="let opcion of pregunta.opciones"
+                     [class.correcta]="esOpcionCorrecta(pregunta, opcion.id)"
+                     (click)="alternarOpcionCorrecta(pregunta, opcion.id)">
+                  <i class="fas" [class.fa-circle-check]="esOpcionCorrecta(pregunta, opcion.id)" [class.fa-circle]="!esOpcionCorrecta(pregunta, opcion.id)"></i>
+                  <span>{{ opcion.texto || '(sin texto)' }}</span>
+                </div>
+              </ng-container>
+
+              <!-- Cuadrícula de opción: una columna correcta por fila -->
+              <ng-container *ngIf="pregunta.tipo === 'cuadricula_opcion'">
+                <p class="text-muted small mb-2">Elige la columna correcta de cada fila.</p>
+                <div class="fe-clave-fila" *ngFor="let fila of pregunta.config.filas">
+                  <span class="fe-clave-fila-nombre">{{ fila.texto || '(sin texto)' }}</span>
+                  <select class="form-select form-select-sm"
+                          [ngModel]="pregunta.config.correctasPorFila[fila.id] || ''"
+                          (ngModelChange)="elegirColumnaCorrecta(pregunta, fila.id, $event)">
+                    <option value="" disabled>Elige la columna correcta</option>
+                    <option *ngFor="let col of pregunta.opciones" [value]="col.id">{{ col.texto || '(sin texto)' }}</option>
+                  </select>
+                </div>
+              </ng-container>
+
+              <!-- Respuesta corta: lista de respuestas aceptadas -->
+              <ng-container *ngIf="pregunta.tipo === 'respuesta_corta'">
+                <p class="text-muted small mb-2">
+                  Agrega todas las formas válidas de la respuesta correcta (no distingue mayúsculas ni espacios de más).
+                </p>
+                <div class="fe-clave-chips">
+                  <span class="fe-clave-chip" *ngFor="let texto of pregunta.config.respuestasCorrectasTexto">
+                    {{ texto }}
+                    <i class="fas fa-xmark" (click)="quitarRespuestaCortaCorrecta(pregunta, texto)"></i>
+                  </span>
+                </div>
+                <input #inputRespuestaCorrecta type="text" class="form-control form-control-sm mt-2"
+                       placeholder="Escribe una respuesta correcta y presiona Enter"
+                       (keydown.enter)="$event.preventDefault(); agregarRespuestaCortaCorrecta(pregunta, inputRespuestaCorrecta)">
+              </ng-container>
+
+              <div class="fe-clave-puntos">
+                <span class="small text-muted">Puntos:</span>
+                <input type="number" class="form-control form-control-sm fe-num" min="0"
+                       [(ngModel)]="pregunta.config.puntaje" (ngModelChange)="marcarCambio()">
+              </div>
+            </div>
+
+            <!-- Pie de la tarjeta: acciones -->
+            <div class="fe-pie" *ngIf="esSeleccionada(pregunta)">
+              <button class="btn btn-sm btn-link fe-btn-clave" *ngIf="esCuestionario && esCalificable(pregunta)"
+                      (click)="alternarClave(pregunta, $event)">
+                <i class="fas fa-circle-check"></i> Clave de respuestas
+              </button>
+
+              <label class="btn btn-sm btn-link text-secondary mb-0" title="Agregar imagen a la pregunta">
+                <i class="fas fa-image"></i>
+                <input type="file" accept="image/*" hidden (change)="seleccionarImagen(pregunta, $event)">
+              </label>
+
+              <button class="btn btn-sm btn-link text-secondary" (click)="duplicarPregunta(pregunta)" title="Duplicar">
+                <i class="fas fa-copy"></i>
+              </button>
+
+              <button class="btn btn-sm btn-link text-danger" (click)="confirmarEliminarPregunta(pregunta)" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+
+              <div class="fe-separador"></div>
+
+              <button type="button" class="fe-switch-row fe-switch-row-chico"
+                      (click)="alternar(pregunta, 'obligatoria')">
+                <span class="fe-switch-track" [class.activo]="pregunta.obligatoria">
+                  <span class="fe-switch-bola"></span>
+                </span>
+                <span class="fe-switch-texto small">Obligatoria</span>
+              </button>
+
+              <!-- Menú "⋮" -->
+              <div class="fe-menu-wrap" (click)="$event.stopPropagation()">
+                <button class="btn btn-sm btn-link text-secondary" (click)="alternarMenu(pregunta, $event)" title="Más opciones">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+
+                <div class="fe-menu" *ngIf="menuAbiertoId === pregunta.id">
+                  <button class="fe-menu-item" (click)="alternarDescripcion(pregunta)">
+                    <i class="fas" [class.fa-check]="pregunta.mostrarDescripcion" [class.fa-align-left]="!pregunta.mostrarDescripcion"></i>
+                    Descripción
+                  </button>
+                  <button class="fe-menu-item" *ngIf="tieneOpciones(pregunta)" (click)="alternarMezclarOpciones(pregunta)">
+                    <i class="fas" [class.fa-check]="pregunta.config.mezclarOpciones" [class.fa-shuffle]="!pregunta.config.mezclarOpciones"></i>
+                    Orden aleatorio de las opciones
+                  </button>
+                  <button class="fe-menu-item" *ngIf="esTextoLibre(pregunta)" (click)="alternarValidacion(pregunta)">
+                    <i class="fas" [class.fa-check]="validacionActiva(pregunta)" [class.fa-check-double]="!validacionActiva(pregunta)"></i>
+                    Validación de respuesta
+                  </button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="text-center text-muted py-4" *ngIf="!formulario.preguntas.length">
+        <i class="fas fa-circle-question fa-2x mb-2"></i>
+        <p class="mb-0">Este formulario aún no tiene preguntas. Agrégalas con la barra de la derecha.</p>
+      </div>
+    </div>
+
+    <!-- ---------- PESTAÑA: CONFIGURACIÓN ---------- -->
+    <div class="fe-lienzo" *ngIf="!cargando && formulario && pestana === 'configuracion'">
+
+      <div class="fe-card">
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'esCuestionario')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.esCuestionario">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">
+            <span class="fw-semibold">Convertir en cuestionario</span>
+            <small class="text-muted d-block fw-normal">
+              Asigna puntos y una respuesta correcta a cada pregunta que lo permita; solo quien
+              alcance la calificación mínima podrá recibir su constancia.
+            </small>
+          </span>
+        </button>
+
+        <ng-container *ngIf="formulario.configuracion.esCuestionario">
+          <hr>
+
+          <div class="row g-3 mb-2">
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold mb-1">Calificación mínima aprobatoria</label>
+              <div class="input-group input-group-sm">
+                <input type="number" class="form-control" min="0" max="10" step="0.5"
+                       [(ngModel)]="formulario.configuracion.calificacionAprobatoria" (ngModelChange)="marcarCambio()">
+                <span class="input-group-text">/ 10</span>
+              </div>
+              <small class="text-muted" *ngIf="puntajeTotalFormulario">
+                Equivale a {{ puntosMinimosAprobatorios }} de {{ puntajeTotalFormulario }} puntos.
+              </small>
+              <small class="text-muted d-block" *ngIf="!puntajeTotalFormulario">
+                Agrega puntos a tus preguntas para ver la equivalencia en puntos.
+              </small>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold mb-1 d-block">Puntaje total del cuestionario</label>
+              <span class="fe-puntaje-total">{{ puntajeTotalFormulario }} puntos</span>
+            </div>
+          </div>
+
+          <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'mostrarCalificacionAlEnviar')">
+            <span class="fe-switch-track" [class.activo]="formulario.configuracion.mostrarCalificacionAlEnviar">
+              <span class="fe-switch-bola"></span>
+            </span>
+            <span class="fe-switch-texto">Mostrar la calificación a la persona justo al enviar sus respuestas</span>
+          </button>
+
+          <p class="text-muted small mb-0 mt-2">
+            <i class="fas fa-circle-info"></i>
+            Las preguntas de párrafo, archivo, fecha/hora, escala lineal y calificación no se
+            califican solas: cuentan como parte del cuestionario pero no suman puntos.
+          </p>
+        </ng-container>
+      </div>
+
+      <div class="fe-card">
+        <h6 class="fw-semibold mb-3">Respuestas</h6>
+
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario, 'acepta_respuestas')">
+          <span class="fe-switch-track" [class.activo]="formulario.acepta_respuestas">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">
+            <span>Aceptar respuestas</span>
+            <small class="text-muted d-block">Al apagarlo, el enlace sigue abriendo pero avisa que el formulario está cerrado.</small>
+          </span>
+        </button>
+
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'pedirNumEmpleado')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.pedirNumEmpleado">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">
+            <span>Pedir número de empleado</span>
+            <small class="text-muted d-block">Permite identificar quién respondió y cruzarlo con el padrón.</small>
+          </span>
+        </button>
+
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'pedirCorreo')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.pedirCorreo">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">Pedir correo electrónico</span>
+        </button>
+
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'permitirVariasRespuestas')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.permitirVariasRespuestas">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">Permitir más de una respuesta por persona</span>
+        </button>
+      </div>
+
+      <div class="fe-card">
+        <h6 class="fw-semibold mb-3">Presentación</h6>
+
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'mostrarBarraProgreso')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.mostrarBarraProgreso">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">Mostrar barra de progreso</span>
+        </button>
+
+        <button type="button" class="fe-switch-row" (click)="alternar(formulario.configuracion, 'mezclarPreguntas')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.mezclarPreguntas">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">
+            <span>Orden aleatorio de las preguntas</span>
+            <small class="text-muted d-block">No afecta a los encabezados de sección ni a los bloques de texto.</small>
+          </span>
+        </button>
+
+        <button type="button" class="fe-switch-row mb-3" (click)="alternar(formulario.configuracion, 'mostrarEnlaceOtraRespuesta')">
+          <span class="fe-switch-track" [class.activo]="formulario.configuracion.mostrarEnlaceOtraRespuesta">
+            <span class="fe-switch-bola"></span>
+          </span>
+          <span class="fe-switch-texto">Ofrecer enviar otra respuesta al terminar</span>
+        </button>
+
+        <label class="form-label fw-semibold small">Mensaje de confirmación</label>
+        <textarea class="form-control" rows="2"
+                  [(ngModel)]="formulario.configuracion.mensajeConfirmacion" (ngModelChange)="marcarCambio()"
+                  placeholder="Se registró tu respuesta."></textarea>
+      </div>
+
+      <div class="fe-card">
+        <h6 class="fw-semibold mb-2">Enlace para responder</h6>
+        <p class="text-muted small mb-2" *ngIf="!formulario.publicado">
+          El formulario está en borrador. Publícalo para que su enlace abra.
+        </p>
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control" [value]="enlacePublico" readonly>
+          <button class="btn btn-outline-secondary" (click)="copiarEnlace()" [disabled]="!formulario.publicado">
+            <i class="fas fa-copy"></i> Copiar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- BARRA FLOTANTE DE INSERCIÓN ---------- -->
+    <div class="fe-barra-insertar" *ngIf="!cargando && formulario && pestana === 'preguntas'"
+         [style.top.px]="topbarAltura + 16">
+      <button class="fe-insertar-btn" (click)="agregarElemento('opcion_multiple')" title="Agregar pregunta">
+        <i class="fas fa-circle-plus"></i>
+      </button>
+      <button class="fe-insertar-btn" (click)="agregarElemento('titulo_texto')" title="Agregar título y descripción">
+        <i class="fas fa-heading"></i>
+      </button>
+      <button class="fe-insertar-btn" (click)="agregarElemento('imagen_bloque')" title="Agregar imagen">
+        <i class="fas fa-image"></i>
+      </button>
+      <button class="fe-insertar-btn" (click)="agregarElemento('video')" title="Agregar video">
+        <i class="fas fa-video"></i>
+      </button>
+      <button class="fe-insertar-btn" (click)="agregarElemento('seccion')" title="Agregar sección">
+        <i class="fas fa-grip-lines"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= VISTA PREVIA ================= -->
+  <div class="fe-preview-overlay" *ngIf="vistaPreviaAbierta && formulario" (click)="cerrarVistaPrevia()">
+    <div class="fe-preview-panel" (click)="$event.stopPropagation()">
+
+      <div class="fe-preview-topbar">
+        <span class="fw-semibold"><i class="fas fa-eye"></i> Vista previa</span>
+        <small class="text-muted ms-2">Así lo verá quien responda. Aquí no se puede contestar.</small>
+        <button class="btn btn-sm btn-link text-secondary ms-auto" (click)="cerrarVistaPrevia()">
+          <i class="fas fa-xmark"></i> Cerrar
+        </button>
+      </div>
+
+      <div class="fe-preview-cuerpo" [style.background]="tema.fondo">
+        <div class="fe-preview-lienzo">
+
+          <div class="fe-card" [style.border-top-color]="tema.color" style="border-top-width: 8px; border-top-style: solid;">
+            <h4 class="fw-semibold mb-2">{{ formulario.titulo }}</h4>
+            <p class="text-muted mb-0" *ngIf="formulario.descripcion" style="white-space: pre-wrap;">{{ formulario.descripcion }}</p>
+            <p class="text-danger small mb-0 mt-2" *ngIf="totalPreguntas">* Indica una pregunta obligatoria</p>
+          </div>
+
+          <div class="fe-card" *ngIf="formulario.configuracion.pedirNumEmpleado">
+            <label class="fw-semibold d-block mb-2">Número de empleado <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" placeholder="Tu respuesta" disabled>
+          </div>
+
+          <div class="fe-card" *ngIf="formulario.configuracion.pedirCorreo">
+            <label class="fw-semibold d-block mb-2">Correo electrónico <span class="text-danger">*</span></label>
+            <input type="email" class="form-control form-control-sm" placeholder="Tu respuesta" disabled>
+          </div>
+
+          <div class="fe-card" *ngFor="let p of formulario.preguntas">
+
+            <!-- Bloques -->
+            <ng-container *ngIf="esBloque(p)">
+              <h5 class="fw-semibold mb-1" *ngIf="p.titulo">{{ p.titulo }}</h5>
+              <p class="text-muted mb-2" *ngIf="p.descripcion" style="white-space: pre-wrap;">{{ p.descripcion }}</p>
+              <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="img-fluid rounded" alt="Imagen del formulario">
+              <a *ngIf="p.tipo === 'video' && p.config.url" [href]="p.config.url" target="_blank" rel="noopener">
+                <i class="fas fa-video"></i> Ver video
+              </a>
+            </ng-container>
+
+            <!-- Preguntas -->
+            <ng-container *ngIf="!esBloque(p)">
+              <label class="fw-semibold d-block mb-1">
+                {{ p.titulo || 'Pregunta sin título' }}
+                <span class="text-danger" *ngIf="p.obligatoria">*</span>
+              </label>
+              <p class="text-muted small mb-2" *ngIf="p.descripcion" style="white-space: pre-wrap;">{{ p.descripcion }}</p>
+              <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="img-fluid rounded mb-2" alt="Imagen de la pregunta">
+
+              <input *ngIf="p.tipo === 'respuesta_corta'" type="text" class="form-control form-control-sm" placeholder="Tu respuesta" disabled>
+              <textarea *ngIf="p.tipo === 'parrafo'" class="form-control form-control-sm" rows="3" placeholder="Tu respuesta" disabled></textarea>
+
+              <div *ngIf="p.tipo === 'opcion_multiple' || p.tipo === 'casillas'">
+                <div class="form-check" *ngFor="let o of p.opciones">
+                  <input class="form-check-input" [type]="p.tipo === 'casillas' ? 'checkbox' : 'radio'" disabled>
+                  <label class="form-check-label">{{ o.texto }}</label>
+                </div>
+                <div class="form-check" *ngIf="p.config.incluirOtro">
+                  <input class="form-check-input" [type]="p.tipo === 'casillas' ? 'checkbox' : 'radio'" disabled>
+                  <label class="form-check-label text-muted">Otro...</label>
+                </div>
+              </div>
+
+              <select *ngIf="p.tipo === 'desplegable'" class="form-select form-select-sm" disabled>
+                <option>Elige</option>
+                <option *ngFor="let o of p.opciones">{{ o.texto }}</option>
+              </select>
+
+              <div *ngIf="p.tipo === 'escala_lineal'" class="d-flex align-items-center gap-3 flex-wrap">
+                <small class="text-muted">{{ p.config.etiquetaMin }}</small>
+                <div class="text-center" *ngFor="let n of rangoEscala(p)">
+                  <div class="small">{{ n }}</div>
+                  <input type="radio" disabled>
+                </div>
+                <small class="text-muted">{{ p.config.etiquetaMax }}</small>
+              </div>
+
+              <div *ngIf="p.tipo === 'calificacion'" class="fe-estrellas">
+                <i class="fas" *ngFor="let n of rangoEstrellas(p)"
+                   [class.fa-star]="p.config.iconoCalificacion === 'estrella'"
+                   [class.fa-heart]="p.config.iconoCalificacion === 'corazon'"
+                   [class.fa-thumbs-up]="p.config.iconoCalificacion === 'pulgar'"></i>
+              </div>
+
+              <div *ngIf="esCuadricula(p)" class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th class="text-center small" *ngFor="let c of p.opciones">{{ c.texto }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let f of p.config.filas">
+                      <td class="small">{{ f.texto }}</td>
+                      <td class="text-center" *ngFor="let c of p.opciones">
+                        <input [type]="p.tipo === 'cuadricula_casillas' ? 'checkbox' : 'radio'" disabled>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div *ngIf="p.tipo === 'archivo'" class="border rounded p-3 text-center text-muted">
+                <i class="fas fa-cloud-arrow-up"></i> Agregar archivo
+                <div class="small">Hasta {{ p.config.maxArchivos }} archivo(s), {{ p.config.maxTamanoMb }} MB c/u</div>
+              </div>
+
+              <input *ngIf="p.tipo === 'fecha'" type="date" class="form-control form-control-sm fe-fecha" disabled>
+              <input *ngIf="p.tipo === 'hora'" type="time" class="form-control form-control-sm fe-fecha" disabled>
+            </ng-container>
+          </div>
+
+          <div class="text-center py-3">
+            <button class="btn" [style.background]="tema.color" style="color: #fff;" disabled>Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

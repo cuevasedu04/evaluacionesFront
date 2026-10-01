@@ -1,0 +1,100 @@
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
+<div class="formularios-lista d-flex flex-column">
+
+  <header class="fl-topbar bg-white border-bottom px-3 py-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="fl-icono">
+        <i class="fas fa-clipboard-list text-white"></i>
+      </div>
+      <div>
+        <h1 class="h6 fw-bold mb-0">Formularios</h1>
+        <small class="text-muted">Crea encuestas y cuestionarios, y compártelos por enlace</small>
+      </div>
+
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <div class="fl-buscador">
+          <i class="fas fa-search"></i>
+          <input type="text" class="form-control form-control-sm"
+                 placeholder="Buscar formulario..."
+                 [(ngModel)]="busqueda">
+        </div>
+
+        <button class="btn btn-sm btn-outline-secondary" (click)="cargar()" [disabled]="cargando" title="Actualizar lista">
+          <i class="fas fa-rotate-right" [class.fa-spin]="cargando"></i>
+        </button>
+
+        <button class="btn btn-sm btn-primary" (click)="nuevoFormulario()" [disabled]="creando">
+          <i class="fas" [class.fa-plus]="!creando" [class.fa-spinner]="creando" [class.fa-spin]="creando"></i>
+          {{ creando ? 'Creando...' : 'Nuevo formulario' }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="fl-cuerpo flex-grow-1 overflow-auto p-3">
+
+    <div *ngIf="cargando" class="text-center text-muted py-5">
+      <i class="fas fa-spinner fa-spin fa-2x"></i>
+      <p class="mt-2 mb-0">Cargando formularios...</p>
+    </div>
+
+    <!-- Vacío: se distingue "no hay nada creado" de "la búsqueda no encontró nada",
+         porque la salida es distinta (crear uno vs. limpiar el filtro). -->
+    <div *ngIf="!cargando && !formularios.length" class="fl-vacio text-center py-5">
+      <i class="fas fa-clipboard-list text-muted mb-3"></i>
+      <h5 class="fw-semibold">Aún no hay formularios</h5>
+      <p class="text-muted mb-3">Empieza uno en blanco y agrégale las preguntas que necesites.</p>
+      <button class="btn btn-primary" (click)="nuevoFormulario()" [disabled]="creando">
+        <i class="fas fa-plus"></i> Nuevo formulario
+      </button>
+    </div>
+
+    <div *ngIf="!cargando && formularios.length && !formulariosFiltrados.length"
+         class="text-center text-muted py-5">
+      <i class="fas fa-search fa-2x mb-2"></i>
+      <p class="mb-0">Ningún formulario coincide con «{{ busqueda }}».</p>
+    </div>
+
+    <div class="fl-grid" *ngIf="!cargando && formulariosFiltrados.length">
+      <div class="fl-card" *ngFor="let f of formulariosFiltrados" (click)="abrir(f)">
+        <div class="fl-card-banda" [style.background]="colorTema(f)"></div>
+
+        <div class="fl-card-cuerpo">
+          <div class="d-flex align-items-start gap-2">
+            <h6 class="fw-semibold mb-1 flex-grow-1 text-truncate" [title]="f.titulo">{{ f.titulo }}</h6>
+
+            <span class="badge" [class.bg-success]="f.publicado" [class.bg-secondary]="!f.publicado">
+              {{ f.publicado ? 'Publicado' : 'Borrador' }}
+            </span>
+          </div>
+
+          <p class="text-muted small fl-card-desc mb-2">
+            {{ f.descripcion || 'Sin descripción' }}
+          </p>
+
+          <div class="d-flex align-items-center gap-2 text-muted small">
+            <span><i class="fas fa-list-ol"></i> {{ f.total_preguntas || 0 }} pregunta(s)</span>
+            <span class="ms-auto" [title]="f.fecha_modificacion">
+              <i class="fas fa-clock"></i> {{ f.fecha_modificacion | date:'dd/MM/yyyy HH:mm' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="fl-card-acciones">
+          <button class="btn btn-sm btn-link text-secondary" title="Duplicar" (click)="duplicar(f, $event)">
+            <i class="fas fa-copy"></i>
+          </button>
+          <button class="btn btn-sm btn-link text-danger" title="Eliminar" (click)="confirmarEliminar(f, $event)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

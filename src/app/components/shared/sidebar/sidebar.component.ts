@@ -131,6 +131,20 @@ export class SidebarComponent implements OnInit, OnDestroy {
       permiso: 'ver_correo_electronico',
     },
     {
+      id: 'formularios',
+      label: 'Formularios',
+      icon: 'fas fa-clipboard-list',
+      link: '/formularios',
+      permiso: 'ver_formularios',
+    },
+    {
+      id: 'cursos',
+      label: 'Cursos',
+      icon: 'fas fa-graduation-cap',
+      link: '/cursos',
+      permiso: 'ver_cursos',
+    },
+    {
       id: 'catalogo-areas',
       label: 'Catálogo de áreas',
       icon: 'fas fa-sitemap',

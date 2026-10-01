@@ -1,0 +1,463 @@
+<div class="rc-pagina" [style.--rc-color]="colorTema" [style.--rc-fondo]="fondoTema">
+
+  <!-- ===================== CARGANDO ===================== -->
+  <div class="rc-centro" *ngIf="cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+    <p class="mb-0">Abriendo el cuestionario...</p>
+  </div>
+
+  <!-- ===================== IDENTIFICACIÓN (enlace genérico) ===================== -->
+  <div class="rc-centro" *ngIf="!cargando && fase === 'identificar'">
+    <div class="rc-tarjeta rc-tarjeta-angosta">
+      <div class="rc-marca">
+        <i class="fas fa-graduation-cap"></i>
+      </div>
+      <h1 class="rc-titulo">{{ curso?.nombre || 'Cuestionario' }}</h1>
+      <p class="rc-sub">
+        Este es el enlace general del curso. Escribe tu número de empleado para
+        confirmar que estás en la lista de participantes.
+      </p>
+
+      <label class="rc-label">Número de empleado</label>
+      <input type="text" class="rc-input" [(ngModel)]="numEmpleadoCapturado"
+             (keyup.enter)="identificarse()" placeholder="Ej. 2022053" autofocus>
+
+      <div class="rc-error" *ngIf="errorIdentificacion">
+        <i class="fas fa-circle-exclamation"></i> {{ errorIdentificacion }}
+      </div>
+
+      <button class="rc-btn rc-btn-primario w-100 mt-3" (click)="identificarse()">
+        Continuar
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================== CASOS DE BORDE ===================== -->
+  <div class="rc-centro" *ngIf="!cargando && fase === 'portada' && situacion !== 'listo'">
+    <div class="rc-tarjeta rc-tarjeta-angosta text-center">
+
+      <ng-container [ngSwitch]="situacion">
+
+        <ng-container *ngSwitchCase="'token_invalido'">
+          <i class="fas fa-link-slash rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">Este enlace no es válido</h2>
+          <p class="rc-sub">
+            Revisa que hayas copiado la dirección completa del correo. Si el
+            problema sigue, pide que te reenvíen tu enlace.
+          </p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'no_abierto'">
+          <i class="fas fa-hourglass-start rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">El cuestionario todavía no abre</h2>
+          <p class="rc-sub">
+            <ng-container *ngIf="curso?.fecha_apertura_programada">
+              Abre el {{ curso?.fecha_apertura_programada | date:'d MMM y, HH:mm' }}.
+            </ng-container>
+            <ng-container *ngIf="!curso?.fecha_apertura_programada">
+              Vuelve a entrar con este mismo enlace cuando te avisen que ya está abierto.
+            </ng-container>
+          </p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'curso_cerrado'">
+          <i class="fas fa-lock rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">El cuestionario ya cerró</h2>
+          <p class="rc-sub">Ya no se están recibiendo respuestas de este curso.</p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'tiempo_agotado'">
+          <i class="fas fa-clock rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">Se acabó el tiempo</h2>
+          <p class="rc-sub">El plazo para responder este cuestionario ya terminó.</p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'generico_deshabilitado'">
+          <i class="fas fa-ban rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">Este enlace está desactivado</h2>
+          <p class="rc-sub">Usa el enlace personal que te llegó por correo.</p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'sin_conexion'">
+          <i class="fas fa-wifi rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">No hay conexión</h2>
+          <p class="rc-sub">No se pudo contactar al servidor. Revisa tu conexión y vuelve a intentar.</p>
+          <button class="rc-btn rc-btn-primario mt-2" (click)="identificarse()"
+                  *ngIf="esGenerico">Reintentar</button>
+        </ng-container>
+
+        <ng-container *ngSwitchDefault>
+          <i class="fas fa-circle-exclamation rc-icono-estado"></i>
+          <h2 class="rc-titulo-estado">No se puede abrir el cuestionario</h2>
+          <p class="rc-sub">Comunícate con quien te envió el enlace.</p>
+        </ng-container>
+
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ===================== PORTADA ===================== -->
+  <div class="rc-centro" *ngIf="!cargando && fase === 'portada' && situacion === 'listo'">
+    <div class="rc-tarjeta rc-tarjeta-angosta">
+      <div class="rc-marca"><i class="fas fa-graduation-cap"></i></div>
+
+      <h1 class="rc-titulo">{{ cuestionario?.titulo || curso?.nombre }}</h1>
+      <p class="rc-sub" *ngIf="cuestionario?.descripcion">{{ cuestionario?.descripcion }}</p>
+
+      <div class="rc-aviso rc-aviso-warn" *ngIf="numeroIntento > 1">
+        <i class="fas fa-rotate-right"></i>
+        <span>
+          Ya contestaste este cuestionario. Este sería tu <strong>intento {{ numeroIntento }}</strong>;
+          se guarda aparte del anterior.
+        </span>
+      </div>
+
+      <div class="rc-identidad" *ngIf="participante">
+        <div class="rc-avatar">{{ (participante.nombre_completo || '?').charAt(0) }}</div>
+        <div class="min-w-0">
+          <div class="fw-semibold text-truncate">{{ participante.nombre_completo }}</div>
+          <small class="text-muted">No. {{ participante.num_empleado }}</small>
+        </div>
+      </div>
+
+      <ul class="rc-datos">
+        <li>
+          <i class="fas fa-list-ol"></i>
+          <span>{{ totalPreguntas }} pregunta(s)</span>
+        </li>
+        <li *ngIf="segundosRestantes !== null">
+          <i class="fas fa-stopwatch"></i>
+          <span>Tendrás <strong>{{ tiempoTexto }}</strong> a partir de que comiences</span>
+        </li>
+        <li *ngIf="esCuestionarioEvaluado">
+          <i class="fas fa-award"></i>
+          <span>Es una evaluación con calificación</span>
+        </li>
+        <li>
+          <i class="fas fa-cloud-arrow-up"></i>
+          <span>Tus respuestas se guardan solas conforme las contestas</span>
+        </li>
+      </ul>
+
+      <div class="rc-aviso" *ngIf="curso?.nombre">
+        <i class="fas fa-circle-info"></i>
+        <span>Curso: <strong>{{ curso?.nombre }}</strong></span>
+      </div>
+
+      <button class="rc-btn rc-btn-primario w-100 mt-3" (click)="comenzar()">
+        {{ numeroIntento > 1 ? 'Responder otra vez' : 'Comenzar' }}
+      </button>
+      <small class="d-block text-center text-muted mt-2" *ngIf="segundosRestantes !== null">
+        El tiempo empieza a correr en cuanto des clic.
+      </small>
+    </div>
+  </div>
+
+  <!-- ===================== RESPONDIENDO ===================== -->
+  <ng-container *ngIf="!cargando && fase === 'respondiendo'">
+
+    <header class="rc-barra">
+      <div class="rc-barra-interior">
+        <div class="rc-marca rc-marca-sm"><i class="fas fa-graduation-cap"></i></div>
+
+        <div class="min-w-0 flex-grow-1">
+          <div class="fw-semibold text-truncate">{{ cuestionario?.titulo }}</div>
+          <small class="text-muted text-truncate d-block">{{ participante?.nombre_completo }}</small>
+        </div>
+
+        <!-- Estado del guardado: quien responde nunca debe quedarse con la
+             duda de si su trabajo está a salvo. -->
+        <span class="rc-guardado" [ngClass]="'rc-guardado-' + estadoGuardado">
+          <ng-container [ngSwitch]="estadoGuardado">
+            <ng-container *ngSwitchCase="'guardando'"><i class="fas fa-spinner fa-spin"></i> Guardando...</ng-container>
+            <ng-container *ngSwitchCase="'pendiente'"><i class="fas fa-cloud-arrow-up"></i> Guardando...</ng-container>
+            <ng-container *ngSwitchCase="'sin_conexion'"><i class="fas fa-wifi"></i> Sin conexión — reintentando</ng-container>
+            <ng-container *ngSwitchDefault><i class="fas fa-circle-check"></i> Guardado</ng-container>
+          </ng-container>
+        </span>
+
+        <span class="rc-reloj" *ngIf="segundosRestantes !== null" [class.rc-reloj-urgente]="tiempoUrgente">
+          <i class="fas fa-stopwatch"></i> {{ tiempoTexto }}
+        </span>
+      </div>
+
+      <div class="rc-progreso" *ngIf="mostrarBarraProgreso">
+        <div class="rc-progreso-relleno" [style.width.%]="porcentajeAvance"></div>
+      </div>
+    </header>
+
+    <main class="rc-cuerpo">
+
+      <div class="rc-aviso rc-aviso-offline" *ngIf="estadoGuardado === 'sin_conexion'">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span>
+          Se perdió la conexión. Sigue contestando: lo que escribas queda guardado en
+          este dispositivo y se manda solo en cuanto vuelva la red.
+        </span>
+      </div>
+
+      <!-- ---------- Preguntas y bloques ---------- -->
+      <article class="rc-tarjeta rc-pregunta"
+               *ngFor="let p of preguntas; trackBy: trackPregunta"
+               [id]="'preg-' + p.id"
+               [class.rc-pregunta-faltante]="esFaltante(p)">
+
+        <!-- Bloques que no se responden -->
+        <ng-container *ngIf="esBloque(p)">
+          <ng-container [ngSwitch]="p.tipo">
+
+            <ng-container *ngSwitchCase="'seccion'">
+              <div class="rc-seccion">
+                <h2>{{ p.titulo || 'Sección' }}</h2>
+                <p *ngIf="p.descripcion">{{ p.descripcion }}</p>
+              </div>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'titulo_texto'">
+              <h2 class="rc-bloque-titulo">{{ p.titulo }}</h2>
+              <p class="rc-bloque-texto" *ngIf="p.descripcion">{{ p.descripcion }}</p>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'imagen_bloque'">
+              <h3 class="rc-bloque-titulo" *ngIf="p.titulo">{{ p.titulo }}</h3>
+              <img class="rc-imagen" *ngIf="p.imagenUrl" [src]="p.imagenUrl" [alt]="p.titulo || 'Imagen'">
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'video'">
+              <h3 class="rc-bloque-titulo" *ngIf="p.titulo">{{ p.titulo }}</h3>
+              <div class="rc-video" *ngIf="urlVideo(p)">
+                <iframe [src]="urlVideo(p)" frameborder="0" allowfullscreen title="Video"></iframe>
+              </div>
+              <p class="text-muted small mb-0" *ngIf="!urlVideo(p)">No se pudo cargar el video.</p>
+            </ng-container>
+
+          </ng-container>
+        </ng-container>
+
+        <!-- Preguntas -->
+        <ng-container *ngIf="!esBloque(p)">
+
+          <div class="rc-pregunta-encabezado">
+            <span class="rc-numero">{{ numeroDe(p) }}</span>
+            <div class="min-w-0 flex-grow-1">
+              <h3 class="rc-pregunta-titulo">
+                {{ p.titulo || 'Pregunta sin título' }}
+                <span class="rc-obligatoria" *ngIf="p.obligatoria" title="Obligatoria">*</span>
+              </h3>
+              <p class="rc-pregunta-desc" *ngIf="p.descripcion">{{ p.descripcion }}</p>
+            </div>
+            <span class="rc-puntos" *ngIf="puntajeDe(p)">{{ puntajeDe(p) }} pt(s)</span>
+          </div>
+
+          <img class="rc-imagen" *ngIf="p.imagenUrl" [src]="p.imagenUrl" [alt]="p.titulo || 'Imagen de la pregunta'">
+
+          <div class="rc-respuesta" [ngSwitch]="p.tipo">
+
+            <!-- Respuesta corta -->
+            <input *ngSwitchCase="'respuesta_corta'" type="text" class="rc-input"
+                   [value]="texto(p)" (input)="cambiarTexto(p, $any($event.target).value)"
+                   placeholder="Tu respuesta">
+
+            <!-- Párrafo -->
+            <textarea *ngSwitchCase="'parrafo'" class="rc-input rc-textarea" rows="4"
+                      [value]="texto(p)" (input)="cambiarTexto(p, $any($event.target).value)"
+                      placeholder="Tu respuesta"></textarea>
+
+            <!-- Opción múltiple -->
+            <ng-container *ngSwitchCase="'opcion_multiple'">
+              <button type="button" class="rc-opcion" *ngFor="let o of p.opciones"
+                      [class.rc-opcion-activa]="opcionElegida(p) === o.id"
+                      (click)="elegirOpcion(p, o.id)">
+                <span class="rc-radio"></span>
+                <span>{{ o.texto }}</span>
+              </button>
+
+              <div class="rc-opcion-otro" *ngIf="p.config.incluirOtro">
+                <button type="button" class="rc-opcion flex-grow-1"
+                        [class.rc-opcion-activa]="opcionElegida(p) === '__otro__'"
+                        (click)="elegirOpcion(p, '__otro__')">
+                  <span class="rc-radio"></span>
+                  <span>Otro:</span>
+                </button>
+                <input type="text" class="rc-input rc-input-linea"
+                       [value]="textoOtro(p)" (input)="cambiarOtro(p, $any($event.target).value)"
+                       placeholder="Escribe tu respuesta">
+              </div>
+            </ng-container>
+
+            <!-- Casillas -->
+            <ng-container *ngSwitchCase="'casillas'">
+              <button type="button" class="rc-opcion" *ngFor="let o of p.opciones"
+                      [class.rc-opcion-activa]="casillaMarcada(p, o.id)"
+                      (click)="alternarCasilla(p, o.id)">
+                <span class="rc-check"><i class="fas fa-check"></i></span>
+                <span>{{ o.texto }}</span>
+              </button>
+
+              <div class="rc-opcion-otro" *ngIf="p.config.incluirOtro">
+                <button type="button" class="rc-opcion flex-grow-1"
+                        [class.rc-opcion-activa]="casillaMarcada(p, '__otro__')"
+                        (click)="alternarCasilla(p, '__otro__')">
+                  <span class="rc-check"><i class="fas fa-check"></i></span>
+                  <span>Otro:</span>
+                </button>
+                <input type="text" class="rc-input rc-input-linea"
+                       [value]="textoOtro(p)" (input)="cambiarOtro(p, $any($event.target).value)"
+                       placeholder="Escribe tu respuesta">
+              </div>
+
+              <small class="text-muted d-block mt-1" *ngIf="p.config.maxSelecciones">
+                Puedes marcar hasta {{ p.config.maxSelecciones }} opción(es).
+              </small>
+            </ng-container>
+
+            <!-- Lista desplegable -->
+            <select *ngSwitchCase="'desplegable'" class="rc-input"
+                    [value]="opcionElegida(p)"
+                    (change)="elegirOpcion(p, $any($event.target).value)">
+              <option value="">— Elige una opción —</option>
+              <option *ngFor="let o of p.opciones" [value]="o.id">{{ o.texto }}</option>
+            </select>
+
+            <!-- Escala lineal -->
+            <div *ngSwitchCase="'escala_lineal'" class="rc-escala">
+              <span class="rc-escala-etiqueta">{{ p.config.etiquetaMin }}</span>
+              <div class="rc-escala-puntos">
+                <button type="button" *ngFor="let n of rangoEscala(p)"
+                        class="rc-escala-punto" [class.rc-escala-activa]="valorNumerico(p) === n"
+                        (click)="elegirNumero(p, n)">
+                  <span class="rc-escala-num">{{ n }}</span>
+                  <span class="rc-radio"></span>
+                </button>
+              </div>
+              <span class="rc-escala-etiqueta">{{ p.config.etiquetaMax }}</span>
+            </div>
+
+            <!-- Calificación (estrellas) -->
+            <div *ngSwitchCase="'calificacion'" class="rc-estrellas">
+              <button type="button" *ngFor="let n of rangoEstrellas(p)"
+                      class="rc-estrella"
+                      [class.rc-estrella-activa]="(valorNumerico(p) || 0) >= n"
+                      (click)="elegirNumero(p, n)" [title]="n + ''">
+                <i class="fas" [ngClass]="iconoCalificacion(p)"></i>
+              </button>
+            </div>
+
+            <!-- Cuadrículas -->
+            <div *ngSwitchCase="'cuadricula_opcion'" class="rc-cuadricula-wrap">
+              <ng-container *ngTemplateOutlet="cuadricula; context: { p: p }"></ng-container>
+            </div>
+            <div *ngSwitchCase="'cuadricula_casillas'" class="rc-cuadricula-wrap">
+              <ng-container *ngTemplateOutlet="cuadricula; context: { p: p }"></ng-container>
+            </div>
+
+            <!-- Fecha -->
+            <div *ngSwitchCase="'fecha'" class="d-flex gap-2 flex-wrap">
+              <input type="date" class="rc-input rc-input-corto"
+                     [value]="parteFecha(p, 'fecha')"
+                     (change)="cambiarFecha(p, 'fecha', $any($event.target).value)">
+              <input *ngIf="p.config.incluirHora" type="time" class="rc-input rc-input-corto"
+                     [value]="parteFecha(p, 'hora')"
+                     (change)="cambiarFecha(p, 'hora', $any($event.target).value)">
+            </div>
+
+            <!-- Hora -->
+            <input *ngSwitchCase="'hora'" type="time" class="rc-input rc-input-corto"
+                   [value]="texto(p)" (change)="cambiarTexto(p, $any($event.target).value)">
+
+            <!-- Archivo: no disponible en esta etapa -->
+            <div *ngSwitchCase="'archivo'" class="rc-aviso rc-aviso-warn">
+              <i class="fas fa-paperclip"></i>
+              <span>La entrega de archivos no está disponible en este cuestionario.</span>
+            </div>
+
+            <div *ngSwitchDefault class="text-muted small">
+              Este tipo de pregunta no se puede responder aquí.
+            </div>
+          </div>
+
+          <div class="rc-faltante" *ngIf="esFaltante(p)">
+            <i class="fas fa-circle-exclamation"></i> Esta pregunta es obligatoria.
+          </div>
+        </ng-container>
+      </article>
+
+      <!-- ---------- Pie de envío ---------- -->
+      <div class="rc-pie">
+        <div class="rc-pie-info">
+          <strong>{{ contestadas }}</strong> de <strong>{{ totalPreguntas }}</strong> contestadas
+          <span class="rc-pie-faltan" *ngIf="faltantes.length">
+            · Faltan {{ faltantes.length }} obligatoria(s)
+          </span>
+        </div>
+        <button class="rc-btn rc-btn-primario" (click)="enviar()" [disabled]="enviando">
+          <i class="fas" [class.fa-paper-plane]="!enviando" [class.fa-spinner]="enviando"
+             [class.fa-spin]="enviando"></i>
+          {{ enviando ? 'Enviando...' : 'Enviar respuestas' }}
+        </button>
+      </div>
+
+      <p class="rc-nota">
+        Una vez que envíes ya no podrás modificar tus respuestas.
+      </p>
+    </main>
+  </ng-container>
+
+  <!-- ===================== FINAL ===================== -->
+  <div class="rc-centro" *ngIf="!cargando && fase === 'final'">
+    <div class="rc-tarjeta rc-tarjeta-angosta text-center">
+      <i class="fas rc-icono-estado"
+         [class.fa-circle-check]="situacion === 'enviado'"
+         [class.fa-clock]="situacion === 'tiempo_agotado'"
+         [class.fa-circle-info]="situacion === 'ya_respondido'"
+         [class.rc-icono-ok]="situacion === 'enviado'"></i>
+
+      <h2 class="rc-titulo-estado">
+        {{ situacion === 'tiempo_agotado' ? 'Se acabó el tiempo' : 'Listo' }}
+      </h2>
+      <p class="rc-sub">{{ mensajeFinal }}</p>
+
+      <div class="rc-aviso mt-3" *ngIf="participante">
+        <i class="fas fa-user"></i>
+        <span>{{ participante.nombre_completo }} · No. {{ participante.num_empleado }}</span>
+      </div>
+
+      <button class="rc-btn rc-btn-primario w-100 mt-3"
+              *ngIf="permiteRepetir && situacion === 'enviado'"
+              (click)="responderOtraVez()">
+        <i class="fas fa-rotate-right"></i> Responder otra vez
+      </button>
+
+      <p class="rc-nota mt-3 mb-0">
+        Ya puedes cerrar esta ventana. Si aprobaste, tu constancia llegará a tu correo institucional.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Cuadrícula (opción y casillas comparten estructura; solo cambia el control). -->
+<ng-template #cuadricula let-p="p">
+  <table class="rc-cuadricula">
+    <thead>
+      <tr>
+        <th></th>
+        <th *ngFor="let c of p.opciones">{{ c.texto }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let f of p.config.filas">
+        <th scope="row">{{ f.texto }}</th>
+        <td *ngFor="let c of p.opciones">
+          <button type="button" class="rc-celda" (click)="marcarCelda(p, f.id, c.id)"
+                  [attr.aria-label]="f.texto + ' / ' + c.texto">
+            <span [class.rc-radio]="p.tipo === 'cuadricula_opcion'"
+                  [class.rc-check]="p.tipo === 'cuadricula_casillas'"
+                  [class.rc-marcada]="celdaMarcada(p, f.id, c.id)">
+              <i class="fas fa-check" *ngIf="p.tipo === 'cuadricula_casillas'"></i>
+            </span>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</ng-template>

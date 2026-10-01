@@ -1,0 +1,458 @@
+<ng-template #confirmDialog>
+  <div class="modal-body text-center p-4">
+    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+    <h5 class="mb-0">{{ confirmMessage }}</h5>
+  </div>
+</ng-template>
+
+<ng-template #pegarDialog>
+  <div class="modal-body p-4">
+    <label class="cu-label">Números de empleado</label>
+    <textarea class="cu-input" rows="8" [(ngModel)]="textoPegado"
+              placeholder="Pega aquí la columna de Excel, o escribe los números separados por comas o saltos de línea."></textarea>
+    <small class="text-muted d-block mt-2">
+      Se validará cada uno contra el padrón. Los que estén dados de baja no se inscribirán.
+    </small>
+  </div>
+</ng-template>
+
+<div class="curso-detalle d-flex flex-column">
+
+  <!-- ===================== BARRA SUPERIOR ===================== -->
+  <header class="cu-topbar bg-white px-3 pt-3 pb-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+
+      <button class="cu-icon-btn" (click)="volverALista()" title="Volver a la lista">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+
+      <div class="cu-icono">
+        <i class="fas fa-graduation-cap text-white"></i>
+      </div>
+
+      <div class="cu-titulo-wrap" *ngIf="curso">
+        <input type="text" class="cu-titulo-input"
+               [(ngModel)]="curso.nombre"
+               (ngModelChange)="marcarCambio()"
+               placeholder="Nombre del curso">
+        <small class="cu-estado-guardado">
+          <ng-container *ngIf="guardando"><i class="fas fa-spinner fa-spin"></i> Guardando...</ng-container>
+          <ng-container *ngIf="!guardando"><i class="fas fa-cloud text-success"></i> Todos los cambios guardados</ng-container>
+        </small>
+      </div>
+
+      <span class="cu-estado ms-2" [ngClass]="claseEstadoCurso" *ngIf="curso">{{ etiquetaEstadoCurso }}</span>
+
+      <div class="ms-auto d-flex align-items-center gap-2" *ngIf="curso">
+        <span class="cu-chip" [class.cu-chip-ok]="listoParaAbrir"
+              *ngIf="curso.estado === 'borrador' || curso.estado === 'listo'">
+          <i class="fas" [class.fa-circle-check]="listoParaAbrir" [class.fa-circle-exclamation]="!listoParaAbrir"></i>
+          {{ listoParaAbrir ? 'Listo para abrir' : 'En preparación' }}
+        </span>
+
+        <!-- Abrir y cerrar piden `cursos_administrar`, no solo `ver_cursos`:
+             abrir congela el cuestionario y empieza a recibir respuestas,
+             cerrar sella los intentos. -->
+        <button class="cu-btn cu-btn-primario px-3"
+                *ngIf="(curso.estado === 'borrador' || curso.estado === 'listo') && puedeAdministrar"
+                [disabled]="!listoParaAbrir" (click)="abrirCurso()"
+                [title]="motivoSinEnlaces || 'Abre el curso y congela el cuestionario'">
+          <i class="fas fa-lock-open"></i> Abrir curso
+        </button>
+
+        <button class="cu-btn cu-btn-outline px-3"
+                *ngIf="curso.estado === 'abierto' && puedeAdministrar" (click)="cerrarCurso()">
+          <i class="fas fa-flag-checkered"></i> Cerrar curso
+        </button>
+
+        <span class="cu-chip" *ngIf="!puedeAdministrar && curso.estado !== 'cerrado'"
+              title="Hace falta el permiso «Cursos: abrir, cerrar y enviar constancias»">
+          <i class="fas fa-lock"></i> Sin permiso para abrir o cerrar
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== ESTADOS DE CARGA ===================== -->
+  <div class="cu-cargando" *ngIf="cargando">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+    <div>Cargando curso...</div>
+  </div>
+
+  <div class="cu-cargando" *ngIf="!cargando && errorCarga">
+    <i class="fas fa-triangle-exclamation fa-2x mb-2 d-block"></i>
+    <div class="mb-2">{{ errorCarga }}</div>
+    <button class="cu-btn cu-btn-outline px-3" (click)="volverALista()">Volver a la lista</button>
+  </div>
+
+  <!-- ===================== CUERPO: 3 COLUMNAS ===================== -->
+  <div class="cu-cuerpo flex-grow-1 d-flex overflow-hidden" *ngIf="!cargando && curso && !errorCarga">
+
+    <!-- ---------- IZQUIERDA: padrón ---------- -->
+    <section class="cu-tabla">
+      <div class="cu-tabla-encabezado d-flex align-items-center gap-2 flex-wrap">
+        <div class="fw-bold small">Padrón de personal</div>
+        <div class="cu-buscador d-flex align-items-center gap-2 ms-auto">
+          <i class="fas fa-search text-muted"></i>
+          <input type="text" class="cu-buscador-input"
+                 placeholder="Buscar en todas las columnas..."
+                 [(ngModel)]="busquedaGlobal"
+                 (ngModelChange)="onBusquedaGlobal()">
+          <button class="cu-buscador-limpiar" (click)="limpiarFiltros()" title="Limpiar filtros">
+            <i class="fas fa-eraser"></i>
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="cargandoRoster" class="cu-cargando">
+        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+        <div>Cargando padrón...</div>
+      </div>
+
+      <div class="cu-grid-card" *ngIf="!cargandoRoster">
+        <ag-grid-angular
+            class="ag-theme-alpine cu-grid"
+            [rowData]="activosData"
+            [columnDefs]="columnDefs"
+            [defaultColDef]="defaultColDef"
+            [animateRows]="false"
+            [enableBrowserTooltips]="true"
+            [suppressCellFocus]="true"
+            (gridReady)="onGridReady($event)"
+            (cellClicked)="onCellClicked($event)">
+        </ag-grid-angular>
+      </div>
+
+      <small class="text-muted mt-1 d-block">
+        <i class="fas fa-circle-info"></i>
+        Solo se muestra personal activo: el sistema no inscribe a quien está dado de baja o fallecido.
+      </small>
+    </section>
+
+    <!-- ---------- CENTRO: participantes ---------- -->
+    <section class="cu-col-lista cu-card">
+      <div class="cu-lista-encabezado d-flex align-items-center justify-content-between">
+        <div class="min-w-0">
+          <div class="fw-bold">Participantes</div>
+          <small class="text-muted">{{ participantes.length }} inscrito(s)</small>
+        </div>
+        <button class="cu-icon-btn" (click)="abrirPegarLista()" *ngIf="puedeEditarLista"
+                title="Pegar una lista de números de empleado">
+          <i class="fas fa-paste"></i>
+        </button>
+      </div>
+
+      <!-- Alta manual por número -->
+      <div class="cu-alta-manual" *ngIf="puedeEditarLista">
+        <input type="text" class="cu-input cu-input-sm"
+               [(ngModel)]="agregandoNum"
+               (keydown.enter)="agregarPorNumero()"
+               placeholder="No. de empleado y Enter">
+        <button class="cu-icon-btn" (click)="agregarPorNumero()" [disabled]="cargandoLote" title="Inscribir">
+          <i class="fas" [class.fa-plus]="!cargandoLote" [class.fa-spinner]="cargandoLote" [class.fa-spin]="cargandoLote"></i>
+        </button>
+      </div>
+
+      <!-- Observaciones de la última carga -->
+      <div class="cu-observaciones" *ngIf="rechazados.length || advertidos.length || noEncontrados.length">
+        <div class="d-flex align-items-center mb-1">
+          <span class="fw-bold small">Resultado de la carga</span>
+          <button class="cu-icon-btn ms-auto" (click)="descartarObservaciones()" title="Descartar">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="cu-obs cu-obs-error" *ngFor="let r of rechazados">
+          <i class="fas fa-ban"></i>
+          <span class="min-w-0">
+            <span class="d-block text-truncate">{{ r.nombre_completo || r.num_empleado }}</span>
+            <small>No se inscribió: está dado de {{ r.estado_nom.toLowerCase() }} en nómina.</small>
+          </span>
+        </div>
+
+        <div class="cu-obs cu-obs-warn" *ngFor="let a of advertidos">
+          <i class="fas fa-triangle-exclamation"></i>
+          <span class="min-w-0">
+            <span class="d-block text-truncate">{{ a.nombre_completo || a.num_empleado }}</span>
+            <small>Inscrito, pero su estado es «{{ a.estado_nom }}».</small>
+          </span>
+        </div>
+
+        <div class="cu-obs cu-obs-warn" *ngIf="noEncontrados.length">
+          <i class="fas fa-question"></i>
+          <span class="min-w-0">
+            <span class="d-block">No están en el padrón</span>
+            <small>{{ noEncontrados.join(', ') }}</small>
+          </span>
+        </div>
+      </div>
+
+      <div class="cu-lista-vacia text-muted" *ngIf="!participantes.length && !cargandoParticipantes">
+        <i class="fas fa-user-group fa-2x mb-2 d-block"></i>
+        <p class="mb-0 small">Da clic en el "+" de una fila del padrón para inscribir a esa persona.</p>
+      </div>
+
+      <div class="cu-lista-cuerpo cu-scroll" *ngIf="participantes.length">
+        <div class="cu-lista-item" *ngFor="let p of participantes; trackBy: trackParticipante">
+          <div class="cu-avatar">{{ iniciales(p.nombre_completo) }}</div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="text-truncate fw-semibold" [title]="p.nombre_completo">{{ p.nombre_completo || '—' }}</div>
+            <small class="text-muted d-block text-truncate" [title]="p.email">
+              No. {{ p.num_empleado }} · {{ p.email || 'sin correo' }}
+            </small>
+          </div>
+          <i class="fas fa-envelope cu-sin-correo" *ngIf="!p.email"
+             title="Sin correo institucional: no se le podrá mandar el enlace por correo."></i>
+
+          <!-- Cuántas veces se le mandó su enlace. Sin esto no habría forma
+               de saber a quién ya se le insistió. -->
+          <span class="cu-enviado" *ngIf="p.veces_enlace_enviado"
+                [title]="'Enlace enviado ' + p.veces_enlace_enviado + ' vez(ces). Último: ' + (p.fecha_envio_enlace | date:'d MMM, HH:mm')">
+            <i class="fas fa-paper-plane"></i>{{ p.veces_enlace_enviado > 1 ? p.veces_enlace_enviado : '' }}
+          </span>
+
+          <button class="cu-item-accion" (click)="copiarEnlace(p)"
+                  title="Copiar su enlace personal">
+            <i class="fas fa-link"></i>
+          </button>
+
+          <button class="cu-item-accion" *ngIf="p.email"
+                  [disabled]="!puedeEnviarEnlaces || enviandoA.has(p.id_participante)"
+                  (click)="enviarEnlaces([p])"
+                  [title]="motivoSinEnvio || 'Enviarle su enlace por correo'">
+            <i class="fas" [class.fa-paper-plane]="!enviandoA.has(p.id_participante)"
+               [class.fa-spinner]="enviandoA.has(p.id_participante)"
+               [class.fa-spin]="enviandoA.has(p.id_participante)"></i>
+          </button>
+
+          <button class="cu-item-quitar" *ngIf="puedeEditarLista"
+                  (click)="confirmarQuitar(p)" title="Quitar del curso">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- DERECHA: configuración ---------- -->
+    <aside class="cu-col-config d-flex flex-column cu-scroll">
+
+      <!-- Los tres elementos -->
+      <div class="cu-card cu-card-config">
+        <div class="cu-card-titulo">Elementos del curso</div>
+
+        <label class="cu-label">Constancia</label>
+        <select class="cu-input cu-input-sm mb-2"
+                [ngModel]="curso.id_plantilla"
+                (ngModelChange)="asignar('id_plantilla', $event)"
+                [disabled]="!puedeEditarLista">
+          <option [ngValue]="null">— Elegir constancia —</option>
+          <option *ngFor="let p of plantillas" [ngValue]="p.id_plantilla">{{ p.nombre }}</option>
+        </select>
+
+        <label class="cu-label">Plantilla de correo</label>
+        <select class="cu-input cu-input-sm mb-2"
+                [ngModel]="curso.id_plantilla_correo"
+                (ngModelChange)="asignar('id_plantilla_correo', $event)"
+                [disabled]="!puedeEditarLista">
+          <option [ngValue]="null">— Elegir plantilla —</option>
+          <option *ngFor="let p of plantillasCorreo" [ngValue]="p.id_plantilla_correo">{{ p.nombre }}</option>
+        </select>
+
+        <label class="cu-label">Cuestionario</label>
+        <select class="cu-input cu-input-sm"
+                [ngModel]="curso.id_formulario"
+                (ngModelChange)="asignar('id_formulario', $event)"
+                [disabled]="!puedeEditarLista">
+          <option [ngValue]="null">— Elegir cuestionario —</option>
+          <option *ngFor="let f of cuestionarios" [ngValue]="f.id_formulario">
+            {{ f.titulo }} ({{ f.total_preguntas }} pregunta(s))
+          </option>
+        </select>
+
+        <hr class="my-2">
+
+        <!-- Aviso a quienes no aprueban: opcional, y por curso -- el mismo
+             cuestionario puede aplicarse a un grupo al que se le avisa y a
+             otro al que no. -->
+        <button type="button" class="cu-switch-fila" (click)="alternarAvisoReprobados()"
+                [disabled]="!puedeEditarLista">
+          <span class="cu-switch-track" [class.activo]="curso.enviar_correo_reprobados">
+            <span class="cu-switch-bola"></span>
+          </span>
+          <span class="cu-switch-texto">¿Enviar correo a los reprobados?</span>
+        </button>
+
+        <ng-container *ngIf="curso.enviar_correo_reprobados">
+          <label class="cu-label mt-2">Plantilla del correo de aviso</label>
+          <select class="cu-input cu-input-sm"
+                  [ngModel]="curso.id_plantilla_correo_reprobados"
+                  (ngModelChange)="asignar('id_plantilla_correo_reprobados', $event)"
+                  [disabled]="!puedeEditarLista">
+            <option [ngValue]="null">— Elegir plantilla —</option>
+            <option *ngFor="let p of plantillasCorreo" [ngValue]="p.id_plantilla_correo">{{ p.nombre }}</option>
+          </select>
+          <small class="text-muted d-block">
+            Se crea en «Correo electrónico», igual que la de las constancias.
+          </small>
+
+          <div class="cu-aviso cu-aviso-warn mt-2" *ngIf="!curso.id_plantilla_correo_reprobados">
+            <i class="fas fa-circle-exclamation"></i>
+            Falta elegir la plantilla: sin ella no se puede abrir el curso.
+          </div>
+        </ng-container>
+
+        <div class="cu-aviso mt-2" *ngIf="!puedeEditarLista">
+          <i class="fas fa-lock"></i>
+          El curso ya está cerrado: sus elementos no se pueden cambiar.
+        </div>
+      </div>
+
+      <!-- Tiempos -->
+      <div class="cu-card cu-card-config">
+        <div class="cu-card-titulo">Tiempos</div>
+
+        <label class="cu-label">Apertura programada (opcional)</label>
+        <input type="datetime-local" class="cu-input cu-input-sm mb-2"
+               [(ngModel)]="aperturaLocal" (ngModelChange)="marcarCambio()">
+
+        <label class="cu-label">Cierre del cuestionario</label>
+        <input type="datetime-local" class="cu-input cu-input-sm"
+               [(ngModel)]="cierreLocal" (ngModelChange)="marcarCambio()">
+        <small class="text-muted d-block mb-2">
+          A partir de esta hora ya no se aceptan respuestas y se apagan los enlaces individuales.
+        </small>
+
+        <label class="cu-label">Minutos por persona</label>
+        <input type="number" class="cu-input cu-input-sm" min="0"
+               [(ngModel)]="curso.minutos_por_persona" (ngModelChange)="marcarCambio()">
+        <small class="text-muted d-block mb-2">
+          Cuenta desde que cada quien abre su enlace. 0 = sin límite propio. Corta el que ocurra primero.
+        </small>
+
+      </div>
+
+      <!-- Reglas de evaluación: se capturan en el cuestionario, aquí solo se
+           leen. Duplicarlas obligaría a decidir cuál gana cada vez que
+           difirieran, y la respuesta siempre sería la del cuestionario: es
+           ahí donde están los puntos con los que se calculan. -->
+      <div class="cu-card cu-card-config">
+        <div class="cu-card-titulo">Reglas de evaluación</div>
+
+        <div class="cu-solo-lectura" *ngIf="curso.id_formulario">
+          <div class="cu-dato">
+            <span>Calificación mínima aprobatoria</span>
+            <strong>{{ curso.calificacion_aprobatoria }} / 10</strong>
+          </div>
+          <div class="cu-dato">
+            <span>Permite responder varias veces</span>
+            <strong>{{ curso.permitir_varias_respuestas ? 'Sí' : 'No' }}</strong>
+          </div>
+          <div class="cu-dato">
+            <span>Muestra la calificación al enviar</span>
+            <strong>{{ curso.mostrar_calificacion_al_enviar ? 'Sí' : 'No' }}</strong>
+          </div>
+        </div>
+
+        <div class="cu-aviso" *ngIf="!curso.id_formulario">
+          <i class="fas fa-circle-info"></i>
+          Elige un cuestionario para ver sus reglas de evaluación.
+        </div>
+
+        <small class="text-muted d-block mt-2" *ngIf="curso.id_formulario">
+          Estas reglas se configuran en el cuestionario, no aquí.
+          <a href="javascript:void(0)" (click)="irAlCuestionario()">Editar «{{ cuestionarioElegido?.titulo }}»</a>
+        </small>
+
+        <div class="cu-aviso cu-aviso-warn mt-2" *ngIf="curso.estado !== 'borrador' && curso.estado !== 'listo'">
+          <i class="fas fa-snowflake"></i>
+          El curso ya se abrió: estas son las reglas congeladas con las que se califica,
+          aunque después se edite el cuestionario.
+        </div>
+      </div>
+
+      <!-- Estado del envío de enlaces -->
+      <div class="cu-card cu-card-config">
+        <div class="cu-card-titulo">Enlaces</div>
+
+        <div class="cu-aviso cu-aviso-ok" *ngIf="listoParaAbrir">
+          <i class="fas fa-circle-check"></i>
+          Todo listo. Cada participante tiene su enlace individual generado.
+        </div>
+
+        <div class="cu-aviso cu-aviso-warn" *ngIf="motivoSinEnlaces">
+          <i class="fas fa-circle-exclamation"></i>
+          {{ motivoSinEnlaces }}
+        </div>
+
+        <!-- Agente de Correo: el envío sale de ESTA computadora, con el
+             Outlook de quien opera. Sin él no hay envío posible, así que se
+             dice antes de intentarlo, no después de que falle. -->
+        <div class="cu-agente" [class.cu-agente-ok]="estadoAgente.disponible && !agenteDesactualizado">
+          <i class="fas"
+             [class.fa-plug-circle-check]="estadoAgente.disponible && !agenteDesactualizado"
+             [class.fa-plug-circle-xmark]="!estadoAgente.disponible"
+             [class.fa-triangle-exclamation]="agenteDesactualizado"></i>
+          <span class="flex-grow-1">
+            <ng-container *ngIf="estadoAgente.disponible && !agenteDesactualizado">Agente de Correo conectado</ng-container>
+            <ng-container *ngIf="agenteDesactualizado">Agente de Correo desactualizado</ng-container>
+            <ng-container *ngIf="!estadoAgente.disponible">Agente de Correo no detectado</ng-container>
+          </span>
+          <button class="cu-icon-btn" (click)="verificarAgente()" title="Volver a verificar">
+            <i class="fas" [class.fa-rotate]="!verificandoAgente"
+               [class.fa-spinner]="verificandoAgente" [class.fa-spin]="verificandoAgente"></i>
+          </button>
+        </div>
+
+        <div class="cu-aviso cu-aviso-warn" *ngIf="agenteDesactualizado">
+          <i class="fas fa-circle-exclamation"></i>
+          Tu Agente de Correo no sabe enviar correos sin adjunto (así van los enlaces).
+          Descarga la versión nueva desde «Correo electrónico».
+        </div>
+
+        <button class="cu-btn cu-btn-primario w-100 mt-2"
+                [disabled]="!puedeEnviarEnlaces"
+                (click)="enviarATodos()"
+                [title]="motivoSinEnvio || 'Enviar su enlace personal a cada participante'">
+          <i class="fas" [class.fa-paper-plane]="!enviandoEnlaces"
+             [class.fa-spinner]="enviandoEnlaces" [class.fa-spin]="enviandoEnlaces"></i>
+          {{ enviandoEnlaces ? progresoEnvio : 'Enviar enlace a cuestionario' }}
+        </button>
+
+        <small class="text-muted d-block mt-1" *ngIf="motivoSinEnvio && !enviandoEnlaces">
+          {{ motivoSinEnvio }}
+        </small>
+
+        <small class="text-muted d-block mt-1" *ngIf="!motivoSinEnvio && !enviandoEnlaces">
+          Se enviará a {{ destinatariosPosibles.length }} persona(s)
+          <ng-container *ngIf="sinCorreo"> · {{ sinCorreo }} sin correo institucional</ng-container>
+        </small>
+
+        <hr class="my-2">
+
+        <label class="cu-label">Enlace genérico (respaldo)</label>
+        <small class="text-muted d-block mb-1">
+          Para quien no reciba su correo. Pide el número de empleado y lo valida contra esta lista.
+        </small>
+        <div class="cu-enlace">
+          <input type="text" class="cu-input cu-input-sm" [value]="enlaceGenerico" readonly>
+          <button class="cu-icon-btn" (click)="copiarEnlaceGenerico()" title="Copiar enlace">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+
+        <div class="cu-aviso mt-2" *ngIf="curso.estado !== 'abierto'">
+          <i class="fas fa-circle-info"></i>
+          El enlace genérico funciona solo mientras el curso está abierto.
+        </div>
+
+        <label class="cu-label mt-2">Prórroga del enlace genérico (opcional)</label>
+        <input type="datetime-local" class="cu-input cu-input-sm"
+               [(ngModel)]="excepcionLocal" (ngModelChange)="marcarCambio()">
+        <small class="text-muted d-block">
+          Mantiene vivo SOLO este enlace después del cierre, para quien no alcanzó a responder.
+          No reabre los enlaces individuales.
+        </small>
+      </div>
+    </aside>
+  </div>
+</div>

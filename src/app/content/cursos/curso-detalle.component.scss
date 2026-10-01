@@ -1,0 +1,647 @@
+// Armado de un curso. Tres columnas, mismo esquema y misma paleta que
+// "Generador masivo" (ver generador-masivo.component.scss): padrón a la
+// izquierda, lista al centro, configuración a la derecha.
+
+.curso-detalle {
+  height: calc(100vh - 120px);
+  min-height: 600px;
+  background: #eef1f5;
+}
+
+.cu-icono {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.cu-topbar {
+  flex: 0 0 auto;
+  box-shadow: var(--shadow-low);
+  z-index: 5;
+}
+
+.cu-titulo-wrap {
+  min-width: 0;
+}
+
+.cu-titulo-input {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  width: 320px;
+  max-width: 100%;
+  outline: none;
+
+  &:hover { border-color: #e3ddd6; }
+  &:focus { border-color: var(--color-primary); background: #fff; }
+}
+
+.cu-estado-guardado {
+  display: block;
+  padding-left: 6px;
+  font-size: 0.72rem;
+  color: #8a8a8a;
+}
+
+// ---------- Buscador ----------
+.cu-buscador {
+  background: #f6f3f0;
+  border-radius: var(--radius-md);
+  padding: 0 0.7rem;
+  height: 34px;
+  width: 250px;
+  min-width: 160px;
+  color: var(--color-light-gray);
+}
+
+.cu-buscador-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.82rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+
+  &::placeholder { color: #a39d97; }
+}
+
+.cu-buscador-limpiar {
+  border: none;
+  background: transparent;
+  color: var(--color-light-gray);
+  padding: 0 2px;
+  cursor: pointer;
+
+  &:hover { color: var(--color-primary); }
+}
+
+// ---------- Botones ----------
+.cu-icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-light-gray);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+
+  &:hover { background: #f6f3f0; color: var(--color-primary); }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+}
+
+.cu-btn {
+  border-radius: var(--radius-md);
+  height: 38px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.cu-btn-outline {
+  background: #fff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+
+  &:hover:not(:disabled) { background: var(--color-primary-light); }
+}
+
+.cu-btn-primario {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+
+  &:hover:not(:disabled) { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+}
+
+// ---------- Badges ----------
+.cu-estado {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.cu-estado-borrador { background: #e9e4de; color: #6f6a64; }
+.cu-estado-listo    { background: rgba(201, 169, 119, 0.22); color: #8a6d3b; }
+.cu-estado-abierto  { background: var(--color-success-light); color: var(--color-success); }
+.cu-estado-cerrado  { background: rgba(13, 50, 77, 0.1); color: var(--color-deep-blue); }
+.cu-estado-enviadas { background: var(--color-primary-light); color: var(--color-primary); }
+
+.cu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  background: rgba(201, 169, 119, 0.2);
+  color: #8a6d3b;
+
+  &.cu-chip-ok {
+    background: var(--color-success-light);
+    color: var(--color-success);
+  }
+}
+
+// ---------- Cuerpo ----------
+.cu-cuerpo {
+  min-height: 0;
+}
+
+.cu-cargando {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+// ---------- Columna izquierda: padrón ----------
+.cu-tabla {
+  flex: 1 1 40%;
+  width: 40%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0 16px 22px;
+}
+
+.cu-tabla-encabezado {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.cu-grid-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #fff;
+}
+
+.cu-grid {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  // Reskin del tema ag-theme-alpine con los tokens institucionales, igual
+  // que en "Generador masivo".
+  --ag-font-family: var(--font-family-text);
+  --ag-font-size: 13px;
+  --ag-header-height: 42px;
+  --ag-header-background-color: #fbf9f7;
+  --ag-header-foreground-color: #8a8a8a;
+  --ag-border-color: #eee2da;
+  --ag-row-border-color: #f3efea;
+  --ag-odd-row-background-color: #fbfaf9;
+  --ag-row-hover-color: #faf7f4;
+  --ag-selected-row-background-color: var(--color-primary-light);
+  --ag-borders: solid 1px;
+  --ag-cell-horizontal-padding: 12px;
+
+  ::ng-deep .ag-header-cell-text {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  ::ng-deep .cu-celda-agregar {
+    padding: 0;
+    text-align: center;
+  }
+}
+
+// ::ng-deep es necesario: este botón no lo pinta el template de Angular, lo
+// inyecta ag-Grid vía innerHTML (ver renderBotonAgregar() en el .ts), así que
+// nunca recibe el atributo _ngcontent-* del encapsulamiento por componente.
+::ng-deep .cu-btn-agregar {
+  width: 26px;
+  height: 26px;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 1.5px solid #d8d3ce;
+  background: transparent;
+  color: var(--color-light-gray);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background var(--duration-micro) var(--ease-standard),
+              color var(--duration-micro) var(--ease-standard),
+              border-color var(--duration-micro) var(--ease-standard);
+
+  &:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+}
+
+::ng-deep .cu-btn-agregado {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+  color: var(--color-success);
+
+  &:hover {
+    border-color: var(--color-error);
+    background: rgba(159, 13, 61, 0.08);
+    color: var(--color-error);
+  }
+}
+
+// ---------- Columna central: participantes ----------
+.cu-col-lista {
+  flex: 1 1 28%;
+  width: 28%;
+  min-width: 270px;
+  max-width: 360px;
+  margin: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cu-card {
+  background: #fff;
+  border: 1px solid #eee2da;
+  border-radius: var(--radius-lg);
+}
+
+.cu-lista-encabezado {
+  flex: 0 0 auto;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid #f3efea;
+}
+
+.cu-alta-manual {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #f3efea;
+}
+
+.cu-lista-vacia {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.cu-lista-cuerpo {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.4rem;
+  min-height: 0;
+}
+
+.cu-lista-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid #f1ece7;
+  margin-bottom: 0.35rem;
+
+  &:hover { background: #faf7f4; }
+}
+
+.cu-avatar {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.cu-sin-correo {
+  color: var(--color-gold);
+  font-size: 0.72rem;
+  flex: 0 0 auto;
+}
+
+.cu-item-quitar {
+  border: none;
+  background: transparent;
+  color: var(--color-error);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+
+  &:hover { background: rgba(159, 13, 61, 0.08); }
+}
+
+// Acciones por participante (copiar enlace, enviar). Discretas: la lista se
+// lee de un vistazo y no debe convertirse en una hilera de botones.
+.cu-item-accion {
+  border: none;
+  background: transparent;
+  color: #8a8a8a;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+
+  &:hover:not(:disabled) { background: var(--color-primary-light); color: var(--color-primary); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+// Marca de "ya se le mandó su enlace" (con el número si fue más de una vez).
+.cu-enviado {
+  flex: 0 0 auto;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--color-success);
+  background: var(--color-success-light);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+// ---------- Interruptor propio ----------
+// Botón + pista pintados a mano, no `<input type="checkbox">` con
+// `<label for>`: en el control nativo, un clic con el mínimo arrastre lo
+// interpreta el navegador como selección de texto y NUNCA dispara el
+// evento. Mismo criterio que en el editor de formularios.
+.cu-switch-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  text-align: left;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.cu-switch-track {
+  width: 34px;
+  height: 19px;
+  border-radius: var(--radius-pill);
+  background: #d6cfc8;
+  flex: 0 0 auto;
+  position: relative;
+  transition: background var(--duration-micro) var(--ease-standard);
+
+  &.activo { background: var(--color-success); }
+  &.activo .cu-switch-bola { transform: translateX(15px); }
+}
+
+.cu-switch-bola {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform var(--duration-micro) var(--ease-standard);
+}
+
+.cu-switch-texto {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4a453f;
+  user-select: none;
+}
+
+// ---------- Datos de solo lectura (reglas del cuestionario) ----------
+.cu-solo-lectura {
+  border: 1px solid #f0eae4;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.cu-dato {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.42rem 0.55rem;
+  font-size: 0.76rem;
+  color: #6b655f;
+
+  & + .cu-dato { border-top: 1px solid #f4efea; }
+
+  strong { color: var(--color-primary); white-space: nowrap; }
+}
+
+// ---------- Estado del Agente de Correo ----------
+.cu-agente {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.5rem;
+  background: rgba(159, 13, 61, 0.07);
+  color: var(--color-error);
+
+  &.cu-agente-ok {
+    background: var(--color-success-light);
+    color: #0d5c46;
+  }
+}
+
+// ---------- Observaciones de la carga ----------
+.cu-observaciones {
+  flex: 0 0 auto;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #f3efea;
+  background: #fbfaf9;
+}
+
+.cu-obs {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.3rem;
+  font-size: 0.76rem;
+
+  i { margin-top: 2px; flex: 0 0 auto; }
+  small { color: inherit; opacity: .85; }
+}
+
+.cu-obs-error {
+  background: rgba(159, 13, 61, 0.08);
+  color: var(--color-error);
+}
+
+.cu-obs-warn {
+  background: rgba(201, 169, 119, 0.18);
+  color: #8a6d3b;
+}
+
+// ---------- Columna derecha: configuración ----------
+.cu-col-config {
+  flex: 1 1 30%;
+  width: 30%;
+  min-width: 290px;
+  max-width: 380px;
+  padding: 16px 22px 16px 0;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.cu-card-config {
+  flex: 0 0 auto;
+  padding: 0.85rem;
+}
+
+.cu-card-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-title-h1);
+  margin-bottom: 0.65rem;
+}
+
+// ---------- Campos ----------
+.cu-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5b5650;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.cu-input {
+  width: 100%;
+  border: 1px solid #e3ddd6;
+  border-radius: var(--radius-md);
+  padding: 8px 11px;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background: #fff;
+  outline: none;
+  transition: border-color var(--duration-micro) var(--ease-standard);
+
+  &:focus { border-color: var(--color-primary); }
+  &::placeholder { color: #a39d97; }
+  &:disabled { background: #f6f3f0; color: #8a8a8a; cursor: not-allowed; }
+}
+
+.cu-input-sm {
+  padding: 6px 9px;
+  font-size: 0.8rem;
+}
+
+.cu-enlace {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ---------- Avisos ----------
+.cu-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  background: #f6f3f0;
+  color: #5b5650;
+
+  i { margin-top: 2px; flex: 0 0 auto; }
+}
+
+.cu-aviso-ok {
+  background: var(--color-success-light);
+  color: #0d5c46;
+}
+
+.cu-aviso-warn {
+  background: rgba(201, 169, 119, 0.18);
+  color: #8a6d3b;
+}
+
+.cu-proximamente {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  color: #8a8a8a;
+  border: 1px dashed #d8d3ce;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  margin-top: 0.5rem;
+
+  i { margin-top: 2px; flex: 0 0 auto; }
+}
+
+.min-w-0 { min-width: 0; }
+
+.cu-scroll::-webkit-scrollbar { width: 7px; }
+.cu-scroll::-webkit-scrollbar-thumb { background: #d8d3ce; border-radius: 10px; }
+.cu-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@media (max-width: 1200px) {
+  .cu-col-lista { min-width: 230px; }
+  .cu-col-config { min-width: 250px; }
+  .cu-titulo-input { width: 200px; }
+}

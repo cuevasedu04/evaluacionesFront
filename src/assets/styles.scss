@@ -675,19 +675,44 @@ textarea.form-control{
     width: 100%;
     height: 150px!important;
 }
-input[type="checkbox"].form-check-input {
+/* Excluye .form-switch a propósito: forzar width/height a un cuadrado de
+   20x20 aquí pisaba el width:2em (pastilla) de Bootstrap para los switches,
+   y como el border-radius:2em de Bootstrap seguía aplicando sobre ese
+   cuadrado, el interruptor se veía como un círculo diminuto en vez de una
+   pastilla -- eso hacía casi imperceptible si estaba encendido o apagado,
+   y por eso parecía que no se podía interactuar con los switches en
+   ninguna pantalla del sistema (Formularios fue donde se notó primero,
+   pero afecta a cualquier .form-check.form-switch existente). Los
+   checkboxes normales (sin .form-switch) conservan exactamente el mismo
+   estilo cuadrado con sombra que ya tenían. */
+.form-check:not(.form-switch) input[type="checkbox"].form-check-input {
     box-shadow: gray 0 0 4px 1px;
     border: none;
     width: 20px;
     height: 20px;
     cursor: pointer;
    /*  border: solid 1px var(--color-gold);*/
-    
+
     display: inline;
     &:checked {
         background-color: var(--color-success);
         border-color: var(--color-success);
     }
+}
+
+/* Un <label for="..."> activa el checkbox al hacer clic en cualquier parte
+   de su texto (comportamiento nativo del navegador) -- pero si el texto es
+   seleccionable, un clic con el más mínimo arrastre (mouse rápido, trackpad,
+   pantalla táctil) se interpreta como "seleccionar texto" en vez de "clic",
+   y el navegador no dispara el evento click ni activa el switch. Se ve
+   exactamente así: la palabra queda resaltada como si se hubiera
+   seleccionado, y el interruptor no cambia de estado. Es más notorio en un
+   .form-switch (una etiqueta larga junto a un control pequeño) que en un
+   checkbox normal, así que se desactiva la selección solo ahí. */
+.form-switch .form-check-label {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
 }
 
 .input-icon-wrapper {

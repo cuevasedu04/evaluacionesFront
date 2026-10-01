@@ -1,0 +1,105 @@
+.formularios-lista {
+  height: calc(100vh - 120px);
+  min-height: 600px;
+  background: #eef1f5;
+}
+
+.fl-icono {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.fl-topbar {
+  flex: 0 0 auto;
+  box-shadow: var(--shadow-low);
+  z-index: 5;
+}
+
+.fl-buscador {
+  position: relative;
+
+  i {
+    position: absolute;
+    left: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #adb5bd;
+    font-size: 0.8rem;
+    pointer-events: none;
+  }
+
+  input {
+    padding-left: 1.9rem;
+    width: 230px;
+  }
+}
+
+.fl-cuerpo {
+  min-height: 0;
+}
+
+.fl-vacio i {
+  font-size: 3rem;
+}
+
+.fl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.fl-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow var(--duration-micro) var(--ease-standard),
+              transform var(--duration-micro) var(--ease-standard);
+
+  &:hover {
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-2px);
+
+    .fl-card-acciones {
+      opacity: 1;
+    }
+  }
+}
+
+.fl-card-banda {
+  height: 6px;
+}
+
+.fl-card-cuerpo {
+  padding: 0.85rem 0.9rem 0.6rem;
+}
+
+/* Dos líneas fijas: sin esto, una descripción larga estira su tarjeta y
+   rompe la alineación de toda la fila del grid. */
+.fl-card-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.4em;
+  margin-bottom: 0.4rem;
+}
+
+.fl-card-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  padding: 0 0.5rem 0.4rem;
+  opacity: 0;
+  transition: opacity var(--duration-micro) var(--ease-standard);
+}

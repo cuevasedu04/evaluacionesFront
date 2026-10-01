@@ -24,12 +24,17 @@ import { PlantillaListaComponent } from './content/plantilla-editor/plantilla-li
 import { ImprimirCredencialesComponent } from './content/imprimir-credenciales/imprimir-credenciales.component';
 import { GeneradorMasivoComponent } from './content/generador-masivo/generador-masivo.component';
 import { CorreoElectronicoComponent } from './content/correo-electronico/correo-electronico.component';
+import { FormulariosListaComponent } from './content/formularios/formularios-lista.component';
+import { FormularioEditorComponent } from './content/formularios/formulario-editor.component';
+import { CursosListaComponent } from './content/cursos/cursos-lista.component';
+import { CursoDetalleComponent } from './content/cursos/curso-detalle.component';
 import { EnrolamientoPrevioComponent } from './content/enrolamiento-previo/enrolamiento-previo.component';
 import { InventarioMediosComponent } from './content/inventario-medios/inventario-medios.component';
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
 import { AuditoriaCredencialesComponent } from './content/auditoria-credenciales/auditoria-credenciales.component';
 import { AdministracionComponent } from './content/administracion/administracion.component';
 import { AcusesComponent } from './content/acuses/acuses.component';
+import { ResponderCuestionarioComponent } from './content/responder/responder-cuestionario.component';
 
 const routes: Routes = [
   {
@@ -121,6 +126,35 @@ const routes: Routes = [
         canActivate: [AuthGuard],
         data: { permisoRequerido: 'ver_correo_electronico'  },
       },
+      // Formularios (constructor tipo Google Forms). El editor vive en su
+      // propia ruta con el id: el autoguardado necesita un formulario que ya
+      // exista, la lista lo crea antes de navegar aqui.
+      {
+        path: 'formularios',
+        component: FormulariosListaComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_formularios'  },
+      },
+      {
+        path: 'formularios/editor/:id',
+        component: FormularioEditorComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_formularios'  },
+      },
+      // Cursos: amarra constancia + correo + cuestionario y los aplica a un
+      // grupo cerrado. El detalle vive en su propia ruta con el id.
+      {
+        path: 'cursos',
+        component: CursosListaComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_cursos'  },
+      },
+      {
+        path: 'cursos/:id',
+        component: CursoDetalleComponent,
+        canActivate: [AuthGuard],
+        data: { permisoRequerido: 'ver_cursos'  },
+      },
       {
         path: 'enrolamiento-previo',
         component: EnrolamientoPrevioComponent,
@@ -196,6 +230,28 @@ const routes: Routes = [
   {
     path: 'acceso-denegado',
     component: AccesoDenegadoComponent,
+  },
+  // ------------------------------------------------------------------
+  // Cuestionario público: las ÚNICAS rutas fuera del AuthGuard.
+  //
+  // Quien entra aquí es un empleado que recibió un enlace por correo; no
+  // tiene usuario en este sistema y su credencial es el token de la URL.
+  // Van ANTES del comodín '**' -- si quedaran después, el comodín las
+  // mandaría a /login y el enlace no abriría nada.
+  //
+  // Dos formas de llegar: el enlace individual de cada participante (la vía
+  // normal) y el enlace genérico del curso (respaldo para quien no recibió
+  // el suyo, que además pide el número de empleado). `generico: true` es lo
+  // único que las distingue en el componente.
+  // ------------------------------------------------------------------
+  {
+    path: 'responder/curso/:token',
+    component: ResponderCuestionarioComponent,
+    data: { generico: true },
+  },
+  {
+    path: 'responder/:token',
+    component: ResponderCuestionarioComponent,
   },
   { path: '**', redirectTo: 'login' },
   {

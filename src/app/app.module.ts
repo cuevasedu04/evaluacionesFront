@@ -20,6 +20,10 @@ import { TokenInterceptor } from './components/shared/interceptors/token.interce
 import { DataTablesModule } from 'angular-datatables';
 import { AccesoDenegadoComponent } from './content/acceso-denegado/acceso-denegado.component';
 import { AgGridModule } from 'ag-grid-angular';
+// Arrastrar y soltar del editor de formularios (reordenar preguntas y sus
+// incisos). Es el paquete oficial de Angular, misma version mayor que el
+// resto del framework -- por eso se prefirio a una libreria de terceros.
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RegistroEmpleadoComponent } from './content/registro-empleado/registro-empleado.component';
 import { EnrolamientoComponent } from './content/enrolamiento/enrolamiento.component';
 import { ConsultaEnrolamientoComponent } from './content/enrolamiento/consulta-enrolamiento/consulta-enrolamiento.component';
@@ -34,6 +38,11 @@ import { PlantillaListaComponent } from './content/plantilla-editor/plantilla-li
 import { ImprimirCredencialesComponent } from './content/imprimir-credenciales/imprimir-credenciales.component';
 import { GeneradorMasivoComponent } from './content/generador-masivo/generador-masivo.component';
 import { CorreoElectronicoComponent } from './content/correo-electronico/correo-electronico.component';
+import { FormulariosListaComponent } from './content/formularios/formularios-lista.component';
+import { FormularioEditorComponent } from './content/formularios/formulario-editor.component';
+import { CursosListaComponent } from './content/cursos/cursos-lista.component';
+import { CursoDetalleComponent } from './content/cursos/curso-detalle.component';
+import { ResponderCuestionarioComponent } from './content/responder/responder-cuestionario.component';
 import { EnrolamientoPrevioComponent } from './content/enrolamiento-previo/enrolamiento-previo.component';
 import { InventarioMediosComponent } from './content/inventario-medios/inventario-medios.component';
 import { CatalogoUnidadesComponent } from './content/catalogo-unidades/catalogo-unidades.component';
@@ -72,6 +81,11 @@ import { LoginComponent } from './content/login/login.component';
     ImprimirCredencialesComponent,
     GeneradorMasivoComponent,
     CorreoElectronicoComponent,
+    FormulariosListaComponent,
+    FormularioEditorComponent,
+    CursosListaComponent,
+    CursoDetalleComponent,
+    ResponderCuestionarioComponent,
     EnrolamientoPrevioComponent,
     InventarioMediosComponent,
     CatalogoUnidadesComponent,
@@ -102,7 +116,8 @@ import { LoginComponent } from './content/login/login.component';
       preventDuplicates: true,
     }), 
     HttpClientModule,
-    AgGridModule
+    AgGridModule,
+    DragDropModule
   ],
   providers: [
     {
