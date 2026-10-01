@@ -173,12 +173,6 @@
               </button>
             </div>
 
-            <button type="button" class="btn btn-sm btn-outline-primary ms-auto"
-                    title="Inserta el texto tal cual donde esté el cursor; al enviar se reemplaza por el nombre real del curso"
-                    (mousedown)="$event.preventDefault()"
-                    (click)="insertarVariableNombreCurso()">
-              <i class="fas fa-plus"></i> Insertar nombre del curso
-            </button>
           </div>
 
           <div #cuerpoEditable
@@ -192,7 +186,7 @@
 
           <small class="text-muted d-block mt-1">
             <i class="fas fa-circle-info"></i>
-            El PDF de la constancia se adjunta automáticamente; no hace falta mencionarlo en el cuerpo.
+            El PDF de la constancia se adjunta automáticamente. Escribe a mano el nombre del curso donde dice «(nombre del curso)».
           </small>
         </div>
       </div>

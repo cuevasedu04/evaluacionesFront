@@ -196,6 +196,8 @@ export interface ConfiguracionFormulario {
   tema: string;
   mensajeConfirmacion: string;
   permitirVariasRespuestas: boolean;
+  /** Con varias vueltas, cuál califica: la de mejor nota o la última que se realizó. */
+  intentoQueCuenta: 'mejor' | 'ultimo';
   mostrarBarraProgreso: boolean;
   mezclarPreguntas: boolean;
   pedirNumEmpleado: boolean;
@@ -365,6 +367,7 @@ export function configuracionPorDefecto(): ConfiguracionFormulario {
     tema: 'institucional',
     mensajeConfirmacion: 'Se registró tu respuesta.',
     permitirVariasRespuestas: false,
+    intentoQueCuenta: 'mejor',
     mostrarBarraProgreso: false,
     mezclarPreguntas: false,
     pedirNumEmpleado: true,

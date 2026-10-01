@@ -43,6 +43,15 @@
 
       <span class="cu-estado ms-2" [ngClass]="claseEstadoCurso" *ngIf="curso">{{ etiquetaEstadoCurso }}</span>
 
+      <div class="cu-vistas" *ngIf="curso && curso.estado !== 'borrador' && curso.estado !== 'listo'">
+        <button [class.activa]="vista === 'monitoreo'" (click)="abrirMonitor()">
+          <i class="fas fa-chart-line"></i> {{ curso.estado === 'abierto' ? 'En vivo' : 'Resultados' }}
+        </button>
+        <button [class.activa]="vista === 'armado'" (click)="vista = 'armado'">
+          <i class="fas fa-users"></i> Participantes
+        </button>
+      </div>
+
       <div class="ms-auto d-flex align-items-center gap-2" *ngIf="curso">
         <span class="cu-chip" [class.cu-chip-ok]="listoParaAbrir"
               *ngIf="curso.estado === 'borrador' || curso.estado === 'listo'">
@@ -89,7 +98,7 @@
   <div class="cu-cuerpo flex-grow-1 d-flex overflow-hidden" *ngIf="!cargando && curso && !errorCarga">
 
     <!-- ---------- IZQUIERDA: padrón ---------- -->
-    <section class="cu-tabla">
+    <section class="cu-tabla" *ngIf="vista === 'armado'">
       <div class="cu-tabla-encabezado d-flex align-items-center gap-2 flex-wrap">
         <div class="fw-bold small">Padrón de personal</div>
         <div class="cu-buscador d-flex align-items-center gap-2 ms-auto">
@@ -130,7 +139,7 @@
     </section>
 
     <!-- ---------- CENTRO: participantes ---------- -->
-    <section class="cu-col-lista cu-card">
+    <section class="cu-col-lista cu-card" *ngIf="vista === 'armado'">
       <div class="cu-lista-encabezado d-flex align-items-center justify-content-between">
         <div class="min-w-0">
           <div class="fw-bold">Participantes</div>
@@ -229,6 +238,85 @@
                   (click)="confirmarQuitar(p)" title="Quitar del curso">
             <i class="fas fa-xmark"></i>
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- MONITOREO EN VIVO / RESULTADOS ---------- -->
+    <section class="cu-monitor cu-card" *ngIf="vista === 'monitoreo'">
+      <div class="cu-monitor-top">
+        <div class="fw-bold">
+          <span *ngIf="curso.estado === 'abierto'"><span class="cu-punto-vivo"></span> Monitoreo en vivo</span>
+          <span *ngIf="curso.estado !== 'abierto'">Resultados del curso</span>
+        </div>
+        <small class="text-muted" *ngIf="curso.estado === 'abierto'">Se actualiza cada 5 segundos</small>
+        <button class="cu-icon-btn ms-auto" (click)="cargarMonitor()" title="Actualizar ahora"><i class="fas fa-rotate"></i></button>
+      </div>
+
+      <ng-container *ngIf="monitor">
+        <div class="cu-kpis">
+          <button class="cu-kpi" [class.activa]="filtroMonitor === 'todos'" (click)="filtroMonitor = 'todos'"><b>{{ monitor.resumen.participantes }}</b><span>Inscritos</span></button>
+          <button class="cu-kpi" [class.activa]="filtroMonitor === 'conectados'" (click)="filtroMonitor = 'conectados'"><b>{{ monitor.resumen.conectados }}</b><span>Conectados</span></button>
+          <button class="cu-kpi" [class.activa]="filtroMonitor === 'en_progreso'" (click)="filtroMonitor = 'en_progreso'"><b>{{ monitor.resumen.en_progreso }}</b><span>Respondiendo</span></button>
+          <button class="cu-kpi" [class.activa]="filtroMonitor === 'terminados'" (click)="filtroMonitor = 'terminados'"><b>{{ monitor.resumen.terminados }}</b><span>Terminaron</span></button>
+          <button class="cu-kpi" [class.activa]="filtroMonitor === 'pendientes'" (click)="filtroMonitor = 'pendientes'"><b>{{ monitor.resumen.pendientes + monitor.resumen.sin_responder }}</b><span>Sin empezar</span></button>
+          <button class="cu-kpi cu-kpi-ok" [class.activa]="filtroMonitor === 'aprobados'" (click)="filtroMonitor = 'aprobados'"><b>{{ monitor.resumen.aprobados }}</b><span>Aprobados</span></button>
+          <button class="cu-kpi cu-kpi-mal" [class.activa]="filtroMonitor === 'reprobados'" (click)="filtroMonitor = 'reprobados'"><b>{{ monitor.resumen.reprobados }}</b><span>Reprobados</span></button>
+          <div class="cu-kpi cu-kpi-fijo"><b>{{ monitor.resumen.promedio ?? '—' }}</b><span>Promedio</span></div>
+        </div>
+
+        <div class="cu-monitor-tabla cu-scroll">
+          <table>
+            <thead><tr>
+              <th>Participante</th><th>Estado</th><th>Avance</th><th>Va en</th><th>Tiempo</th><th>Calificación</th>
+            </tr></thead>
+            <tbody>
+              <tr *ngFor="let f of filasMonitor" [class.cu-fila-click]="f.calificacion !== null" (click)="verDetalle(f)">
+                <td>
+                  <div class="fw-semibold text-truncate">{{ f.nombre_completo || f.num_empleado }}</div>
+                  <small class="text-muted">No. {{ f.num_empleado }}<ng-container *ngIf="f.via_acceso === 'generico'"> · enlace genérico</ng-container><ng-container *ngIf="f.intentos > 1"> · {{ f.intentos }} intentos</ng-container></small>
+                </td>
+                <td>
+                  <span class="cu-pill" [ngClass]="{
+                    'cu-pill-vivo': f.conectado,
+                    'cu-pill-prog': !f.conectado && f.estado === 'en_progreso',
+                    'cu-pill-fin': f.estado === 'terminado',
+                    'cu-pill-off': f.estado === 'pendiente' || f.estado === 'sin_responder' }">
+                    {{ f.conectado ? 'Conectado' : f.estado === 'en_progreso' ? 'Sin señal' : f.estado === 'terminado' ? 'Terminó' : f.estado === 'sin_responder' ? 'No respondió' : 'Sin empezar' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="cu-barra" *ngIf="monitor.total_preguntas"><i [style.width.%]="(f.contestadas / monitor.total_preguntas) * 100"></i></div>
+                  <small class="text-muted">{{ f.contestadas }}/{{ monitor.total_preguntas }}</small>
+                </td>
+                <td><small *ngIf="f.pregunta_actual" [title]="f.pregunta_actual_titulo">Pregunta {{ f.pregunta_actual }}</small><small *ngIf="!f.pregunta_actual" class="text-muted">—</small></td>
+                <td><span class="cu-reloj-fila">{{ restante(f) }}</span></td>
+                <td>
+                  <ng-container *ngIf="f.calificacion !== null">
+                    <b [class.text-success]="f.aprobado" [class.text-error]="!f.aprobado">{{ f.calificacion }}</b>
+                    <small class="text-muted"> · {{ f.aprobado ? 'Aprobó' : 'Reprobó' }}</small>
+                  </ng-container>
+                  <small *ngIf="f.calificacion === null" class="text-muted">—</small>
+                </td>
+              </tr>
+              <tr *ngIf="!filasMonitor.length"><td colspan="6" class="text-center text-muted py-4">Nadie en este filtro.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+
+      <div class="cu-cargando" *ngIf="!monitor"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>
+
+      <!-- Detalle por pregunta -->
+      <div class="cu-detalle" *ngIf="detalle">
+        <div class="d-flex align-items-center mb-2">
+          <b class="small">{{ detalleDe?.nombre_completo }} · {{ detalle.calificacion }}/10</b>
+          <button class="cu-icon-btn ms-auto" (click)="cerrarDetalle()"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="cu-det-fila" *ngFor="let q of detalle.preguntas">
+          <i class="fas" [ngClass]="q.correcta ? 'fa-circle-check text-success' : 'fa-circle-xmark text-error'"></i>
+          <span class="flex-grow-1 text-truncate">{{ q.titulo }}</span>
+          <small>{{ q.puntos }}/{{ q.puntaje }}</small>
         </div>
       </div>
     </section>

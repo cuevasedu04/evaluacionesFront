@@ -87,14 +87,19 @@
 
       <div class="d-flex align-items-center gap-2 flex-grow-1">
         <input type="text" class="form-control form-control-sm w-auto"
-               style="max-width: 140px"
-               placeholder="CLAVE"
-               [(ngModel)]="plantilla.clave">
+               style="max-width: 110px"
+               readonly
+               title="La clave es consecutiva y la asigna el sistema al guardar"
+               [placeholder]="plantilla.clave ? '' : 'Automática'"
+               [value]="plantilla.clave || ''">
         <input type="text" class="form-control form-control-sm"
                style="max-width: 260px"
                placeholder="Nombre de la plantilla"
                [(ngModel)]="plantilla.nombre">
-        <span *ngIf="hayCambios" class="badge bg-warning text-dark">
+        <span *ngIf="autoguardando" class="badge bg-secondary">
+          <i class="fas fa-spinner fa-spin fa-xs"></i> Guardando...
+        </span>
+        <span *ngIf="hayCambios && !autoguardando" class="badge bg-warning text-dark">
           <i class="fas fa-circle fa-xs"></i> Sin guardar
         </span>
       </div>

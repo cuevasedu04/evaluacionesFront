@@ -152,17 +152,34 @@ export class FormularioEditorComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Numero de cambio mas reciente. Un guardado solo da por saldado lo que
+   * viajaba cuando salio: si la persona siguio editando mientras la peticion
+   * estaba en vuelo, esos cambios siguen pendientes. Sin esto, la respuesta
+   * del primer guardado marcaba TODO como guardado y lo editado en ese
+   * lapso (opciones recien escritas, una pregunta nueva) nunca llegaba al
+   * servidor y desaparecia al recargar.
+   */
+  private versionCambios = 0;
+
   /** Marca que hubo un cambio: agenda el autoguardado y guarda un punto de deshacer. */
   marcarCambio(): void {
     if (this.restaurando) return;
     this.hayCambiosSinGuardar = true;
+    this.versionCambios++;
     this.registrarHistorial();
     this.cambios$.next();
   }
 
   guardar(silencioso = false): void {
     const formulario = this.formulario;
-    if (!formulario?.id_formulario || this.guardando) return;
+    if (!formulario?.id_formulario) return;
+    if (this.guardando) {
+      // Hay un guardado en vuelo: no se descarta este, se reprograma.
+      this.cambios$.next();
+      return;
+    }
+    const versionEnviada = this.versionCambios;
 
     const payload = {
       titulo: formulario.titulo,
@@ -181,7 +198,11 @@ export class FormularioEditorComponent implements OnInit, OnDestroy {
     peticion$.subscribe({
       next: (res) => {
         this.guardando = false;
-        this.hayCambiosSinGuardar = false;
+        if (this.versionCambios === versionEnviada) {
+          this.hayCambiosSinGuardar = false;
+        } else {
+          this.cambios$.next(); // se edito mientras viajaba: falta guardar lo nuevo
+        }
         if (formulario) {
           formulario.fecha_modificacion = res?.fecha_modificacion;
         }

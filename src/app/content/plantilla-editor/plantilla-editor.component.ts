@@ -1,7 +1,11 @@
 import {
+  HostListener,
   AfterViewInit, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import * as fabric from 'fabric';
 
 import { TipoToast } from '../../../api/entidades/enumeraciones';
@@ -78,7 +82,22 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
 
   guardando = false;
   cargando = false;
-  hayCambios = false;
+  /**
+   * Cada vez que se marca como modificada, se programa el autoguardado
+   * (servidor) y se respalda el borrador en el navegador. Es getter/setter
+   * porque el editor asigna `hayCambios = true` en una docena de lugares
+   * (canvas, fondo, tamano de papel...) y asi ninguno se puede olvidar.
+   */
+  private _hayCambios = false;
+  get hayCambios(): boolean { return this._hayCambios; }
+  set hayCambios(valor: boolean) {
+    this._hayCambios = valor;
+    if (valor && this.canvas) this.cambios$.next();
+  }
+
+  autoguardando = false;
+  private cambios$ = new Subject<void>();
+  private subs: Subscription[] = [];
 
   /**
    * JSON del lienzo (Fabric). Las constancias de evaluaciones son a una
@@ -121,6 +140,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     private route: ActivatedRoute,
     private router: Router,
     private modalManager: ModalManagerService,
+    private ubicacion: Location,
     public permisosS: PermisosService,
   ) { }
 
@@ -131,6 +151,13 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   ngOnInit(): void {
     this.cargarFondos();
     this.cargarFuentes();
+
+    this.subs.push(
+      // Respaldo local rapido: cubre cerrar la pestana o perder la red antes
+      // de que el guardado en servidor llegue.
+      this.cambios$.pipe(debounceTime(700)).subscribe(() => this.guardarBorradorLocal()),
+      this.cambios$.pipe(debounceTime(2500)).subscribe(() => this.autoguardar()),
+    );
   }
 
   ngAfterViewInit(): void {
@@ -143,7 +170,60 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   ngOnDestroy(): void {
+    this.subs.forEach((x) => x.unsubscribe());
+    // Si se sale con cambios todavia en el debounce, se intenta guardar.
+    if (this.hayCambios) this.autoguardar();
     this.canvas?.dispose();
+  }
+
+  /** Avisa al cerrar la ventana con cambios aun sin confirmar en el servidor. */
+  @HostListener('window:beforeunload', ['$event'])
+  alSalir(evento: BeforeUnloadEvent): void {
+    if (this.hayCambios) {
+      this.guardarBorradorLocal();
+      evento.preventDefault();
+      evento.returnValue = '';
+    }
+  }
+
+  // ====================================================================
+  // Autoguardado y borrador local
+  // ====================================================================
+
+  private get claveBorrador(): string {
+    return `constancias.plantilla.borrador.${this.plantilla.id_plantilla || 'nueva'}`;
+  }
+
+  private guardarBorradorLocal(): void {
+    if (!this.canvas || !this.hayCambios) return;
+    try {
+      this.guardarEnMemoria();
+      localStorage.setItem(this.claveBorrador, JSON.stringify({
+        nombre: this.plantilla.nombre,
+        canvas_frente: this.canvasFrente,
+        fondo_frente: this.fondoFrente,
+        ancho_px: this.anchoDiseno,
+        alto_px: this.altoDiseno,
+        ancho_mm: this.plantilla.ancho_mm,
+        alto_mm: this.plantilla.alto_mm,
+        guardadoEn: Date.now(),
+      }));
+    } catch { /* sin espacio o modo privado: el servidor sigue siendo el camino principal */ }
+  }
+
+  private borrarBorradorLocal(clave = this.claveBorrador): void {
+    try { localStorage.removeItem(clave); } catch { /* nada */ }
+  }
+
+  /**
+   * Guarda en el servidor sin tocar la pantalla. Una plantilla nueva se crea
+   * en el primer autoguardado (en cuanto tenga nombre): asi nunca existe
+   * "llevo un rato disenando y no hay nada en la BD".
+   */
+  private autoguardar(): void {
+    if (!this.hayCambios || this.guardando || this.autoguardando || this.cargando) return;
+    if (!this.plantilla.nombre?.trim()) return; // sin nombre solo queda el borrador local
+    this.persistir(true);
   }
 
   // ====================================================================
@@ -749,6 +829,7 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
         await this.cargarEnCanvas();
         this.cargando = false;
         this.hayCambios = false;
+        await this.ofrecerBorrador(res);
       },
       error: (err) => {
         this.cargando = false;
@@ -758,28 +839,32 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   guardar(): void {
-    if (!this.plantilla.clave?.trim() || !this.plantilla.nombre?.trim()) {
-      this.utils.MuestrasToast(TipoToast.Warning, 'Clave y nombre de la plantilla son obligatorios.');
+    if (!this.plantilla.nombre?.trim()) {
+      this.utils.MuestrasToast(TipoToast.Warning, 'El nombre de la plantilla es obligatorio.');
       return;
     }
+    this.persistir(false);
+  }
 
+  private persistir(silencioso: boolean): void {
     this.guardarEnMemoria();
-    this.guardando = true;
+    if (silencioso) this.autoguardando = true; else this.guardando = true;
+
+    const claveBorradorAnterior = this.claveBorrador;
 
     // canvas_reverso/fondo_reverso NO se mandan a proposito: las
     // constancias son a una sola cara. El PATCH deja esas columnas tal
-    // cual esten en BD (si una plantilla vieja de credencial CR80 aun
-    // tenia reverso, no se borra solo, simplemente ya no es editable
-    // desde aqui).
-    const payload: PlantillaCredencial = {
-      ...this.plantilla,
-      clave: this.plantilla.clave.trim().toUpperCase().replace(/\s+/g, '_'),
+    // cual esten en BD. `clave` tampoco: la asigna el servidor (consecutiva).
+    const { clave, ...resto } = this.plantilla;
+    const payload: any = {
+      ...resto,
       canvas_frente: this.canvasFrente,
       fondo_frente: this.fondoFrente,
       ancho_px: this.anchoDiseno,
       alto_px: this.altoDiseno,
     };
 
+    const eraNueva = !this.plantilla.id_plantilla;
     const peticion$ = this.plantilla.id_plantilla
       ? this.plantillaApi.actualizar(this.plantilla.id_plantilla, payload)
       : this.plantillaApi.crear(payload);
@@ -787,19 +872,50 @@ export class PlantillaEditorComponent implements OnInit, AfterViewInit, OnDestro
     peticion$.subscribe({
       next: (res) => {
         this.guardando = false;
+        this.autoguardando = false;
         this.hayCambios = false;
         this.plantilla = { ...this.plantilla, ...res };
-        this.utils.MuestrasToast(TipoToast.Success, 'Plantilla guardada correctamente');
+        this.borrarBorradorLocal(claveBorradorAnterior);
 
-        if (res.id_plantilla && !this.route.snapshot.paramMap.get('id')) {
-          this.router.navigate(['/plantillas/editor', res.id_plantilla], { replaceUrl: true });
+        if (!silencioso) {
+          this.utils.MuestrasToast(TipoToast.Success, 'Plantilla guardada correctamente');
+        }
+
+        // La URL pasa a /editor/:id sin recrear el componente: navegar de
+        // verdad destruiria el lienzo a media edicion.
+        if (eraNueva && res.id_plantilla) {
+          this.ubicacion.replaceState(`/plantillas/editor/${res.id_plantilla}`);
         }
       },
       error: (err) => {
         this.guardando = false;
-        this.utils.MuestraErrorInterno(err);
+        this.autoguardando = false;
+        // El borrador local ya esta a salvo; el autoguardado reintenta con el
+        // siguiente cambio. Solo el guardado manual molesta con un toast.
+        this.guardarBorradorLocal();
+        if (!silencioso) this.utils.MuestraErrorInterno(err);
       },
     });
+  }
+
+  /** Si quedo un borrador mas reciente que lo guardado (se cerro la ventana o se cayo la red), se recupera. */
+  private async ofrecerBorrador(res: any): Promise<void> {
+    try {
+      const crudo = localStorage.getItem(this.claveBorrador);
+      if (!crudo) return;
+      const b = JSON.parse(crudo);
+      const servidor = Date.parse(res?.fecha_modificacion || '') || 0;
+      if (!b?.canvas_frente || (b.guardadoEn || 0) <= servidor) {
+        this.borrarBorradorLocal();
+        return;
+      }
+      this.plantilla.nombre = b.nombre || this.plantilla.nombre;
+      this.fondoFrente = b.fondo_frente ?? this.fondoFrente;
+      this.canvasFrente = b.canvas_frente;
+      await this.cargarEnCanvas();
+      this.hayCambios = true;
+      this.utils.MuestrasToast(TipoToast.Info, 'Se recuperó tu avance sin guardar.');
+    } catch { /* borrador ilegible: se ignora */ }
   }
 
   volverAlListado(): void {

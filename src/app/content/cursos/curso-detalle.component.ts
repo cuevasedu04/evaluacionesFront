@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
-import { Subject, Subscription } from 'rxjs';
+import { Subject, Subscription, interval } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
 import { TipoToast } from '../../../api/entidades/enumeraciones';
@@ -118,6 +118,17 @@ export class CursoDetalleComponent implements OnInit, OnDestroy {
   /** Ids en curso de envío: apagan solo su propio botón, no toda la lista. */
   enviandoA = new Set<number>();
 
+  // ---- Monitoreo en vivo / resultados ----
+  vista: 'armado' | 'monitoreo' = 'armado';
+  monitor: any = null;
+  filtroMonitor: 'todos' | 'conectados' | 'en_progreso' | 'terminados' | 'pendientes' | 'aprobados' | 'reprobados' = 'todos';
+  detalle: any = null;
+  detalleDe: any = null;
+  /** Diferencia reloj navegador - servidor, para que el contador por persona coincida con el corte real. */
+  private desfaseMonitorMs = 0;
+  private baseMonitorMs = 0;
+  segundosExtra = 0;
+
   private cambios$ = new Subject<void>();
   private subs: Subscription[] = [];
 
@@ -151,6 +162,13 @@ export class CursoDetalleComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subs.push(
+      // Sondeo: este backend no tiene WebSockets (WSGI + gunicorn, sin
+      // channels), asi que el "en vivo" es consultar cada 5 s. Para ver el
+      // avance de un grupo, 5 s de retraso es indistinguible de tiempo real.
+      interval(5000).subscribe(() => {
+        if (this.vista === 'monitoreo' && this.curso?.estado === 'abierto') this.cargarMonitor();
+      }),
+      interval(1000).subscribe(() => { this.segundosExtra = Math.floor((Date.now() - this.baseMonitorMs) / 1000); }),
       this.cambios$.pipe(debounceTime(RETARDO_AUTOGUARDADO)).subscribe(() => this.guardarConfiguracion()),
     );
 
@@ -192,7 +210,9 @@ export class CursoDetalleComponent implements OnInit, OnDestroy {
   }
 
   private aplicarCurso(res: Curso): void {
+    const primera = !this.curso;
     this.curso = res;
+    if (primera && res.estado !== 'borrador' && res.estado !== 'listo') this.abrirMonitor();
     this.aperturaLocal = isoAInputLocal(res.fecha_apertura_programada);
     this.cierreLocal = isoAInputLocal(res.fecha_cierre_programada);
     this.excepcionLocal = isoAInputLocal(res.fecha_cierre_excepcion);
@@ -523,6 +543,59 @@ export class CursoDetalleComponent implements OnInit, OnDestroy {
   }
 
   // ====================================================================
+  // Monitoreo en vivo y resultados
+  // ====================================================================
+
+  abrirMonitor(): void {
+    this.vista = 'monitoreo';
+    this.cargarMonitor();
+  }
+
+  cargarMonitor(): void {
+    if (!this.curso?.id_curso) return;
+    this.api.monitoreo(this.curso.id_curso).subscribe({
+      next: (res) => {
+        this.monitor = res;
+        this.baseMonitorMs = Date.now();
+        this.segundosExtra = 0;
+        // El servidor puede haber cerrado el curso solo (venció la fecha).
+        if (res.curso && res.curso.estado !== this.curso?.estado) this.aplicarCurso(res.curso);
+      },
+      error: () => { /* un sondeo fallido no debe interrumpir: se reintenta en 5 s */ },
+    });
+  }
+
+  get filasMonitor(): any[] {
+    const f = this.monitor?.participantes || [];
+    switch (this.filtroMonitor) {
+      case 'conectados': return f.filter((x: any) => x.conectado);
+      case 'en_progreso': return f.filter((x: any) => x.estado === 'en_progreso');
+      case 'terminados': return f.filter((x: any) => x.estado === 'terminado');
+      case 'pendientes': return f.filter((x: any) => x.estado === 'pendiente' || x.estado === 'sin_responder');
+      case 'aprobados': return f.filter((x: any) => x.aprobado === true);
+      case 'reprobados': return f.filter((x: any) => x.aprobado === false);
+      default: return f;
+    }
+  }
+
+  restante(fila: any): string {
+    if (fila.segundos_restantes === null || fila.segundos_restantes === undefined) return '—';
+    const s = Math.max(0, fila.segundos_restantes - this.segundosExtra);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  verDetalle(fila: any): void {
+    if (!this.curso?.id_curso || fila.calificacion === null) return;
+    this.detalleDe = fila;
+    this.api.detalleIntento(this.curso.id_curso, fila.id_participante).subscribe({
+      next: (res) => { this.detalle = res; },
+      error: (err) => this.utils.MuestraErrorInterno(err),
+    });
+  }
+
+  cerrarDetalle(): void { this.detalle = null; this.detalleDe = null; }
+
+  // ====================================================================
   // Apertura y cierre
   // ====================================================================
 
@@ -542,6 +615,7 @@ export class CursoDetalleComponent implements OnInit, OnDestroy {
           next: (res) => {
             this.aplicarCurso(res.curso);
             this.utils.MuestrasToast(TipoToast.Success, 'Curso abierto. Ya puedes enviar los enlaces.');
+            this.abrirMonitor();
           },
           error: (err) => this.utils.MuestraErrorInterno(err),
         });
@@ -565,6 +639,7 @@ export class CursoDetalleComponent implements OnInit, OnDestroy {
             this.aplicarCurso(res.curso);
             this.cargarParticipantes();
             this.utils.MuestrasToast(TipoToast.Success, 'Curso cerrado.');
+            this.abrirMonitor();
           },
           error: (err) => this.utils.MuestraErrorInterno(err),
         });

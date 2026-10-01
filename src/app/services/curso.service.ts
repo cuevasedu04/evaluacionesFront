@@ -115,6 +115,16 @@ export class CursoService {
     );
   }
 
+  /** Avance de cada participante + totales (monitoreo en vivo y resultados). Sin loader: se consulta cada pocos segundos. */
+  monitoreo(id: number): Observable<any> {
+    return this.http.get<any>(`${this.api}${id}/monitoreo/`, SIN_LOADER_GLOBAL);
+  }
+
+  /** Acierto/error por pregunta de un participante. */
+  detalleIntento(id: number, idParticipante: number): Observable<any> {
+    return this.http.get<any>(`${this.api}${id}/detalle-intento/?id_participante=${idParticipante}`);
+  }
+
   intentos(id: number): Observable<{ status: string; intentos: any[] }> {
     return this.http.get<{ status: string; intentos: any[] }>(`${this.api}${id}/intentos/`);
   }

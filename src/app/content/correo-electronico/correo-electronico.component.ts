@@ -6,12 +6,9 @@ import { CorreoService, PlantillaCorreo } from '../../services/correo.service';
 import { ModalManagerService } from '../../components/shared/modal-manager.service';
 import { PermisosService } from '../../services/permisos.service';
 
-/** Token que se sustituye por el nombre real del curso al momento de enviar (ver GeneradorMasivoComponent.enviarPorCorreo). */
-export const VARIABLE_NOMBRE_CURSO = '{{nombre_curso}}';
-
 const CUERPO_POR_DEFECTO = `
   <p>Estimado(a):</p>
-  <p>Se adjunta tu constancia del curso <strong>${VARIABLE_NOMBRE_CURSO}</strong>.</p>
+  <p>Se adjunta tu constancia del curso <strong>(nombre del curso)</strong>.</p>
   <p>Saludos.</p>
 `;
 
@@ -53,7 +50,6 @@ export class CorreoElectronicoComponent implements AfterViewInit {
 
   readonly tamanosFuente = TAMANOS_FUENTE;
   readonly fuentes = FUENTES;
-  readonly variableNombreCurso = VARIABLE_NOMBRE_CURSO;
 
   // ---- Lista de plantillas guardadas ----
   plantillas: PlantillaCorreo[] = [];
@@ -171,13 +167,6 @@ export class CorreoElectronicoComponent implements AfterViewInit {
   comando(nombre: string, valor?: string): void {
     this.restaurarSeleccion();
     document.execCommand(nombre, false, valor);
-    this.guardarSeleccion();
-    this.marcarCambio();
-  }
-
-  insertarVariableNombreCurso(): void {
-    this.restaurarSeleccion();
-    document.execCommand('insertText', false, VARIABLE_NOMBRE_CURSO);
     this.guardarSeleccion();
     this.marcarCambio();
   }

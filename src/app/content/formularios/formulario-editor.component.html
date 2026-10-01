@@ -732,6 +732,15 @@
           </span>
           <span class="fe-switch-texto">Permitir más de una respuesta por persona</span>
         </button>
+
+        <div class="ms-5 mb-2" *ngIf="formulario.configuracion.permitirVariasRespuestas && formulario.configuracion.esCuestionario">
+          <label class="small text-muted d-block mb-1">Si hay varios intentos, cuenta:</label>
+          <select class="form-select form-select-sm w-auto" [(ngModel)]="formulario.configuracion.intentoQueCuenta"
+                  (ngModelChange)="marcarCambio()">
+            <option value="mejor">La calificación más alta</option>
+            <option value="ultimo">El último intento realizado</option>
+          </select>
+        </div>
       </div>
 
       <div class="fe-card">

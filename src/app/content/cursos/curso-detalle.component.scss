@@ -186,9 +186,12 @@
 
 // ---------- Columna izquierda: padrón ----------
 .cu-tabla {
-  flex: 1 1 40%;
-  width: 40%;
-  min-width: 0;
+  // Angosta a proposito: solo caben el "+", el numero de empleado y el nombre;
+  // el resto de columnas queda disponible con scroll horizontal de la grid.
+  flex: 0 0 360px;
+  width: 360px;
+  max-width: 38%;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   padding: 16px 0 16px 22px;
@@ -645,3 +648,40 @@
   .cu-col-config { min-width: 250px; }
   .cu-titulo-input { width: 200px; }
 }
+
+// ---------- Monitoreo en vivo / resultados ----------
+.cu-vistas {
+  display: flex; gap: 2px; background: #f6f3f0; border-radius: var(--radius-md); padding: 3px;
+  button {
+    border: none; background: transparent; border-radius: var(--radius-sm); padding: 5px 12px;
+    font-size: 0.76rem; font-weight: 700; color: #6b655f; cursor: pointer;
+    &.activa { background: #fff; color: var(--color-primary); box-shadow: var(--shadow-low); }
+  }
+}
+.cu-monitor { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; margin: 16px 0 16px 22px; overflow: hidden; position: relative; }
+.cu-monitor-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #f3efea; }
+.cu-punto-vivo { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--color-success); margin-right: 6px; animation: cu-vivo 1.4s ease-in-out infinite; }
+@keyframes cu-vivo { 50% { opacity: .3; } }
+.cu-kpis { display: flex; gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
+.cu-kpi {
+  flex: 1 1 90px; border: 1px solid #eee2da; background: #fff; border-radius: var(--radius-md); padding: 8px 10px; text-align: left; cursor: pointer;
+  b { display: block; font-size: 1.25rem; color: var(--color-primary); line-height: 1.1; }
+  span { font-size: 0.68rem; color: #8a8a8a; font-weight: 600; }
+  &.activa { border-color: var(--color-primary); background: var(--color-primary-light); }
+  &.cu-kpi-ok b { color: var(--color-success); }
+  &.cu-kpi-mal b { color: var(--color-error); }
+  &.cu-kpi-fijo { cursor: default; }
+}
+.cu-monitor-tabla { flex: 1 1 auto; overflow: auto; padding: 0 14px 14px; }
+.cu-monitor-tabla table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.cu-monitor-tabla th { text-align: left; font-size: 0.68rem; text-transform: uppercase; color: #8a8a8a; padding: 6px 8px; border-bottom: 1px solid #eee2da; position: sticky; top: 0; background: #fff; }
+.cu-monitor-tabla td { padding: 8px; border-bottom: 1px solid #f6f1ec; vertical-align: middle; }
+.cu-fila-click { cursor: pointer; &:hover { background: #faf7f4; } }
+.cu-pill { font-size: 0.66rem; font-weight: 700; padding: 2px 9px; border-radius: var(--radius-pill); background: #eee; color: #666; white-space: nowrap;
+  &.cu-pill-vivo { background: var(--color-success-light); color: #0d5c46; }
+  &.cu-pill-prog { background: rgba(201,169,119,.2); color: #8a6d3b; }
+  &.cu-pill-fin { background: var(--color-primary-light); color: var(--color-primary); } }
+.cu-barra { height: 5px; background: #eee6df; border-radius: 9px; overflow: hidden; min-width: 70px; i { display: block; height: 100%; background: var(--color-primary); } }
+.cu-reloj-fila { font-variant-numeric: tabular-nums; font-weight: 700; }
+.cu-detalle { position: absolute; right: 14px; bottom: 14px; width: 340px; max-height: 60%; overflow: auto; background: #fff; border: 1px solid #eee2da; border-radius: var(--radius-lg); box-shadow: var(--shadow-medium); padding: 12px; }
+.cu-det-fila { display: flex; align-items: center; gap: 8px; font-size: 0.76rem; padding: 4px 0; }

@@ -58,6 +58,9 @@
               Vuelve a entrar con este mismo enlace cuando te avisen que ya está abierto.
             </ng-container>
           </p>
+          <button class="rc-btn rc-btn-primario mt-2" (click)="reintentar()">
+            <i class="fas fa-rotate-right"></i> Revisar de nuevo
+          </button>
         </ng-container>
 
         <ng-container *ngSwitchCase="'curso_cerrado'">

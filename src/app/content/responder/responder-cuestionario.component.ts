@@ -735,6 +735,12 @@ export class ResponderCuestionarioComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Vuelve a consultar el estado (p. ej. cuando ya llego la hora de apertura). */
+  reintentar(): void {
+    this.cargando = true;
+    this.cargarEstado();
+  }
+
   /** Empieza otra vuelta. Solo se ofrece si el cuestionario permite varias respuestas. */
   responderOtraVez(): void {
     this.intentoEnvio = false;
